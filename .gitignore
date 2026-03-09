@@ -1,0 +1,16 @@
+.next
+node_modules
+out
+dist
+.vercel
+.env
+.env.*
+!.env.example
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+audio-import/
+scripts/audio-manifest.generated.json
+preview-server.log
+dev-server.log

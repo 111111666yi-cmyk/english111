@@ -1,0 +1,26 @@
+[
+  {
+    "id": "expression-important",
+    "level": "L4",
+    "basic": "very important",
+    "advanced": "crucial",
+    "meaningZh": "非常重要的 -> 至关重要的",
+    "exampleBasic": "Sleep is very important for students.",
+    "exampleAdvanced": "Sleep is crucial for students.",
+    "noteZh": "crucial 更紧凑，也更适合书面和正式表达。",
+    "audioLocalBasic": "/audio/expressions/very-important.wav",
+    "audioLocalAdvanced": "/audio/expressions/crucial.wav"
+  },
+  {
+    "id": "expression-helpful",
+    "level": "L4",
+    "basic": "good for you",
+    "advanced": "beneficial",
+    "meaningZh": "对你有好处 -> 有益的",
+    "exampleBasic": "Daily reading is good for you.",
+    "exampleAdvanced": "Daily reading is beneficial.",
+    "noteZh": "beneficial 常用于说明长期收益，比 good for you 更正式。",
+    "audioLocalBasic": "/audio/expressions/good-for-you.wav",
+    "audioLocalAdvanced": "/audio/expressions/beneficial.wav"
+  }
+]

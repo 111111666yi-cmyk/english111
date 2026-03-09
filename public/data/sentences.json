@@ -1,0 +1,91 @@
+[
+  {
+    "id": "sentence-clues",
+    "sentenceEn": "When you notice a keyword, the whole sentence becomes easier to understand.",
+    "sentenceZh": "当你注意到关键词时，整句话就会更容易理解。",
+    "keywords": [
+      "notice",
+      "keyword",
+      "understand"
+    ],
+    "difficulty": 2,
+    "grammarPoint": "when 引导时间状语从句",
+    "relatedWords": [
+      "notice",
+      "understand"
+    ],
+    "jumbled": [
+      "the",
+      "sentence",
+      "becomes",
+      "easier",
+      "to",
+      "understand"
+    ],
+    "missingWord": "keyword",
+    "explanation": "前半句给出条件，后半句说明结果。",
+    "audioLocal": "/audio/sentences/notice-keyword.wav",
+    "keywordAudio": {
+      "notice": "/audio/words/notice.wav"
+    }
+  },
+  {
+    "id": "sentence-routine",
+    "sentenceEn": "A short review after dinner can turn a busy day into a useful study routine.",
+    "sentenceZh": "晚饭后做一个简短复习，能把忙碌的一天变成有价值的学习习惯。",
+    "keywords": [
+      "review",
+      "busy",
+      "routine"
+    ],
+    "difficulty": 3,
+    "grammarPoint": "can + 动词原形表达可能或能力",
+    "relatedWords": [
+      "review",
+      "routine"
+    ],
+    "jumbled": [
+      "turn",
+      "a",
+      "busy",
+      "day",
+      "into",
+      "a",
+      "routine"
+    ],
+    "missingWord": "useful",
+    "explanation": "句子强调小习惯带来的长期收益。",
+    "audioLocal": "/audio/sentences/study-routine.wav"
+  },
+  {
+    "id": "sentence-upgrade",
+    "sentenceEn": "Instead of saying very important, you can use crucial in a formal sentence.",
+    "sentenceZh": "与其说 very important，你可以在正式句子里使用 crucial。",
+    "keywords": [
+      "instead of",
+      "crucial",
+      "formal"
+    ],
+    "difficulty": 4,
+    "grammarPoint": "instead of 表示替换表达",
+    "relatedWords": [
+      "crucial"
+    ],
+    "jumbled": [
+      "you",
+      "can",
+      "use",
+      "crucial",
+      "in",
+      "a",
+      "formal",
+      "sentence"
+    ],
+    "missingWord": "important",
+    "explanation": "这是基础表达升级到更正式表达的例子。",
+    "audioLocal": "/audio/sentences/use-crucial.wav",
+    "keywordAudio": {
+      "crucial": "/audio/words/crucial.wav"
+    }
+  }
+]

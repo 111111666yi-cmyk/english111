@@ -1,0 +1,117 @@
+[
+  {
+    "id": "passage-reading-club",
+    "title": "The Small Reading Club",
+    "level": "L3",
+    "topic": "school",
+    "contentEn": [
+      "Mina and her friends started a reading club in the school library. They did not choose long novels at first. Instead, they picked short stories with clear topics and useful words.",
+      "Every Friday, each student shared one sentence that they liked. Then the group discussed why the sentence worked well. Sometimes they noticed a new phrase, and sometimes they found a better way to say a simple idea.",
+      "After two months, Mina felt a real change. She still met difficult words, but she was no longer afraid of them. She learned to use context, examples, and repeated reading to understand more."
+    ],
+    "contentZh": [
+      "米娜和朋友们在学校图书馆成立了一个阅读俱乐部。她们一开始没有选择长篇小说，而是挑选主题清晰、词汇实用的短篇故事。",
+      "每周五，每位学生都会分享一句自己喜欢的句子。然后小组讨论这句话为什么写得好。有时她们会注意到一个新短语，有时会发现表达简单想法的更好方式。",
+      "两个月后，米娜感受到了真实的变化。她仍然会遇到难词，但已经不再害怕。她学会了借助上下文、例子和重复阅读来理解更多内容。"
+    ],
+    "keyWords": [
+      "context",
+      "phrase",
+      "shared",
+      "afraid",
+      "repeated"
+    ],
+    "estimatedMinutes": 6,
+    "audioLocal": "/audio/passages/reading-club.wav",
+    "paragraphAudio": [
+      "/audio/passages/reading-club-p1.wav",
+      "/audio/passages/reading-club-p2.wav",
+      "/audio/passages/reading-club-p3.wav"
+    ],
+    "questions": [
+      {
+        "id": "passage-reading-club-q1",
+        "type": "reading-question",
+        "prompt": "Why did the club choose short stories first?",
+        "promptZh": "为什么这个俱乐部一开始选择短篇故事？",
+        "options": [
+          {
+            "id": "a",
+            "label": "They were easier to discuss and understand."
+          },
+          {
+            "id": "b",
+            "label": "The library had no novels."
+          },
+          {
+            "id": "c",
+            "label": "Their teacher ordered them to do so."
+          }
+        ],
+        "answer": "a",
+        "explanation": "第一段强调短篇故事主题清晰、词汇实用，因此更容易理解和讨论。",
+        "relatedWords": [
+          "short stories",
+          "understand"
+        ],
+        "difficulty": 2,
+        "sourceRef": "passage-reading-club"
+      },
+      {
+        "id": "passage-reading-club-q2",
+        "type": "reading-question",
+        "prompt": "What helped Mina feel less afraid of difficult words?",
+        "promptZh": "什么帮助米娜不再害怕难词？",
+        "options": [
+          {
+            "id": "a",
+            "label": "She stopped reading hard texts."
+          },
+          {
+            "id": "b",
+            "label": "She learned to use context and examples."
+          },
+          {
+            "id": "c",
+            "label": "She translated every word into Chinese."
+          }
+        ],
+        "answer": "b",
+        "explanation": "最后一段明确提到 context、examples 和 repeated reading。",
+        "relatedWords": [
+          "context",
+          "examples"
+        ],
+        "difficulty": 3,
+        "sourceRef": "passage-reading-club"
+      },
+      {
+        "id": "passage-reading-club-q3",
+        "type": "reading-question",
+        "prompt": "The club started with long novels because Mina liked difficult books.",
+        "promptZh": "这个俱乐部一开始读长篇小说，因为米娜喜欢难书。",
+        "options": [
+          {
+            "id": "true",
+            "label": "True"
+          },
+          {
+            "id": "false",
+            "label": "False"
+          }
+        ],
+        "answer": "false",
+        "explanation": "第一段说明她们一开始没有选择长篇小说。",
+        "relatedWords": [
+          "novels",
+          "short stories"
+        ],
+        "difficulty": 2,
+        "sourceRef": "passage-reading-club",
+        "meta": {
+          "mode": "true-false"
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,41 @@
+{
+  "name": "english-climb",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node ./scripts/dev.mjs",
+    "build": "next build",
+    "start": "next start",
+    "preview": "serve out -l 3002",
+    "lint": "node ./node_modules/eslint/bin/eslint.js . --ext .js,.jsx,.ts,.tsx",
+    "validate:data": "tsx scripts/validate-data.ts",
+    "validate:audio": "tsx scripts/validate-audio.ts",
+    "build:content": "tsx scripts/build-content.ts",
+    "import:audio": "tsx scripts/import-audio-manifest.ts",
+    "manifest:audio": "tsx scripts/generate-audio-manifest.ts",
+    "sync:audio": "tsx scripts/sync-audio-workflow.ts",
+    "tts:local": "powershell -ExecutionPolicy Bypass -File ./scripts/tts-local-workflow.ps1"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.6.2",
+    "lucide-react": "^0.511.0",
+    "next": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.3.0",
+    "postcss": "^8.5.3",
+    "serve": "^14.2.6",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

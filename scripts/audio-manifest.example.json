@@ -1,0 +1,32 @@
+{
+  "files": [
+    {
+      "collection": "words",
+      "id": "word-bridge",
+      "source": "C:/tts-output/bridge.mp3"
+    },
+    {
+      "collection": "sentences",
+      "id": "sentence-clues",
+      "source": "C:/tts-output/notice-keyword.mp3"
+    },
+    {
+      "collection": "sentences",
+      "id": "sentence-upgrade",
+      "keyword": "crucial",
+      "source": "C:/tts-output/crucial.mp3"
+    },
+    {
+      "collection": "passages",
+      "id": "passage-reading-club",
+      "paragraphIndex": 1,
+      "source": "C:/tts-output/reading-club-p1.mp3"
+    },
+    {
+      "collection": "expressions",
+      "id": "expression-important",
+      "variant": "advanced",
+      "source": "C:/tts-output/crucial-expression.mp3"
+    }
+  ]
+}

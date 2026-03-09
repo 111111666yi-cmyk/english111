@@ -1,0 +1,123 @@
+[
+  {
+    "id": "word-bridge",
+    "word": "bridge",
+    "phonetic": "/brɪdʒ/",
+    "partOfSpeech": "noun",
+    "meaningZh": "桥梁；纽带",
+    "level": "L1",
+    "tags": [
+      "daily-life",
+      "metaphor"
+    ],
+    "exampleEn": "Reading can be a bridge between simple words and longer stories.",
+    "exampleZh": "阅读可以成为简单词汇和更长故事之间的桥梁。",
+    "synonyms": [
+      "link"
+    ],
+    "pronunciationText": "bridge",
+    "difficulty": 1,
+    "audioLocal": "/audio/words/bridge.wav"
+  },
+  {
+    "id": "word-notice",
+    "word": "notice",
+    "phonetic": "/ˈnoʊ.tɪs/",
+    "partOfSpeech": "verb",
+    "meaningZh": "注意到",
+    "level": "L1",
+    "tags": [
+      "school",
+      "reading"
+    ],
+    "exampleEn": "Good readers notice small clues in a sentence.",
+    "exampleZh": "优秀的读者会注意到句子中的小线索。",
+    "synonyms": [
+      "observe"
+    ],
+    "pronunciationText": "notice",
+    "difficulty": 1,
+    "audioLocal": "/audio/words/notice.wav"
+  },
+  {
+    "id": "word-organize",
+    "word": "organize",
+    "phonetic": "/ˈɔːr.ɡə.naɪz/",
+    "partOfSpeech": "verb",
+    "meaningZh": "整理；组织",
+    "level": "L2",
+    "tags": [
+      "study",
+      "habit"
+    ],
+    "exampleEn": "She uses colors to organize her notes before a test.",
+    "exampleZh": "她会在考试前用颜色整理笔记。",
+    "synonyms": [
+      "arrange"
+    ],
+    "pronunciationText": "organize",
+    "difficulty": 2,
+    "audioLocal": "/audio/words/organize.wav"
+  },
+  {
+    "id": "word-beneficial",
+    "word": "beneficial",
+    "phonetic": "/ˌben.ɪˈfɪʃ.əl/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "有益的",
+    "level": "L4",
+    "tags": [
+      "advanced-expression",
+      "health"
+    ],
+    "exampleEn": "Short daily practice is beneficial for long-term memory.",
+    "exampleZh": "每天短时间练习对长期记忆是有益的。",
+    "synonyms": [
+      "helpful",
+      "useful"
+    ],
+    "pronunciationText": "beneficial",
+    "difficulty": 3,
+    "audioLocal": "/audio/words/beneficial.wav"
+  },
+  {
+    "id": "word-crucial",
+    "word": "crucial",
+    "phonetic": "/ˈkruː.ʃəl/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "至关重要的",
+    "level": "L4",
+    "tags": [
+      "advanced-expression",
+      "logic"
+    ],
+    "exampleEn": "Context is crucial when you guess the meaning of a new word.",
+    "exampleZh": "当你猜测生词词义时，上下文至关重要。",
+    "synonyms": [
+      "essential"
+    ],
+    "pronunciationText": "crucial",
+    "difficulty": 3,
+    "audioLocal": "/audio/words/crucial.wav"
+  },
+  {
+    "id": "word-gradually",
+    "word": "gradually",
+    "phonetic": "/ˈɡrædʒ.u.ə.li/",
+    "partOfSpeech": "adverb",
+    "meaningZh": "逐渐地",
+    "level": "L2",
+    "tags": [
+      "growth",
+      "study"
+    ],
+    "exampleEn": "He gradually became confident in reading short passages.",
+    "exampleZh": "他逐渐对阅读短文有了信心。",
+    "synonyms": [
+      "slowly"
+    ],
+    "pronunciationText": "gradually",
+    "difficulty": 2,
+    "audioLocal": "/audio/words/gradually.wav"
+  }
+]
