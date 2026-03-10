@@ -16,18 +16,21 @@ import { StreakBanner } from "@/components/streak-banner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLearningSummary } from "@/hooks/use-learning-summary";
+import { useAuthStore } from "@/stores/auth-store";
 
 const entryCards = [
   { href: "/vocabulary", title: "单词学习", description: "巩固高频词、易混词和基础例句。" },
-  { href: "/sentences", title: "句子训练", description: "把词汇放进语境，用排序和匹配理解句意。" },
+  { href: "/sentences", title: "句子训练", description: "把词汇放进语境，用排序和填空理解句意。" },
   { href: "/reading", title: "短文阅读", description: "用短文训练主旨、细节和词义猜测。" },
-  { href: "/expressions", title: "进阶表达", description: "从基础表达过渡到更自然、更正式的说法。" },
+  { href: "/expressions", title: "进阶表达", description: "从基础说法过渡到更自然、更正式的表达。" },
   { href: "/review", title: "复习挑战", description: "错题回放、难词优先、随机挑战。" },
   { href: "/stats", title: "学习统计", description: "查看正确率、进度和连续学习天数。" }
 ];
 
 export function HomeScreen() {
   const summary = useLearningSummary(words.length, sentences.length, passages.length);
+  const authHydrated = useAuthStore((state) => state.hydrated);
+  const currentUsername = useAuthStore((state) => state.currentUsername);
 
   return (
     <Shell>
@@ -41,8 +44,12 @@ export function HomeScreen() {
           <Card className="space-y-4">
             <SectionHeading
               eyebrow="Today"
-              title="今日学习路径"
-              description="按 8 个单词、4 个句子、1 篇短文、2 组进阶表达、6 道复习题的节奏走，负担低但推进稳定。"
+              title={
+                authHydrated && currentUsername
+                  ? `欢迎回来，${currentUsername}`
+                  : "开始今天的学习"
+              }
+              description="账户独立、本地优先、默认不消耗任何运行期大模型密钥。你可以按“单词 → 句子 → 短文 → 表达 → 复习”的节奏推进。"
             />
             <div className="grid gap-3 md:grid-cols-4">
               <div className="rounded-3xl bg-slate-50 p-4">
@@ -71,8 +78,9 @@ export function HomeScreen() {
               </Link>
             </div>
           </Card>
+
           <div className="grid gap-4">
-            <ProgressCard title="单词掌握" value={summary.wordProgress} detail="本地优先，离线可用。" />
+            <ProgressCard title="单词掌握" value={summary.wordProgress} detail="按账户独立记录，刷新不串数据。" />
             <ProgressCard title="句子理解" value={summary.sentenceProgress} detail="从词汇识别推进到语境理解。" />
             <ProgressCard title="短文阅读" value={summary.passageProgress} detail="逐步建立上下文推断能力。" />
           </div>
@@ -82,7 +90,7 @@ export function HomeScreen() {
           <SectionHeading
             eyebrow="Modules"
             title="核心学习入口"
-            description="每个入口只做一件事，路径清晰，交互轻量。"
+            description="一屏只做一件事。入口清晰、结构稳定、适合单人长期使用。"
           />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {entryCards.map((item, index) => (
@@ -104,10 +112,10 @@ export function HomeScreen() {
         <section className="space-y-4">
           <SectionHeading
             eyebrow="Preview"
-            title="当前学习内容预览"
-            description="先看本轮词、句和表达，再进入训练，降低开始成本。"
+            title="当前内容预览"
+            description="词、句、短文和表达都已经扩容，先预览再进入训练。"
           />
-          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr]">
+          <div className="grid gap-4 lg:grid-cols-3">
             <Card className="space-y-4">
               <h3 className="text-lg font-bold text-ink">本轮单词</h3>
               {featuredWords.map((word) => (
@@ -120,6 +128,7 @@ export function HomeScreen() {
                 </div>
               ))}
             </Card>
+
             <Card className="space-y-4">
               <h3 className="text-lg font-bold text-ink">本轮句子</h3>
               {featuredSentences.map((sentence) => (
@@ -129,6 +138,7 @@ export function HomeScreen() {
                 </div>
               ))}
             </Card>
+
             <Card className="space-y-4">
               <h3 className="text-lg font-bold text-ink">进阶表达</h3>
               {featuredExpressions.map((expression) => (
@@ -145,7 +155,7 @@ export function HomeScreen() {
         <section>
           <StatsPanel
             items={[
-              { label: "正确率", value: `${summary.accuracy || 0}%`, hint: "本地记录统计" },
+              { label: "正确率", value: `${summary.accuracy || 0}%`, hint: "按当前账户统计" },
               { label: "难词数", value: `${summary.difficultWords}`, hint: "优先回放" },
               { label: "进阶表达", value: `${expressions.length}`, hint: "当前内置样例" }
             ]}

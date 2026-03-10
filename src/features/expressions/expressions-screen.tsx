@@ -7,6 +7,7 @@ import { Shell } from "@/components/shell";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { Card } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { Button } from "@/components/ui/button";
 import { expressions } from "@/lib/content";
 import { expressionQuizzes } from "@/data/quizzes";
 import { useLearningStore } from "@/stores/learning-store";
@@ -22,8 +23,9 @@ export function ExpressionsScreen() {
         <SectionHeading
           eyebrow="Upgrade"
           title="进阶表达"
-          description="从常见基础说法过渡到更自然、更正式的表达方式。"
+          description="从基础说法平滑过渡到更自然、更正式的表达方式。"
         />
+
         <Card className="space-y-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
@@ -38,6 +40,7 @@ export function ExpressionsScreen() {
               </div>
               <p className="text-base text-slate-600">{expression.meaningZh}</p>
             </div>
+
             <div className="space-y-3">
               <AudioButton
                 audioRef={{
@@ -61,6 +64,7 @@ export function ExpressionsScreen() {
               />
             </div>
           </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-3xl bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -75,24 +79,27 @@ export function ExpressionsScreen() {
               <p className="mt-3 text-base leading-7 text-ink">{expression.exampleAdvanced}</p>
             </div>
           </div>
+
           <p className="rounded-3xl bg-white p-4 text-sm leading-7 text-slate-600 ring-1 ring-slate-100">
             {expression.noteZh}
           </p>
         </Card>
+
         <QuizCard
           quiz={expressionQuizzes[index % expressionQuizzes.length]}
           onResult={(correct) =>
             recordQuizResult(expressionQuizzes[index % expressionQuizzes.length].id, correct)
           }
         />
+
         <div className="flex justify-end">
-          <button
+          <Button
             type="button"
-            className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700"
+            variant="secondary"
             onClick={() => setIndex((current) => (current + 1 >= expressions.length ? 0 : current + 1))}
           >
             下一组表达
-          </button>
+          </Button>
         </div>
       </div>
     </Shell>

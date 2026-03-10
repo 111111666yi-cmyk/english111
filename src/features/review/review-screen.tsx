@@ -29,8 +29,9 @@ export function ReviewScreen() {
         <SectionHeading
           eyebrow="Review"
           title="复习与挑战"
-          description="优先回放错题，再穿插难词与随机挑战。"
+          description="优先回放错题，再穿插难词和常规练习。所有复习记录都归当前账户所有。"
         />
+
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <p className="text-sm text-slate-500">待复习错题</p>
@@ -45,6 +46,7 @@ export function ReviewScreen() {
             <p className="mt-2 text-4xl font-black text-ink">{queue.length}</p>
           </Card>
         </div>
+
         <QuizCard
           quiz={quiz}
           onResult={(correct) => {
@@ -59,6 +61,7 @@ export function ReviewScreen() {
             });
           }}
         />
+
         <div className="flex justify-end">
           <Button type="button" variant="secondary" onClick={() => setIndex((current) => current + 1)}>
             下一题

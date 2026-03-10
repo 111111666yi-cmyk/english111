@@ -8,7 +8,7 @@ import words from "../src/data/words.json";
 const root = process.cwd();
 const missing: string[] = [];
 
-function checkAudioPath(entryLabel: string, audioPath?: string) {
+function checkAudioPath(entryLabel: string, audioPath?: string | null) {
   if (!audioPath) {
     return;
   }

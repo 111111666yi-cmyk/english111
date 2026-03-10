@@ -11,6 +11,8 @@
     "validate:data": "tsx scripts/validate-data.ts",
     "validate:audio": "tsx scripts/validate-audio.ts",
     "build:content": "tsx scripts/build-content.ts",
+    "generate:seed": "tsx scripts/generate-seed-content.ts",
+    "expand:content": "tsx scripts/expand-content-library.ts",
     "import:audio": "tsx scripts/import-audio-manifest.ts",
     "manifest:audio": "tsx scripts/generate-audio-manifest.ts",
     "sync:audio": "tsx scripts/sync-audio-workflow.ts",

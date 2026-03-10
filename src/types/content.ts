@@ -36,6 +36,7 @@ export interface SentenceEntry {
   grammarPoint?: string;
   relatedWords: string[];
   jumbled: string[];
+  reorderAnswer: string;
   missingWord: string;
   explanation: string;
   audioLocal?: string;

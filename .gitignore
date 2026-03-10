@@ -12,5 +12,6 @@ yarn-debug.log*
 yarn-error.log*
 audio-import/
 scripts/audio-manifest.generated.json
+scripts/.cache/
 preview-server.log
 dev-server.log

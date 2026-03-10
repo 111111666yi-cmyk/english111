@@ -12,15 +12,63 @@
     "audioLocalAdvanced": "/audio/expressions/crucial.wav"
   },
   {
-    "id": "expression-helpful",
+    "id": "expression-good-for-you",
     "level": "L4",
     "basic": "good for you",
     "advanced": "beneficial",
     "meaningZh": "对你有好处 -> 有益的",
     "exampleBasic": "Daily reading is good for you.",
     "exampleAdvanced": "Daily reading is beneficial.",
-    "noteZh": "beneficial 常用于说明长期收益，比 good for you 更正式。",
+    "noteZh": "beneficial 常用来描述长期收益，比 good for you 更正式。",
     "audioLocalBasic": "/audio/expressions/good-for-you.wav",
     "audioLocalAdvanced": "/audio/expressions/beneficial.wav"
+  },
+  {
+    "id": "expression-very-calm",
+    "level": "L3",
+    "basic": "very calm",
+    "advanced": "steady",
+    "meaningZh": "非常冷静 -> 沉稳的",
+    "exampleBasic": "She stayed very calm during the quiz.",
+    "exampleAdvanced": "She stayed steady during the quiz.",
+    "noteZh": "steady 常强调状态稳定，适合写作或口语中的成熟表达。",
+    "audioLocalBasic": "/audio/expressions/very-calm.wav",
+    "audioLocalAdvanced": "/audio/expressions/steady.wav"
+  },
+  {
+    "id": "expression-very-clear",
+    "level": "L3",
+    "basic": "very clear",
+    "advanced": "well-defined",
+    "meaningZh": "非常清楚 -> 明确的",
+    "exampleBasic": "The writer's idea is very clear.",
+    "exampleAdvanced": "The writer's idea is well-defined.",
+    "noteZh": "well-defined 适合描述观点、结构和任务要求。",
+    "audioLocalBasic": "/audio/expressions/very-clear.wav",
+    "audioLocalAdvanced": "/audio/expressions/well-defined.wav"
+  },
+  {
+    "id": "expression-get-better",
+    "level": "L3",
+    "basic": "get better",
+    "advanced": "improve steadily",
+    "meaningZh": "变得更好 -> 稳定提升",
+    "exampleBasic": "Your reading will get better soon.",
+    "exampleAdvanced": "Your reading will improve steadily.",
+    "noteZh": "improve steadily 适合强调过程，不只是结果。",
+    "audioLocalBasic": "/audio/expressions/get-better.wav",
+    "audioLocalAdvanced": "/audio/expressions/improve-steadily.wav"
+  },
+  {
+    "id": "expression-find-out",
+    "level": "L3",
+    "basic": "find out",
+    "advanced": "discover",
+    "meaningZh": "找到；弄清 -> 发现",
+    "exampleBasic": "He found out a better answer.",
+    "exampleAdvanced": "He discovered a better answer.",
+    "noteZh": "discover 更适合正式语境，也更适合写作。",
+    "audioLocalBasic": "/audio/expressions/find-out.wav",
+    "audioLocalAdvanced": "/audio/expressions/discover.wav"
   }
 ]

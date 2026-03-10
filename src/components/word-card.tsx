@@ -3,15 +3,20 @@
 import { Star } from "lucide-react";
 import { AudioButton } from "@/components/audio-button";
 import { DifficultyBadge } from "@/components/difficulty-badge";
+import { HighlightedText } from "@/components/highlighted-text";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { MasteryFeedback, WordEntry } from "@/types/content";
 
 export function WordCard({
   word,
+  isFavorite,
+  onToggleFavorite,
   onFeedback
 }: {
   word: WordEntry;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   onFeedback: (feedback: MasteryFeedback) => void;
 }) {
   return (
@@ -30,6 +35,7 @@ export function WordCard({
           </div>
           <p className="text-lg font-semibold text-slate-700">{word.meaningZh}</p>
         </div>
+
         <div className="space-y-3">
           <AudioButton
             audioRef={{
@@ -38,19 +44,24 @@ export function WordCard({
               localPath: word.audioLocal,
               text: word.pronunciationText ?? word.word
             }}
+            localLabel="本地发音"
+            cloudLabel="云端发音（需网络）"
           />
-          <Button variant="secondary" type="button">
-            <Star className="mr-2 h-4 w-4" />
-            收藏
+          <Button variant="secondary" type="button" onClick={onToggleFavorite}>
+            <Star className={`mr-2 h-4 w-4 ${isFavorite ? "fill-current text-glow" : ""}`} />
+            {isFavorite ? "已收藏" : "收藏"}
           </Button>
         </div>
       </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-3xl bg-slate-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
             Example
           </p>
-          <p className="mt-3 text-base leading-7 text-ink">{word.exampleEn}</p>
+          <p className="mt-3 text-base leading-7 text-ink">
+            <HighlightedText text={word.exampleEn} highlights={[word.word]} />
+          </p>
         </div>
         <div className="rounded-3xl bg-sky/10 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
@@ -59,6 +70,7 @@ export function WordCard({
           <p className="mt-3 text-base leading-7 text-slate-700">{word.exampleZh}</p>
         </div>
       </div>
+
       <div className="grid gap-3 md:grid-cols-3">
         <Button type="button" variant="success" onClick={() => onFeedback("known")}>
           我认识

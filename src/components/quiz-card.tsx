@@ -69,6 +69,15 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
     onResult?.(correct);
   };
 
+  const canSubmit =
+    quiz.type === "fill-blank"
+      ? Boolean(textAnswer.trim())
+      : quiz.type === "reorder"
+        ? reorderAnswer.length > 0
+        : quiz.type === "match"
+          ? matchedPairs.length > 0
+          : Boolean(selected);
+
   return (
     <Card className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -92,26 +101,25 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
           <div className="rounded-3xl border border-dashed border-surge/40 bg-sky/5 p-4">
             <p className="text-sm text-slate-500">当前顺序</p>
             <p className="mt-2 min-h-7 text-base font-semibold text-ink">
-              {reorderAnswer.length ? reorderAnswer.join(" ") : "点击下方词块组成英文短语"}
+              {reorderAnswer.length ? reorderAnswer.join(" ") : "点击下方词块组成答案"}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            {quiz.options?.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() =>
-                  setReorderAnswer((current) =>
-                    current.length >= (quiz.options?.length ?? 0)
-                      ? current
-                      : [...current, option.label]
-                  )
-                }
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-surge/40"
-              >
-                {option.label}
-              </button>
-            ))}
+            {quiz.options?.map((option) => {
+              const used = reorderAnswer.includes(option.label);
+
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  disabled={used}
+                  onClick={() => setReorderAnswer((current) => [...current, option.label])}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-surge/40 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
           <div className="flex gap-3">
             <Button
@@ -153,9 +161,13 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
                   if (!activeLeft) {
                     return;
                   }
+
                   const composed = `${activeLeft}:${pair.right}`;
+
                   setMatchedPairs((current) =>
-                    current.includes(composed) ? current : [...current, composed]
+                    current
+                      .filter((item) => !item.startsWith(`${activeLeft}:`))
+                      .concat(composed)
                   );
                   setActiveLeft("");
                 }}
@@ -165,8 +177,14 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
               </button>
             ))}
           </div>
-          <div className="md:col-span-2 rounded-3xl bg-slate-50 p-4 text-sm text-slate-500">
-            当前配对：{matchedPairs.length ? matchedPairs.join(" / ") : "先点左侧英文，再点右侧中文"}
+          <div className="space-y-3 md:col-span-2">
+            <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-500">
+              当前配对：
+              {matchedPairs.length ? matchedPairs.join(" / ") : "先点左侧英文，再点右侧中文。"}
+            </div>
+            <Button type="button" variant="ghost" onClick={() => setMatchedPairs([])}>
+              清空配对
+            </Button>
           </div>
         </div>
       ) : (
@@ -191,7 +209,7 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-slate-500">重点词汇：{quiz.relatedWords.join(" / ")}</div>
-        <Button type="button" onClick={submit}>
+        <Button type="button" onClick={submit} disabled={!canSubmit}>
           提交答案
         </Button>
       </div>

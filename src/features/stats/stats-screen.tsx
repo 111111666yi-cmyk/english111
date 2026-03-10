@@ -6,9 +6,11 @@ import { Shell } from "@/components/shell";
 import { StatsPanel } from "@/components/stats-panel";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { useLearningSummary } from "@/hooks/use-learning-summary";
+import { useAuthStore } from "@/stores/auth-store";
 
 export function StatsScreen() {
   const summary = useLearningSummary(words.length, sentences.length, passages.length);
+  const currentUsername = useAuthStore((state) => state.currentUsername);
 
   return (
     <Shell>
@@ -16,8 +18,9 @@ export function StatsScreen() {
         <SectionHeading
           eyebrow="Stats"
           title="学习统计"
-          description="数据完全保存在浏览器本地，展示你每天积累出来的结果。"
+          description={`数据完全保存在浏览器本地，当前统计对象：${currentUsername ?? "访客模式"}。`}
         />
+
         <StatsPanel
           items={[
             { label: "连续学习", value: `${Math.max(summary.streakDays, 1)} 天`, hint: "基于本地打卡" },
@@ -25,6 +28,7 @@ export function StatsScreen() {
             { label: "本周分钟数", value: `${summary.weeklyMinutes}`, hint: "估算练习时长" }
           ]}
         />
+
         <div className="grid gap-4 lg:grid-cols-3">
           <ProgressCard title="已学单词" value={summary.wordProgress} detail={`词汇掌握 ${summary.wordProgress}%`} />
           <ProgressCard title="已完成句子" value={summary.sentenceProgress} detail={`句子训练完成 ${summary.sentenceProgress}%`} />
