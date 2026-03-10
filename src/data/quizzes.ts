@@ -14,6 +14,11 @@ function pickMeaningOptions(index: number): QuizOption[] {
   return [...options.slice(offset), ...options.slice(0, offset)];
 }
 
+const wordMeaningLookup = new Map(words.map((word) => [word.word.toLowerCase(), word.meaningZh]));
+const wordIndexById = new Map(words.map((word, index) => [word.id, index]));
+const sentenceIndexById = new Map(sentences.map((sentence, index) => [sentence.id, index]));
+const expressionIndexById = new Map(expressions.map((expression, index) => [expression.id, index]));
+
 function makeVocabularyQuiz(wordIndex: number): QuizItem {
   const word = words[wordIndex];
 
@@ -63,8 +68,6 @@ function makeVocabularyQuiz(wordIndex: number): QuizItem {
   };
 }
 
-const wordMeaningLookup = new Map(words.map((word) => [word.word.toLowerCase(), word.meaningZh]));
-
 function makeSentenceQuiz(index: number): QuizItem {
   const sentence = sentences[index];
 
@@ -99,10 +102,7 @@ function makeSentenceQuiz(index: number): QuizItem {
     return {
       id: `quiz-${sentence.id}-choice`,
       type: "single-choice",
-      prompt: sentence.sentenceEn.replace(
-        new RegExp(sentence.missingWord, "i"),
-        "_____"
-      ),
+      prompt: sentence.sentenceEn.replace(new RegExp(sentence.missingWord, "i"), "_____"),
       promptZh: "请选择最适合填入句子的关键词。",
       options: uniqueOptions.map((option, optionIndex) => ({
         id: option === sentence.missingWord ? "correct" : `option-${optionIndex}`,
@@ -144,10 +144,7 @@ function makeSentenceQuiz(index: number): QuizItem {
   return {
     id: `quiz-${sentence.id}-blank`,
     type: "fill-blank",
-    prompt: sentence.sentenceEn.replace(
-      new RegExp(sentence.missingWord, "i"),
-      "_____"
-    ),
+    prompt: sentence.sentenceEn.replace(new RegExp(sentence.missingWord, "i"), "_____"),
     promptZh: "请根据上下文填写缺失的单词。",
     answer: sentence.missingWord,
     explanation: sentence.explanation,
@@ -157,40 +154,137 @@ function makeSentenceQuiz(index: number): QuizItem {
   };
 }
 
-export const vocabularyQuizzes: QuizItem[] = words.map((_, index) => makeVocabularyQuiz(index));
-export const sentenceQuizzes: QuizItem[] = sentences.map((_, index) => makeSentenceQuiz(index));
+function makeExpressionQuiz(index: number): QuizItem {
+  const item = expressions[index];
+  const optionIndexes = Array.from({ length: Math.min(4, expressions.length) }, (_, offset) => (
+    index + offset
+  ) % expressions.length);
 
-export const expressionQuizzes: QuizItem[] = expressions.map((item) => ({
-  id: `${item.id}-quiz`,
-  type: "single-choice",
-  prompt: `Which advanced expression can replace "${item.basic}"?`,
-  promptZh: `哪个进阶表达可以替换 “${item.basic}”？`,
-  options: expressions.map((candidate) => ({
-    id: candidate.id,
-    label: candidate.advanced
-  })),
-  answer: item.id,
-  explanation: item.noteZh,
-  relatedWords: [item.basic, item.advanced],
-  difficulty: 3,
-  sourceRef: item.id,
-  audioRef: {
-    kind: "expression",
-    cacheKey: item.id,
-    localPath: item.audioLocalAdvanced,
-    text: item.advanced
+  return {
+    id: `${item.id}-quiz`,
+    type: "single-choice",
+    prompt: `Which advanced expression can replace "${item.basic}"?`,
+    promptZh: `哪个进阶表达可以替换 “${item.basic}”？`,
+    options: optionIndexes.map((optionIndex) => ({
+      id: expressions[optionIndex].id,
+      label: expressions[optionIndex].advanced
+    })),
+    answer: item.id,
+    explanation: item.noteZh,
+    relatedWords: [item.basic, item.advanced],
+    difficulty: 3,
+    sourceRef: item.id,
+    audioRef: {
+      kind: "expression",
+      cacheKey: item.id,
+      localPath: item.audioLocalAdvanced,
+      text: item.advanced
+    }
+  };
+}
+
+export function getVocabularyQuiz(wordIndex: number) {
+  return makeVocabularyQuiz(wordIndex % words.length);
+}
+
+export function getSentenceQuiz(index: number) {
+  return makeSentenceQuiz(index % sentences.length);
+}
+
+export function getExpressionQuiz(index: number) {
+  return makeExpressionQuiz(index % expressions.length);
+}
+
+function stripKnownSuffix(value: string, suffixes: string[]) {
+  const match = suffixes.find((suffix) => value.endsWith(suffix));
+  return match ? value.slice(0, -match.length) : value;
+}
+
+export function getQuizById(quizId: string) {
+  if (quizId.endsWith("-quiz")) {
+    const expressionId = quizId.slice(0, -"-quiz".length);
+    const expressionIndex = expressionIndexById.get(expressionId);
+    return expressionIndex === undefined ? undefined : getExpressionQuiz(expressionIndex);
   }
-}));
 
-export const readingQuizzes = passages.flatMap((item) => item.questions);
+  if (quizId.startsWith("quiz-word-") || quizId.startsWith("quiz-auto-word-")) {
+    const wordId = stripKnownSuffix(quizId.slice(5), ["-meaning", "-spelling"]);
+    const wordIndex = wordIndexById.get(wordId);
+    return wordIndex === undefined ? undefined : getVocabularyQuiz(wordIndex);
+  }
 
-export const reviewQueue = [
-  ...vocabularyQuizzes,
-  ...sentenceQuizzes,
-  ...readingQuizzes,
-  ...expressionQuizzes
-];
+  if (quizId.startsWith("quiz-sentence-") || quizId.startsWith("quiz-auto-sentence-")) {
+    const sentenceId = stripKnownSuffix(quizId.slice(5), ["-reorder", "-choice", "-match", "-blank"]);
+    const sentenceIndex = sentenceIndexById.get(sentenceId);
+    return sentenceIndex === undefined ? undefined : getSentenceQuiz(sentenceIndex);
+  }
 
-export const featuredWords = words.slice(0, 4);
-export const featuredSentences = sentences.slice(0, 2);
-export const featuredExpressions = expressions.slice(0, 2);
+  for (const passage of passages) {
+    const question = passage.questions.find((item) => item.id === quizId);
+    if (question) {
+      return question;
+    }
+  }
+
+  return undefined;
+}
+
+function sampleIndexes(length: number, limit: number) {
+  if (length <= limit) {
+    return Array.from({ length }, (_, index) => index);
+  }
+
+  const step = length / limit;
+  const indexes = new Set<number>();
+
+  for (let slot = 0; slot < limit; slot += 1) {
+    indexes.add(Math.min(length - 1, Math.floor(slot * step)));
+  }
+
+  return Array.from(indexes);
+}
+
+export function getReviewPoolSize() {
+  const readingCount = passages.reduce((total, passage) => total + passage.questions.length, 0);
+  return words.length + sentences.length + expressions.length + readingCount;
+}
+
+export function getReviewQueue(reviewMistakeIds: string[], limit = 120) {
+  const queue: QuizItem[] = [];
+  const seen = new Set<string>();
+
+  for (const quizId of reviewMistakeIds) {
+    const quiz = getQuizById(quizId);
+    if (quiz && !seen.has(quiz.id)) {
+      queue.push(quiz);
+      seen.add(quiz.id);
+    }
+  }
+
+  const addQuiz = (quiz: QuizItem) => {
+    if (!seen.has(quiz.id) && queue.length < limit) {
+      queue.push(quiz);
+      seen.add(quiz.id);
+    }
+  };
+
+  for (const index of sampleIndexes(words.length, 36)) {
+    addQuiz(getVocabularyQuiz(index));
+  }
+
+  for (const index of sampleIndexes(sentences.length, 48)) {
+    addQuiz(getSentenceQuiz(index));
+  }
+
+  for (const passageIndex of sampleIndexes(passages.length, 18)) {
+    for (const question of passages[passageIndex].questions) {
+      addQuiz(question);
+    }
+  }
+
+  for (const index of sampleIndexes(expressions.length, expressions.length)) {
+    addQuiz(getExpressionQuiz(index));
+  }
+
+  return queue;
+}

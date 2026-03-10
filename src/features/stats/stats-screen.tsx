@@ -1,15 +1,22 @@
 "use client";
 
-import { passages, sentences, words } from "@/lib/content";
+import contentSummary from "@/data/content-summary.json";
 import { ProgressCard } from "@/components/progress-card";
 import { Shell } from "@/components/shell";
 import { StatsPanel } from "@/components/stats-panel";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { useLearningSummary } from "@/hooks/use-learning-summary";
 import { useAuthStore } from "@/stores/auth-store";
+import type { ContentSummary } from "@/types/content";
+
+const summaryData = contentSummary as ContentSummary;
 
 export function StatsScreen() {
-  const summary = useLearningSummary(words.length, sentences.length, passages.length);
+  const summary = useLearningSummary(
+    summaryData.totals.words,
+    summaryData.totals.sentences,
+    summaryData.totals.passages
+  );
   const currentUsername = useAuthStore((state) => state.currentUsername);
 
   return (
@@ -34,6 +41,14 @@ export function StatsScreen() {
           <ProgressCard title="已完成句子" value={summary.sentenceProgress} detail={`句子训练完成 ${summary.sentenceProgress}%`} />
           <ProgressCard title="已读短文" value={summary.passageProgress} detail={`短文阅读完成 ${summary.passageProgress}%`} />
         </div>
+
+        <StatsPanel
+          items={[
+            { label: "离线词库", value: `${summaryData.totals.words}`, hint: "当前内置词汇总数" },
+            { label: "句子训练", value: `${summaryData.totals.sentences}`, hint: "覆盖基础词汇的句子规模" },
+            { label: "短文阅读", value: `${summaryData.totals.passages}`, hint: "短文与阅读题总量" }
+          ]}
+        />
       </div>
     </Shell>
   );

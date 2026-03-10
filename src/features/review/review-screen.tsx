@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { reviewQueue } from "@/data/quizzes";
+import { getReviewPoolSize, getReviewQueue } from "@/data/quizzes";
 import { QuizCard } from "@/components/quiz-card";
 import { Shell } from "@/components/shell";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -16,12 +16,8 @@ export function ReviewScreen() {
   const recordQuizResult = useLearningStore((state) => state.recordQuizResult);
   const logDailyProgress = useLearningStore((state) => state.logDailyProgress);
 
-  const queue = useMemo(() => {
-    const priority = reviewQueue.filter((item) => reviewMistakes.includes(item.id));
-    return priority.length ? priority : reviewQueue;
-  }, [reviewMistakes]);
-
-  const quiz = queue[index % queue.length];
+  const queue = useMemo(() => getReviewQueue(reviewMistakes, 120), [reviewMistakes]);
+  const quiz = queue[index % Math.max(queue.length, 1)];
 
   return (
     <Shell>
@@ -29,7 +25,7 @@ export function ReviewScreen() {
         <SectionHeading
           eyebrow="Review"
           title="复习与挑战"
-          description="优先回放错题，再穿插难词和常规练习。所有复习记录都归当前账户所有。"
+          description="优先回放错题，再混合高频词、句子理解和阅读理解。题池按需生成，不会把整套内容一次性压进页面。"
         />
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -43,24 +39,30 @@ export function ReviewScreen() {
           </Card>
           <Card>
             <p className="text-sm text-slate-500">挑战题池</p>
-            <p className="mt-2 text-4xl font-black text-ink">{queue.length}</p>
+            <p className="mt-2 text-4xl font-black text-ink">{getReviewPoolSize()}</p>
           </Card>
         </div>
 
-        <QuizCard
-          quiz={quiz}
-          onResult={(correct) => {
-            recordQuizResult(quiz.id, correct);
-            logDailyProgress({
-              words: 0,
-              sentences: 0,
-              passages: 0,
-              reviews: 1,
-              correct: correct ? 1 : 0,
-              total: 1
-            });
-          }}
-        />
+        {quiz ? (
+          <QuizCard
+            quiz={quiz}
+            onResult={(correct) => {
+              recordQuizResult(quiz.id, correct);
+              logDailyProgress({
+                words: 0,
+                sentences: 0,
+                passages: 0,
+                reviews: 1,
+                correct: correct ? 1 : 0,
+                total: 1
+              });
+            }}
+          />
+        ) : (
+          <Card>
+            <p className="text-base text-slate-600">当前没有可用的复习题，请先完成一些学习内容。</p>
+          </Card>
+        )}
 
         <div className="flex justify-end">
           <Button type="button" variant="secondary" onClick={() => setIndex((current) => current + 1)}>

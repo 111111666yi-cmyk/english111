@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { QuizCard } from "@/components/quiz-card";
 import { PassageViewer } from "@/components/passage-viewer";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -11,8 +11,11 @@ import { passages } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { useLearningStore } from "@/stores/learning-store";
 
+const PASSAGE_PAGE_SIZE = 24;
+
 export function ReadingScreen() {
   const [index, setIndex] = useState(0);
+  const [passagePage, setPassagePage] = useState(0);
   const [feedback, setFeedback] = useState("");
   const chineseAssist = useLearningStore((state) => state.settings.chineseAssist);
   const updateSetting = useLearningStore((state) => state.updateSetting);
@@ -25,13 +28,16 @@ export function ReadingScreen() {
   const isCompleted = completedPassageIds.includes(passage.id);
   const completionCount = completedPassageIds.length;
   const remainingCount = Math.max(passages.length - completionCount, 0);
+  const totalPages = Math.max(1, Math.ceil(passages.length / PASSAGE_PAGE_SIZE));
 
-  const passageCards = useMemo(() => passages.map((item) => ({
-    id: item.id,
-    title: item.title,
-    topic: item.topic,
-    level: item.level
-  })), []);
+  useEffect(() => {
+    setPassagePage(Math.floor(index / PASSAGE_PAGE_SIZE));
+  }, [index]);
+
+  const visiblePassages = useMemo(() => {
+    const start = passagePage * PASSAGE_PAGE_SIZE;
+    return passages.slice(start, start + PASSAGE_PAGE_SIZE);
+  }, [passagePage]);
 
   return (
     <Shell>
@@ -39,7 +45,7 @@ export function ReadingScreen() {
         <SectionHeading
           eyebrow="Reading"
           title="小短文阅读"
-          description="阅读页现在支持多篇切换、明确完成反馈和当前账户独立进度。点击“标记本篇已完成”后会立刻记录，并自动切到下一篇。"
+          description="阅读页支持多篇切换、明确完成反馈和当前账户独立进度。点击“标记本篇已完成”后会立刻记录，并自动切到下一篇。"
         />
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -64,13 +70,19 @@ export function ReadingScreen() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-lg font-bold text-ink">短文目录</h3>
-              <p className="text-sm text-slate-500">点击任意短文卡片可切换到对应内容。</p>
+              <p className="text-sm text-slate-500">目录支持分页，避免大规模内容一次性挤满页面。</p>
             </div>
-            {feedback ? <p className="text-sm font-medium text-surge">{feedback}</p> : null}
+            <div className="flex items-center gap-3">
+              {feedback ? <p className="text-sm font-medium text-surge">{feedback}</p> : null}
+              <p className="text-sm text-slate-500">
+                第 {passagePage + 1} / {totalPages} 页
+              </p>
+            </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {passageCards.map((item, itemIndex) => {
+            {visiblePassages.map((item) => {
+              const itemIndex = passages.findIndex((entry) => entry.id === item.id);
               const completed = completedPassageIds.includes(item.id);
 
               return (
@@ -92,12 +104,29 @@ export function ReadingScreen() {
                     <span className="text-xs font-semibold text-slate-500">{item.level}</span>
                   </div>
                   <p className="mt-1 text-sm text-slate-500">{item.topic}</p>
-                  <p className="mt-3 text-xs text-slate-400">
-                    {completed ? "已完成" : "未完成"}
-                  </p>
+                  <p className="mt-3 text-xs text-slate-400">{completed ? "已完成" : "未完成"}</p>
                 </button>
               );
             })}
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={passagePage === 0}
+              onClick={() => setPassagePage((current) => Math.max(current - 1, 0))}
+            >
+              上一页
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={passagePage + 1 >= totalPages}
+              onClick={() => setPassagePage((current) => Math.min(current + 1, totalPages - 1))}
+            >
+              下一页
+            </Button>
           </div>
         </Card>
 

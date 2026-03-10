@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AudioButton } from "@/components/audio-button";
+import { getExpressionQuiz } from "@/data/quizzes";
 import { QuizCard } from "@/components/quiz-card";
 import { Shell } from "@/components/shell";
 import { DifficultyBadge } from "@/components/difficulty-badge";
@@ -9,12 +10,12 @@ import { Card } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
 import { expressions } from "@/lib/content";
-import { expressionQuizzes } from "@/data/quizzes";
 import { useLearningStore } from "@/stores/learning-store";
 
 export function ExpressionsScreen() {
   const [index, setIndex] = useState(0);
   const expression = expressions[index] ?? expressions[0];
+  const quiz = getExpressionQuiz(index);
   const recordQuizResult = useLearningStore((state) => state.recordQuizResult);
 
   return (
@@ -85,12 +86,7 @@ export function ExpressionsScreen() {
           </p>
         </Card>
 
-        <QuizCard
-          quiz={expressionQuizzes[index % expressionQuizzes.length]}
-          onResult={(correct) =>
-            recordQuizResult(expressionQuizzes[index % expressionQuizzes.length].id, correct)
-          }
-        />
+        <QuizCard quiz={quiz} onResult={(correct) => recordQuizResult(quiz.id, correct)} />
 
         <div className="flex justify-end">
           <Button

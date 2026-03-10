@@ -1,13 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { expressions, passages, sentences, words } from "@/lib/content";
-import {
-  featuredExpressions,
-  featuredSentences,
-  featuredWords,
-  reviewQueue
-} from "@/data/quizzes";
+import contentSummary from "@/data/content-summary.json";
 import { ProgressCard } from "@/components/progress-card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Shell } from "@/components/shell";
@@ -17,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLearningSummary } from "@/hooks/use-learning-summary";
 import { useAuthStore } from "@/stores/auth-store";
+import type { ContentSummary } from "@/types/content";
+
+const summaryData = contentSummary as ContentSummary;
 
 const entryCards = [
   { href: "/vocabulary", title: "单词学习", description: "巩固高频词、易混词和基础例句。" },
@@ -28,7 +25,11 @@ const entryCards = [
 ];
 
 export function HomeScreen() {
-  const summary = useLearningSummary(words.length, sentences.length, passages.length);
+  const summary = useLearningSummary(
+    summaryData.totals.words,
+    summaryData.totals.sentences,
+    summaryData.totals.passages
+  );
   const authHydrated = useAuthStore((state) => state.hydrated);
   const currentUsername = useAuthStore((state) => state.currentUsername);
 
@@ -44,11 +45,7 @@ export function HomeScreen() {
           <Card className="space-y-4">
             <SectionHeading
               eyebrow="Today"
-              title={
-                authHydrated && currentUsername
-                  ? `欢迎回来，${currentUsername}`
-                  : "开始今天的学习"
-              }
+              title={authHydrated && currentUsername ? `欢迎回来，${currentUsername}` : "开始今天的学习"}
               description="账户独立、本地优先、默认不消耗任何运行期大模型密钥。你可以按“单词 → 句子 → 短文 → 表达 → 复习”的节奏推进。"
             />
             <div className="grid gap-3 md:grid-cols-4">
@@ -65,8 +62,8 @@ export function HomeScreen() {
                 <p className="mt-2 text-3xl font-black text-ink">1</p>
               </div>
               <div className="rounded-3xl bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">复习题</p>
-                <p className="mt-2 text-3xl font-black text-ink">{reviewQueue.length}</p>
+                <p className="text-sm text-slate-500">复习池</p>
+                <p className="mt-2 text-3xl font-black text-ink">{summaryData.totals.reviewPool}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -90,7 +87,7 @@ export function HomeScreen() {
           <SectionHeading
             eyebrow="Modules"
             title="核心学习入口"
-            description="一屏只做一件事。入口清晰、结构稳定、适合单人长期使用。"
+            description="一屏只做一件事。入口清晰、结构稳定，适合单人长期使用。"
           />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {entryCards.map((item, index) => (
@@ -113,12 +110,12 @@ export function HomeScreen() {
           <SectionHeading
             eyebrow="Preview"
             title="当前内容预览"
-            description="词、句、短文和表达都已经扩容，先预览再进入训练。"
+            description="首页只读取内容摘要，避免把整套离线数据直接塞进首屏。"
           />
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="space-y-4">
               <h3 className="text-lg font-bold text-ink">本轮单词</h3>
-              {featuredWords.map((word) => (
+              {summaryData.featuredWords.map((word) => (
                 <div key={word.id} className="rounded-3xl bg-slate-50 p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-lg font-bold text-ink">{word.word}</p>
@@ -131,7 +128,7 @@ export function HomeScreen() {
 
             <Card className="space-y-4">
               <h3 className="text-lg font-bold text-ink">本轮句子</h3>
-              {featuredSentences.map((sentence) => (
+              {summaryData.featuredSentences.map((sentence) => (
                 <div key={sentence.id} className="rounded-3xl bg-slate-50 p-4">
                   <p className="text-sm leading-6 text-ink">{sentence.sentenceEn}</p>
                   <p className="mt-2 text-sm text-slate-500">{sentence.sentenceZh}</p>
@@ -141,7 +138,7 @@ export function HomeScreen() {
 
             <Card className="space-y-4">
               <h3 className="text-lg font-bold text-ink">进阶表达</h3>
-              {featuredExpressions.map((expression) => (
+              {summaryData.featuredExpressions.map((expression) => (
                 <div key={expression.id} className="rounded-3xl bg-slate-50 p-4">
                   <p className="text-sm text-slate-500">{expression.basic}</p>
                   <p className="mt-2 text-lg font-bold text-ink">{expression.advanced}</p>
@@ -157,7 +154,7 @@ export function HomeScreen() {
             items={[
               { label: "正确率", value: `${summary.accuracy || 0}%`, hint: "按当前账户统计" },
               { label: "难词数", value: `${summary.difficultWords}`, hint: "优先回放" },
-              { label: "进阶表达", value: `${expressions.length}`, hint: "当前内置样例" }
+              { label: "离线词库", value: `${summaryData.totals.words}`, hint: "当前内置规模" }
             ]}
           />
         </section>

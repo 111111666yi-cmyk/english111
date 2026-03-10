@@ -13,7 +13,7 @@ for (const word of words) {
   assert(word.id && word.word && word.meaningZh, `Invalid word entry: ${JSON.stringify(word)}`);
 }
 
-assert(words.length >= 120, "Word dataset must contain at least 120 entries.");
+assert(words.length >= 3500, "Word dataset must contain at least 3500 entries.");
 assert(
   new Set(words.map((word) => word.word.toLowerCase())).size === words.length,
   "Word dataset must not contain duplicate word labels."
@@ -28,7 +28,7 @@ for (const sentence of sentences) {
   assert(sentence.jumbled?.length > 0, `Sentence ${sentence.id} must provide jumbled tokens.`);
 }
 
-assert(sentences.length >= 120, "Sentence dataset must contain at least 120 entries.");
+assert(sentences.length >= 3500, "Sentence dataset must contain at least 3500 entries.");
 assert(
   new Set(sentences.map((sentence) => sentence.id)).size === sentences.length,
   "Sentence dataset must not contain duplicate ids."
@@ -52,7 +52,7 @@ for (const passage of passages) {
   }
 }
 
-assert(passages.length >= 24, "Passage dataset must contain at least 24 entries.");
+assert(passages.length >= 120, "Passage dataset must contain at least 120 entries.");
 assert(
   new Set(passages.map((passage) => passage.id)).size === passages.length,
   "Passage dataset must not contain duplicate ids."

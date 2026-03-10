@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
+import { createContentSummary } from "./content-summary";
 import type {
+  ExpressionEntry,
   PassageEntry,
   QuizItem,
   SentenceEntry,
@@ -24,8 +26,8 @@ const COMMON_WORDS_URL =
   "https://raw.githubusercontent.com/first20hours/google-10000-english/master/20k.txt";
 const ECDICT_URL = "https://raw.githubusercontent.com/skywind3000/ECDICT/master/ecdict.csv";
 
-const TOTAL_WORD_TARGET = Number.parseInt(getArgValue("--total-words") ?? "500", 10);
-const TOTAL_PASSAGE_TARGET = Number.parseInt(getArgValue("--total-passages") ?? "60", 10);
+const TOTAL_WORD_TARGET = Number.parseInt(getArgValue("--total-words") ?? "3500", 10);
+const TOTAL_PASSAGE_TARGET = Number.parseInt(getArgValue("--total-passages") ?? "180", 10);
 
 const stopWords = new Set([
   "the",
@@ -121,6 +123,8 @@ const passageThemes = [
 const wordsPath = path.join(ROOT, "src", "data", "words.json");
 const sentencesPath = path.join(ROOT, "src", "data", "sentences.json");
 const passagesPath = path.join(ROOT, "src", "data", "passages.json");
+const expressionsPath = path.join(ROOT, "src", "data", "expressions.json");
+const contentSummaryPath = path.join(ROOT, "src", "data", "content-summary.json");
 
 function getArgValue(flag: string) {
   const index = process.argv.indexOf(flag);
@@ -600,6 +604,7 @@ async function main() {
   const currentWords = readJson<WordEntry[]>(wordsPath);
   const currentSentences = readJson<SentenceEntry[]>(sentencesPath);
   const currentPassages = readJson<PassageEntry[]>(passagesPath);
+  const currentExpressions = readJson<ExpressionEntry[]>(expressionsPath);
 
   const baseWords = currentWords.filter((word) => !word.id.startsWith("auto-word-"));
   const baseSentences = currentSentences.filter((sentence) => !sentence.id.startsWith("auto-sentence-"));
@@ -615,12 +620,17 @@ async function main() {
   const desiredAdditionalPassages = Math.max(TOTAL_PASSAGE_TARGET - basePassages.length, 0);
   const autoPassages = buildAutoPassages(autoWords, desiredAdditionalPassages);
 
-  writeJson(wordsPath, [...baseWords, ...autoWords]);
-  writeJson(sentencesPath, [...baseSentences, ...autoSentences]);
-  writeJson(passagesPath, [...basePassages, ...autoPassages]);
+  const nextWords = [...baseWords, ...autoWords];
+  const nextSentences = [...baseSentences, ...autoSentences];
+  const nextPassages = [...basePassages, ...autoPassages];
+
+  writeJson(wordsPath, nextWords);
+  writeJson(sentencesPath, nextSentences);
+  writeJson(passagesPath, nextPassages);
+  writeJson(contentSummaryPath, createContentSummary(nextWords, nextSentences, nextPassages, currentExpressions));
 
   console.log(
-    `Expanded library to ${baseWords.length + autoWords.length} words, ${baseSentences.length + autoSentences.length} sentences, and ${basePassages.length + autoPassages.length} passages.`
+    `Expanded library to ${nextWords.length} words, ${nextSentences.length} sentences, and ${nextPassages.length} passages.`
   );
 }
 

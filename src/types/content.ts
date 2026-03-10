@@ -103,3 +103,30 @@ export interface ExpressionEntry {
   audioLocalBasic?: string;
   audioLocalAdvanced?: string;
 }
+
+export interface ContentSummary {
+  totals: {
+    words: number;
+    sentences: number;
+    passages: number;
+    expressions: number;
+    reviewPool: number;
+  };
+  featuredWords: Array<{
+    id: string;
+    word: string;
+    level: Level;
+    meaningZh: string;
+  }>;
+  featuredSentences: Array<{
+    id: string;
+    sentenceEn: string;
+    sentenceZh: string;
+  }>;
+  featuredExpressions: Array<{
+    id: string;
+    basic: string;
+    advanced: string;
+    meaningZh: string;
+  }>;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { vocabularyQuizzes } from "@/data/quizzes";
+import { getVocabularyQuiz } from "@/data/quizzes";
 import { QuizCard } from "@/components/quiz-card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Shell } from "@/components/shell";
@@ -26,7 +26,7 @@ export function VocabularyScreen() {
   const favoriteWords = useLearningStore((state) => state.favoriteWords);
 
   const currentWord = words[currentIndex] ?? words[0];
-  const quiz = vocabularyQuizzes[currentIndex % vocabularyQuizzes.length] ?? vocabularyQuizzes[0];
+  const quiz = getVocabularyQuiz(currentIndex);
   const totalPages = Math.max(1, Math.ceil(words.length / OVERVIEW_PAGE_SIZE));
   const overviewWords = useMemo(
     () =>

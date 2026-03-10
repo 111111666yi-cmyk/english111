@@ -1,0 +1,61 @@
+{
+  "totals": {
+    "words": 3500,
+    "sentences": 4666,
+    "passages": 180,
+    "expressions": 6,
+    "reviewPool": 8712
+  },
+  "featuredWords": [
+    {
+      "id": "word-bridge",
+      "word": "bridge",
+      "level": "L1",
+      "meaningZh": "桥梁；纽带"
+    },
+    {
+      "id": "word-notice",
+      "word": "notice",
+      "level": "L1",
+      "meaningZh": "注意到"
+    },
+    {
+      "id": "word-organize",
+      "word": "organize",
+      "level": "L2",
+      "meaningZh": "整理；组织"
+    },
+    {
+      "id": "word-beneficial",
+      "word": "beneficial",
+      "level": "L4",
+      "meaningZh": "有益的"
+    }
+  ],
+  "featuredSentences": [
+    {
+      "id": "sentence-bridge",
+      "sentenceEn": "Reading can be a bridge between simple words and longer stories.",
+      "sentenceZh": "阅读可以成为简单词汇和更长故事之间的桥梁。"
+    },
+    {
+      "id": "sentence-notice",
+      "sentenceEn": "Good readers notice small clues in a sentence.",
+      "sentenceZh": "好的读者会注意到句子里的小线索。"
+    }
+  ],
+  "featuredExpressions": [
+    {
+      "id": "expression-important",
+      "basic": "very important",
+      "advanced": "crucial",
+      "meaningZh": "非常重要的 -> 至关重要的"
+    },
+    {
+      "id": "expression-good-for-you",
+      "basic": "good for you",
+      "advanced": "beneficial",
+      "meaningZh": "对你有好处 -> 有益的"
+    }
+  ]
+}

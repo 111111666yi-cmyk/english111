@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { sentenceQuizzes } from "@/data/quizzes";
+import { getSentenceQuiz } from "@/data/quizzes";
 import { QuizCard } from "@/components/quiz-card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { SentenceCard } from "@/components/sentence-card";
@@ -17,7 +17,7 @@ export function SentencesScreen() {
   const logDailyProgress = useLearningStore((state) => state.logDailyProgress);
   const recordQuizResult = useLearningStore((state) => state.recordQuizResult);
   const sentence = sentences[index] ?? sentences[0];
-  const quiz = sentenceQuizzes[index % sentenceQuizzes.length] ?? sentenceQuizzes[0];
+  const quiz = getSentenceQuiz(index);
   const isCompleted = completedSentenceIds.includes(sentence.id);
 
   return (
