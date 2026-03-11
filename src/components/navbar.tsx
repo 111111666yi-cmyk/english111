@@ -63,19 +63,17 @@ export function Navbar() {
             <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm text-slate-600 ring-1 ring-slate-200">
               <UserCircle2 className="h-4 w-4 text-surge" />
               <span className="font-medium text-ink">
-                {authHydrated
-                  ? currentUsername
-                    ? `账户：${currentUsername}`
-                    : "当前：访客模式"
-                  : "正在载入账户"}
+                {currentUsername
+                  ? `账户：${currentUsername}`
+                  : authHydrated
+                    ? "当前：访客模式"
+                    : "正在加载账户"}
               </span>
             </div>
             <Link href="/account">
-              <Button variant="secondary">
-                {authHydrated && currentUsername ? "切换账户" : "登录 / 注册"}
-              </Button>
+              <Button variant="secondary">{currentUsername ? "切换账户" : "登录 / 注册"}</Button>
             </Link>
-            {authHydrated && currentUsername ? (
+            {currentUsername ? (
               <Button type="button" variant="ghost" onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 退出

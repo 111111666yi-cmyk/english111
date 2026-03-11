@@ -66,14 +66,16 @@ export function SettingsScreen() {
               <div>
                 <h3 className="text-lg font-bold text-ink">云端发音按钮</h3>
                 <p className="text-sm text-slate-500">
-                  {cloudInfo.enabled ? "已检测到云端 TTS 配置。" : "当前未配置云端 TTS。"}
+                  {cloudInfo.endpointConfigured
+                    ? "已检测到云端 TTS 接口配置。"
+                    : "当前未配置云端 TTS 接口，按钮仍可保留显示。"}
                 </p>
               </div>
               <Button
                 type="button"
                 variant={settings.cloudAudioEnabled ? "primary" : "secondary"}
-                disabled={!cloudInfo.enabled}
                 onClick={() => updateSetting("cloudAudioEnabled", !settings.cloudAudioEnabled)}
+                data-testid="settings-cloud-audio-toggle"
               >
                 {settings.cloudAudioEnabled ? "已开启" : "已关闭"}
               </Button>

@@ -6,11 +6,13 @@ import { ResultToast } from "@/components/result-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { resolveQuizAnswerText } from "@/lib/quiz-support";
 import type { QuizItem } from "@/types/content";
 
 interface QuizCardProps {
   quiz: QuizItem;
   onResult?: (correct: boolean) => void;
+  variant?: "study" | "test" | "exam";
 }
 
 function normalizeAnswer(answer: QuizItem["answer"]) {
@@ -21,7 +23,7 @@ function normalizeAnswer(answer: QuizItem["answer"]) {
   return String(answer).trim().toLowerCase();
 }
 
-export function QuizCard({ quiz, onResult }: QuizCardProps) {
+export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
   const [selected, setSelected] = useState("");
   const [textAnswer, setTextAnswer] = useState("");
   const [reorderAnswer, setReorderAnswer] = useState<string[]>([]);
@@ -31,6 +33,8 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
     visible: false,
     correct: false
   });
+
+  const showSupport = variant === "study";
 
   useEffect(() => {
     setSelected("");
@@ -42,12 +46,8 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
   }, [quiz.id]);
 
   const displayAnswer = useMemo(() => {
-    if (Array.isArray(quiz.answer)) {
-      return quiz.answer.join(" / ");
-    }
-
-    return String(quiz.answer);
-  }, [quiz.answer]);
+    return resolveQuizAnswerText(quiz);
+  }, [quiz]);
 
   const submit = () => {
     const expected = normalizeAnswer(quiz.answer);
@@ -79,14 +79,21 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
           : Boolean(selected);
 
   return (
-    <Card className="space-y-5">
+    <Card className="space-y-5" data-testid="quiz-card" data-quiz-id={quiz.id}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Badge className="bg-sky/10 text-surge">{quiz.type}</Badge>
-          <h3 className="mt-3 text-xl font-bold text-ink">{quiz.prompt}</h3>
-          {quiz.promptZh ? <p className="mt-2 text-sm text-slate-500">{quiz.promptZh}</p> : null}
+          <h3 className="mt-3 text-xl font-bold text-ink" data-testid="quiz-prompt">
+            {quiz.prompt}
+          </h3>
+          {showSupport && quiz.promptZh ? <p className="mt-2 text-sm text-slate-500">{quiz.promptZh}</p> : null}
+          {showSupport && quiz.promptSupplementZh ? (
+            <p className="mt-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-600">
+              {quiz.promptSupplementZh}
+            </p>
+          ) : null}
         </div>
-        {quiz.audioRef ? <AudioButton audioRef={quiz.audioRef} /> : null}
+        {showSupport && quiz.audioRef ? <AudioButton audioRef={quiz.audioRef} /> : null}
       </div>
 
       {quiz.type === "fill-blank" ? (
@@ -95,6 +102,7 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
           onChange={(event) => setTextAnswer(event.target.value)}
           className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-base outline-none transition focus:border-surge"
           placeholder="输入英文答案"
+          data-testid="quiz-fill-blank-input"
         />
       ) : quiz.type === "reorder" ? (
         <div className="space-y-4">
@@ -114,6 +122,8 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
                   type="button"
                   disabled={used}
                   onClick={() => setReorderAnswer((current) => [...current, option.label])}
+                  data-testid="quiz-reorder-option"
+                  data-option-id={option.id}
                   className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-surge/40 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {option.label}
@@ -142,6 +152,7 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
                 key={pair.left}
                 type="button"
                 onClick={() => setActiveLeft(pair.left)}
+                data-testid="quiz-match-left"
                 className={`w-full rounded-3xl border px-4 py-3 text-left transition ${
                   activeLeft === pair.left
                     ? "border-surge bg-sky/10"
@@ -171,6 +182,7 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
                   );
                   setActiveLeft("");
                 }}
+                data-testid="quiz-match-right"
                 className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-surge/40"
               >
                 {pair.right}
@@ -194,6 +206,8 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
               key={option.id}
               type="button"
               onClick={() => setSelected(option.id)}
+              data-testid="quiz-option"
+              data-option-id={option.id}
               className={`rounded-3xl border px-4 py-3 text-left transition ${
                 selected === option.id
                   ? "border-surge bg-sky/10"
@@ -201,21 +215,22 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
               }`}
             >
               <p className="font-semibold text-ink">{option.label}</p>
-              {option.detail ? <p className="mt-1 text-sm text-slate-500">{option.detail}</p> : null}
             </button>
           ))}
         </div>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-slate-500">重点词汇：{quiz.relatedWords.join(" / ")}</div>
-        <Button type="button" onClick={submit} disabled={!canSubmit}>
+        <div className="text-sm text-slate-500">
+          {showSupport && quiz.relatedWords.length ? `重点词汇：${quiz.relatedWords.join(" / ")}` : "完成本题后可以继续前进。"}
+        </div>
+        <Button type="button" onClick={submit} disabled={!canSubmit} data-testid="quiz-submit">
           提交答案
         </Button>
       </div>
 
       {feedback.visible ? (
-        <div className="space-y-3 rounded-3xl bg-slate-50 p-4">
+        <div className="space-y-3 rounded-3xl bg-slate-50 p-4" data-testid="quiz-feedback">
           <ResultToast
             visible={feedback.visible}
             correct={feedback.correct}
@@ -225,6 +240,19 @@ export function QuizCard({ quiz, onResult }: QuizCardProps) {
             正确答案：<span className="font-semibold text-ink">{displayAnswer}</span>
           </p>
           <p className="text-sm leading-6 text-slate-500">{quiz.explanation}</p>
+          {quiz.type === "reading-question" && quiz.options?.some((option) => option.detail) ? (
+            <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-100">
+              <p className="text-sm font-semibold text-ink">选项翻译</p>
+              <div className="mt-3 space-y-3">
+                {quiz.options.map((option) => (
+                  <div key={option.id} className="rounded-2xl bg-slate-50 px-3 py-3">
+                    <p className="text-sm font-semibold text-ink">{option.label}</p>
+                    {option.detail ? <p className="mt-1 text-sm leading-6 text-slate-500">{option.detail}</p> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </Card>

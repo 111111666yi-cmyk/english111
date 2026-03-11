@@ -47,6 +47,7 @@ export interface QuizOption {
   id: string;
   label: string;
   detail?: string;
+  translationZh?: string;
 }
 
 export interface QuizPair {
@@ -64,8 +65,10 @@ export interface QuizItem {
     | "reading-question";
   prompt: string;
   promptZh?: string;
+  promptSupplementZh?: string;
   options?: QuizOption[];
   answer: string | string[] | boolean;
+  answerText?: string;
   explanation: string;
   relatedWords: string[];
   difficulty: number;
@@ -129,4 +132,11 @@ export interface ContentSummary {
     advanced: string;
     meaningZh: string;
   }>;
+}
+
+export interface ExamLevelRecord {
+  bestAccuracy: number;
+  bestStars: number;
+  attempts: number;
+  cleared: boolean;
 }

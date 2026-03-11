@@ -1,12 +1,16 @@
 "use client";
 
 import contentSummary from "@/data/content-summary.json";
+import { AchievementPanel } from "@/components/achievement-panel";
 import { ProgressCard } from "@/components/progress-card";
 import { Shell } from "@/components/shell";
 import { StatsPanel } from "@/components/stats-panel";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { useLearningSummary } from "@/hooks/use-learning-summary";
+import { buildAchievements } from "@/lib/achievements";
+import { getExamOverview } from "@/lib/challenge-data";
 import { useAuthStore } from "@/stores/auth-store";
+import { useLearningStore } from "@/stores/learning-store";
 import type { ContentSummary } from "@/types/content";
 
 const summaryData = contentSummary as ContentSummary;
@@ -18,6 +22,22 @@ export function StatsScreen() {
     summaryData.totals.passages
   );
   const currentUsername = useAuthStore((state) => state.currentUsername);
+  const knownWords = useLearningStore((state) => state.knownWords.length);
+  const completedSentenceIds = useLearningStore((state) => state.completedSentenceIds.length);
+  const completedPassageIds = useLearningStore((state) => state.completedPassageIds.length);
+  const reviewMistakes = useLearningStore((state) => state.reviewMistakes.length);
+  const streakDays = useLearningStore((state) => state.streakDays);
+  const examLevelProgress = useLearningStore((state) => state.examLevelProgress);
+
+  const achievements = buildAchievements({
+    knownWords,
+    completedSentences: completedSentenceIds,
+    completedPassages: completedPassageIds,
+    streakDays,
+    reviewMistakes,
+    examLevelProgress
+  });
+  const examOverview = getExamOverview(examLevelProgress);
 
   return (
     <Shell>
@@ -49,6 +69,23 @@ export function StatsScreen() {
             { label: "短文阅读", value: `${summaryData.totals.passages}`, hint: "短文与阅读题总量" }
           ]}
         />
+
+        <StatsPanel
+          items={[
+            { label: "考试已解锁", value: `${examOverview.unlockedWorlds} 个世界`, hint: "地图闯关当前解锁进度" },
+            { label: "关卡通关", value: `${examOverview.clearedLevels}`, hint: "正确率超过 50% 的关卡数" },
+            { label: "累计星星", value: `${examOverview.totalStars}`, hint: "考试模式累计获得的星数" }
+          ]}
+        />
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-surge">Achievements</p>
+            <h3 className="mt-2 text-2xl font-black text-ink">成就墙</h3>
+            <p className="mt-2 text-sm text-slate-500">把单词掌握、句子训练、考试闯关和连续学习串成一张长期进度表。</p>
+          </div>
+          <AchievementPanel items={achievements} />
+        </div>
       </div>
     </Shell>
   );

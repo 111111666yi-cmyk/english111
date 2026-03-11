@@ -5,6 +5,7 @@ import { HighlightedText } from "@/components/highlighted-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { resolveChineseHighlights, resolveVisibleHighlights } from "@/lib/quiz-support";
 import type { SentenceEntry } from "@/types/content";
 
 export function SentenceCard({
@@ -16,15 +17,20 @@ export function SentenceCard({
   isCompleted: boolean;
   onComplete: () => void;
 }) {
+  const visibleKeywords = resolveVisibleHighlights(sentence.sentenceEn, sentence.keywords);
+  const chineseHighlights = resolveChineseHighlights(sentence.sentenceZh, visibleKeywords);
+
   return (
     <Card className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-3">
           <Badge className="bg-peach/50 text-amber-800">句子训练</Badge>
           <h3 className="text-2xl font-bold leading-9 text-ink">
-            <HighlightedText text={sentence.sentenceEn} highlights={sentence.keywords} />
+            <HighlightedText text={sentence.sentenceEn} highlights={visibleKeywords} />
           </h3>
-          <p className="text-base text-slate-600">{sentence.sentenceZh}</p>
+          <p className="text-base text-slate-600">
+            <HighlightedText text={sentence.sentenceZh} highlights={chineseHighlights} />
+          </p>
         </div>
         <AudioButton
           audioRef={{
@@ -44,7 +50,7 @@ export function SentenceCard({
             Keywords
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
-            {sentence.keywords.map((keyword) => (
+            {visibleKeywords.map((keyword) => (
               <div key={keyword} className="rounded-2xl bg-white px-3 py-3 ring-1 ring-slate-100">
                 <Badge className="bg-sky/10 text-sky-700">{keyword}</Badge>
                 {sentence.keywordAudio?.[keyword] ? (

@@ -93,6 +93,8 @@ export function VocabularyScreen() {
           }}
         />
 
+        <QuizCard quiz={quiz} onResult={(correct) => recordQuizResult(quiz.id, correct)} />
+
         <Card className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -112,7 +114,7 @@ export function VocabularyScreen() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" data-testid="vocabulary-overview">
             {overviewWords.map((word) => {
               const index = words.findIndex((item) => item.id === word.id);
               const isKnown = knownWords.includes(word.id);
@@ -124,6 +126,8 @@ export function VocabularyScreen() {
                   key={word.id}
                   type="button"
                   onClick={() => setCurrentIndex(index)}
+                  data-testid="vocabulary-overview-item"
+                  data-word-id={word.id}
                   className={cn(
                     "rounded-3xl border bg-white px-4 py-4 text-left transition hover:border-surge/40",
                     currentIndex === index && "border-surge bg-sky/10",
@@ -132,7 +136,9 @@ export function VocabularyScreen() {
                   )}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-lg font-bold text-ink">{word.word}</p>
+                    <p className="text-lg font-bold text-ink" data-testid="overview-word">
+                      {word.word}
+                    </p>
                     <span className="text-xs font-semibold text-slate-500">{word.level}</span>
                   </div>
                   <p className="mt-1 text-sm text-slate-500">{word.meaningZh}</p>
@@ -156,6 +162,7 @@ export function VocabularyScreen() {
               variant="secondary"
               disabled={overviewPage === 0}
               onClick={() => setOverviewPage((page) => Math.max(page - 1, 0))}
+              data-testid="vocabulary-overview-prev"
             >
               上一页
             </Button>
@@ -164,13 +171,12 @@ export function VocabularyScreen() {
               variant="secondary"
               disabled={overviewPage + 1 >= totalPages}
               onClick={() => setOverviewPage((page) => Math.min(page + 1, totalPages - 1))}
+              data-testid="vocabulary-overview-next"
             >
               下一页
             </Button>
           </div>
         </Card>
-
-        <QuizCard quiz={quiz} onResult={(correct) => recordQuizResult(quiz.id, correct)} />
       </div>
     </Shell>
   );

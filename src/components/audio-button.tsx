@@ -1,11 +1,33 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Cloud, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCloudTtsAvailability, playCloudAudio, playPreferredLocalAudio } from "@/lib/audio";
 import { useLearningStore } from "@/stores/learning-store";
 import type { AudioRef } from "@/types/content";
+
+function getCloudDisabledReason(cloudAudioEnabled: boolean) {
+  const cloudInfo = getCloudTtsAvailability();
+
+  if (!cloudAudioEnabled) {
+    return "请先在设置页开启云端发音。";
+  }
+
+  if (!cloudInfo.online) {
+    return "当前离线，云端发音不可用。";
+  }
+
+  if (!cloudInfo.endpointConfigured) {
+    return "云端发音接口尚未配置。";
+  }
+
+  if (!cloudInfo.enabled) {
+    return "当前环境未启用云端发音。";
+  }
+
+  return "";
+}
 
 export function AudioButton({
   audioRef,
@@ -20,27 +42,7 @@ export function AudioButton({
 }) {
   const [status, setStatus] = useState("");
   const settings = useLearningStore((state) => state.settings);
-  const cloudInfo = getCloudTtsAvailability();
-
-  const cloudDisabledReason = useMemo(() => {
-    if (!cloudInfo.enabled) {
-      return "当前未启用云端发音。";
-    }
-
-    if (!settings.cloudAudioEnabled) {
-      return "请先在设置页开启云端发音按钮。";
-    }
-
-    if (!cloudInfo.online) {
-      return "当前离线，云端发音不可用。";
-    }
-
-    if (!cloudInfo.endpointConfigured) {
-      return "云端发音接口尚未配置。";
-    }
-
-    return "";
-  }, [cloudInfo.enabled, cloudInfo.endpointConfigured, cloudInfo.online, settings.cloudAudioEnabled]);
+  const cloudDisabledReason = getCloudDisabledReason(settings.cloudAudioEnabled);
 
   const playLocal = async () => {
     const result = await playPreferredLocalAudio({
@@ -60,8 +62,10 @@ export function AudioButton({
   };
 
   const playCloud = async () => {
-    if (cloudDisabledReason) {
-      setStatus(cloudDisabledReason);
+    const currentDisabledReason = getCloudDisabledReason(settings.cloudAudioEnabled);
+
+    if (currentDisabledReason) {
+      setStatus(currentDisabledReason);
       return;
     }
 
@@ -87,25 +91,35 @@ export function AudioButton({
   };
 
   return (
-    <div className={className}>
+    <div className={className} data-testid="audio-controls" data-audio-key={audioRef.cacheKey}>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="secondary" onClick={playLocal}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={playLocal}
+          data-testid="audio-local-button"
+        >
           <Volume2 className="mr-2 h-4 w-4" />
           {localLabel}
         </Button>
-        {cloudInfo.enabled ? (
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={Boolean(cloudDisabledReason)}
-            onClick={playCloud}
-          >
-            <Cloud className="mr-2 h-4 w-4" />
-            {cloudLabel}
-          </Button>
-        ) : null}
+        <Button
+          type="button"
+          variant="ghost"
+          className={cloudDisabledReason ? "opacity-70" : undefined}
+          onClick={playCloud}
+          title={cloudDisabledReason || "需要联网和服务端代理"}
+          data-testid="audio-cloud-button"
+          data-disabled-reason={cloudDisabledReason || undefined}
+        >
+          <Cloud className="mr-2 h-4 w-4" />
+          {cloudLabel}
+        </Button>
       </div>
-      {status ? <p className="mt-2 text-xs text-slate-500">{status}</p> : null}
+      {status ? (
+        <p className="mt-2 text-xs text-slate-500" data-testid="audio-status">
+          {status}
+        </p>
+      ) : null}
     </div>
   );
 }

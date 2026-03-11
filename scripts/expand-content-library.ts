@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 import { createContentSummary } from "./content-summary";
+import { localizeReadingQuestion } from "./reading-question-localization";
 import type {
   ExpressionEntry,
   PassageEntry,
@@ -578,7 +579,7 @@ function buildAutoPassages(autoWords: WordEntry[], targetCount: number) {
           mode: "true-false"
         }
       }
-    ];
+    ].map((question) => localizeReadingQuestion(question as QuizItem));
 
     passages.push({
       id: passageId,

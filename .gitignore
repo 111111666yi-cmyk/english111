@@ -15,3 +15,5 @@ scripts/audio-manifest.generated.json
 scripts/.cache/
 preview-server.log
 dev-server.log
+.playwright-cli/
+output/

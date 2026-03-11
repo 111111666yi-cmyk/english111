@@ -92,7 +92,7 @@ npm run build
 
 项目已包含 GitHub Pages workflow：
 
-- [deploy-pages.yml](/D:/English/.github/workflows/deploy-pages.yml)
+- [deploy-pages.yml](.github/workflows/deploy-pages.yml)
 
 默认行为：
 
@@ -110,6 +110,37 @@ npm run build
 
 ```text
 https://<your-github-username>.github.io/english-climb/
+```
+
+## Playwright 回归
+
+仓库内已提供固定的 Playwright 回归脚本：
+
+```bash
+npm run test:regression
+```
+
+默认行为：
+
+- 先执行 `npm run build:content`
+- 再执行 `npm run build`
+- 自动启动本地静态预览 `http://127.0.0.1:3002`
+- 运行关键回归并把截图、日志、汇总写到 `output/playwright/regression/`
+
+覆盖重点：
+
+- 首页导航到统计页
+- 词汇总览每页固定 30 条且不重复
+- 单词高亮存在
+- 阅读页“标记本篇已完成”会增加计数并切到下一篇
+- 本地音频路径走站点 basePath
+- 云端按钮常显，离线时只给状态提示
+- guest / 账户 A / 账户 B 的学习数据和错题隔离
+
+如果你想复用同一套检查去跑线上 Pages 地址：
+
+```bash
+npm run test:regression -- --url https://<your-github-username>.github.io/english-climb/ --skip-build --skip-preview
 ```
 
 ## 内容与音频
@@ -147,7 +178,7 @@ https://<your-github-username>.github.io/english-climb/
 
 示例清单：
 
-- [audio-manifest.example.json](/D:/English/scripts/audio-manifest.example.json)
+- [audio-manifest.example.json](scripts/audio-manifest.example.json)
 
 执行方式：
 
@@ -218,11 +249,48 @@ npm run sync:audio -- --source-dir C:/tts-output --output scripts/audio-manifest
 
 临时导入目录说明见：
 
-- [audio-import/README.md](/D:/English/audio-import/README.md)
+- [audio-import/README.md](audio-import/README.md)
+
+## 扩库与占位音频约定
+
+内容真源始终保持在 `src/data/`，不额外引入第二套 schema。
+
+推荐顺序：
+
+1. 按目标规模扩充内容：
+
+```bash
+npm run expand:content -- --total-words 3500 --total-passages 180
+```
+
+2. 生成静态读取用数据：
+
+```bash
+npm run build:content
+```
+
+3. 校验 JSON 和音频引用：
+
+```bash
+npm run validate:data
+npm run validate:audio
+```
+
+4. 需要补占位或本机 TTS 时，再执行：
+
+```bash
+npm run tts:local
+```
+
+约定保持不变：
+
+- 先扩 JSON，再统一补音频
+- 音频文件名继续沿用现有 `public/audio/*` 约定
+- 新内容未补音频时，`validate:audio` 应直接失败
 
 ## 准备推送到 GitHub
 
-当前目录还不是 Git 仓库。如果你要推到 GitHub，建议按这个顺序：
+如果你要首次推到新的 GitHub 仓库，建议按这个顺序：
 
 ```bash
 git init -b main

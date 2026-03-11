@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
+import { localizeReadingQuestion } from "./reading-question-localization";
+import type { QuizItem as GeneratedQuizItem } from "../src/types/content";
 
 type Level = "L1" | "L2" | "L3" | "L4" | "L5";
 
@@ -1044,7 +1046,8 @@ const generatedSentences = [...sentenceSeedsFromWords, ...extraSentenceSeeds].ma
   }
 );
 
-const generatedPassages = passageSeeds.map((passage) => ({
+const generatedPassages = passageSeeds.map((passage) => {
+  return {
   id: passage.id,
   title: passage.title,
   level: passage.level,
@@ -1106,8 +1109,9 @@ const generatedPassages = passageSeeds.map((passage) => ({
         mode: "true-false"
       }
     }
-  ]
-}));
+  ].map((question) => localizeReadingQuestion(question as GeneratedQuizItem))
+  };
+});
 
 const generatedExpressions = expressionSeeds.map((expression) => ({
   ...expression,

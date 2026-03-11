@@ -56,7 +56,9 @@ export function ReadingScreen() {
           </Card>
           <Card>
             <p className="text-sm text-slate-500">已完成短文</p>
-            <p className="mt-2 text-4xl font-black text-ink">{completionCount}</p>
+            <p className="mt-2 text-4xl font-black text-ink" data-testid="reading-completion-count">
+              {completionCount}
+            </p>
             <p className="mt-2 text-sm text-slate-500">当前账户独立记录，不会串到其他账户。</p>
           </Card>
           <Card>
@@ -73,7 +75,11 @@ export function ReadingScreen() {
               <p className="text-sm text-slate-500">目录支持分页，避免大规模内容一次性挤满页面。</p>
             </div>
             <div className="flex items-center gap-3">
-              {feedback ? <p className="text-sm font-medium text-surge">{feedback}</p> : null}
+              {feedback ? (
+                <p className="text-sm font-medium text-surge" data-testid="reading-feedback">
+                  {feedback}
+                </p>
+              ) : null}
               <p className="text-sm text-slate-500">
                 第 {passagePage + 1} / {totalPages} 页
               </p>
@@ -93,6 +99,8 @@ export function ReadingScreen() {
                     setIndex(itemIndex);
                     setFeedback("");
                   }}
+                  data-testid="reading-directory-item"
+                  data-passage-id={item.id}
                   className={cn(
                     "rounded-3xl border bg-white px-4 py-4 text-left transition hover:border-surge/40",
                     index === itemIndex && "border-surge bg-sky/10",

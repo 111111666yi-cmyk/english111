@@ -147,6 +147,7 @@ export function AccountScreen() {
                     }
                     className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-surge"
                     placeholder="例如 reader01"
+                    data-testid="register-username"
                   />
                 </label>
                 <label htmlFor="register-password" className="space-y-2">
@@ -161,9 +162,15 @@ export function AccountScreen() {
                     }
                     className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-surge"
                     placeholder="至少 6 位"
+                    data-testid="register-password"
                   />
                 </label>
-                <Button type="submit" onClick={undefined} disabled={registerBusy}>
+                <Button
+                  type="submit"
+                  onClick={undefined}
+                  disabled={registerBusy}
+                  data-testid="register-submit"
+                >
                   {registerBusy ? "创建中..." : "创建并登录"}
                 </Button>
               </form>
@@ -216,6 +223,7 @@ export function AccountScreen() {
                     }
                     className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-surge"
                     placeholder="输入已有用户名"
+                    data-testid="login-username"
                   />
                 </label>
                 <label htmlFor="login-password" className="space-y-2">
@@ -230,9 +238,16 @@ export function AccountScreen() {
                     }
                     className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-surge"
                     placeholder="输入密码"
+                    data-testid="login-password"
                   />
                 </label>
-                <Button type="submit" variant="secondary" onClick={undefined} disabled={loginBusy}>
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  onClick={undefined}
+                  disabled={loginBusy}
+                  data-testid="login-submit"
+                >
                   {loginBusy ? "登录中..." : "登录并切换"}
                 </Button>
               </form>

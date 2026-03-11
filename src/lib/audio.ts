@@ -1,6 +1,7 @@
 "use client";
 
 import { getCachedCloudAudio, saveCachedCloudAudio } from "@/lib/audio-cache";
+import { withBasePath } from "@/lib/base-path";
 import { speakText } from "@/lib/speech";
 import type { AudioKind } from "@/types/content";
 
@@ -42,7 +43,7 @@ export async function playLocalAudio(path?: string) {
     return { ok: false, reason: "未提供本地音频文件。" };
   }
 
-  const audio = new Audio(path);
+  const audio = new Audio(withBasePath(path));
 
   try {
     await audio.play();

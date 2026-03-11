@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import type { ExamLevelRecord } from "@/types/content";
 
 export interface SessionLog {
   date: string;
@@ -28,6 +29,8 @@ export interface LearningSnapshot {
   completedSentenceIds: string[];
   completedPassageIds: string[];
   reviewMistakes: string[];
+  examMistakes: string[];
+  examLevelProgress: Record<string, ExamLevelRecord>;
   streakDays: number;
   lastStudyDate?: string;
   sessions: SessionLog[];
@@ -43,6 +46,8 @@ interface LearningState extends LearningSnapshot {
   completeSentence: (sentenceId: string) => void;
   completePassage: (passageId: string) => void;
   recordQuizResult: (quizId: string, correct: boolean) => void;
+  recordExamWordResult: (wordId: string, correct: boolean) => void;
+  saveExamLevelProgress: (levelId: string, accuracy: number, stars: number) => void;
   logDailyProgress: (payload: Omit<SessionLog, "date">) => void;
   updateSetting: <K extends keyof LearningSettings>(key: K, value: LearningSettings[K]) => void;
   resetAll: () => void;
@@ -66,6 +71,8 @@ const defaultSnapshot: LearningSnapshot = {
   completedSentenceIds: [],
   completedPassageIds: [],
   reviewMistakes: [],
+  examMistakes: [],
+  examLevelProgress: {},
   streakDays: 0,
   lastStudyDate: undefined,
   sessions: [],
@@ -118,6 +125,8 @@ function normalizeSnapshot(snapshot?: Partial<LearningSnapshot>): LearningSnapsh
     completedSentenceIds: unique(snapshot?.completedSentenceIds ?? []),
     completedPassageIds: unique(snapshot?.completedPassageIds ?? []),
     reviewMistakes: unique(snapshot?.reviewMistakes ?? []),
+    examMistakes: unique(snapshot?.examMistakes ?? []),
+    examLevelProgress: snapshot?.examLevelProgress ?? {},
     streakDays: snapshot?.streakDays ?? 0,
     lastStudyDate: snapshot?.lastStudyDate,
     sessions: snapshot?.sessions ?? [],
@@ -169,6 +178,8 @@ function extractSnapshot(state: LearningState): LearningSnapshot {
     completedSentenceIds: state.completedSentenceIds,
     completedPassageIds: state.completedPassageIds,
     reviewMistakes: state.reviewMistakes,
+    examMistakes: state.examMistakes,
+    examLevelProgress: state.examLevelProgress,
     streakDays: state.streakDays,
     lastStudyDate: state.lastStudyDate,
     sessions: state.sessions,
@@ -241,6 +252,30 @@ export const useLearningStore = create<LearningState>()((set, get) => {
               reviewMistakes: [...state.reviewMistakes, quizId]
             }
       ),
+    recordExamWordResult: (wordId, correct) =>
+      updateAndSave((state) => ({
+        examMistakes: correct
+          ? state.examMistakes.filter((id) => id !== wordId)
+          : [...state.examMistakes, wordId]
+      })),
+    saveExamLevelProgress: (levelId, accuracy, stars) =>
+      updateAndSave((state) => {
+        const current = state.examLevelProgress[levelId];
+        const bestAccuracy = Math.max(current?.bestAccuracy ?? 0, accuracy);
+        const bestStars = Math.max(current?.bestStars ?? 0, stars);
+
+        return {
+          examLevelProgress: {
+            ...state.examLevelProgress,
+            [levelId]: {
+              bestAccuracy,
+              bestStars,
+              attempts: (current?.attempts ?? 0) + 1,
+              cleared: bestAccuracy > 50
+            }
+          }
+        };
+      }),
     logDailyProgress: (payload) =>
       updateAndSave((state) => {
         const today = todayKey();

@@ -6,6 +6,7 @@ import { DifficultyBadge } from "@/components/difficulty-badge";
 import { HighlightedText } from "@/components/highlighted-text";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { resolveChineseHighlights } from "@/lib/quiz-support";
 import type { MasteryFeedback, WordEntry } from "@/types/content";
 
 export function WordCard({
@@ -20,7 +21,7 @@ export function WordCard({
   onFeedback: (feedback: MasteryFeedback) => void;
 }) {
   return (
-    <Card className="space-y-6">
+    <Card className="space-y-6" data-testid="word-card">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -30,7 +31,9 @@ export function WordCard({
             </span>
           </div>
           <div>
-            <h3 className="text-4xl font-black text-ink">{word.word}</h3>
+            <h3 className="text-4xl font-black text-ink" data-testid="word-card-title">
+              {word.word}
+            </h3>
             <p className="mt-1 text-sm text-slate-500">{word.phonetic}</p>
           </div>
           <p className="text-lg font-semibold text-slate-700">{word.meaningZh}</p>
@@ -55,7 +58,7 @@ export function WordCard({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-3xl bg-slate-50 p-4">
+        <div className="rounded-3xl bg-slate-50 p-4" data-testid="word-example-en">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
             Example
           </p>
@@ -67,18 +70,38 @@ export function WordCard({
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
             中文辅助
           </p>
-          <p className="mt-3 text-base leading-7 text-slate-700">{word.exampleZh}</p>
+          <p className="mt-3 text-base leading-7 text-slate-700">
+            <HighlightedText
+              text={word.exampleZh}
+              highlights={resolveChineseHighlights(word.exampleZh, [word.word])}
+            />
+          </p>
         </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <Button type="button" variant="success" onClick={() => onFeedback("known")}>
+        <Button
+          type="button"
+          variant="success"
+          onClick={() => onFeedback("known")}
+          data-testid="word-feedback-known"
+        >
           我认识
         </Button>
-        <Button type="button" variant="secondary" onClick={() => onFeedback("tricky")}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => onFeedback("tricky")}
+          data-testid="word-feedback-tricky"
+        >
           有点难
         </Button>
-        <Button type="button" variant="ghost" onClick={() => onFeedback("unknown")}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => onFeedback("unknown")}
+          data-testid="word-feedback-unknown"
+        >
           不会
         </Button>
       </div>

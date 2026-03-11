@@ -7,6 +7,7 @@ import { HighlightedText } from "@/components/highlighted-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { resolveChineseHighlights } from "@/lib/quiz-support";
 import type { PassageEntry } from "@/types/content";
 
 export function PassageViewer({
@@ -29,7 +30,7 @@ export function PassageViewer({
   }, [passage.id]);
 
   return (
-    <Card className="space-y-6">
+    <Card className="space-y-6" data-testid="reading-passage-viewer">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -37,7 +38,9 @@ export function PassageViewer({
             <Badge className="bg-slate-100 text-slate-600">{passage.topic}</Badge>
           </div>
           <div>
-            <h3 className="text-3xl font-black text-ink">{passage.title}</h3>
+            <h3 className="text-3xl font-black text-ink" data-testid="reading-current-title">
+              {passage.title}
+            </h3>
             <p className="mt-2 text-sm text-slate-500">
               预计 {passage.estimatedMinutes} 分钟，适合从词汇过渡到阅读理解。
             </p>
@@ -81,7 +84,10 @@ export function PassageViewer({
                 </p>
                 {chineseAssist ? (
                   <p className="mt-3 text-sm leading-7 text-slate-500">
-                    {passage.contentZh[index]}
+                    <HighlightedText
+                      text={passage.contentZh[index]}
+                      highlights={resolveChineseHighlights(passage.contentZh[index], passage.keyWords)}
+                    />
                   </p>
                 ) : null}
               </button>
@@ -132,7 +138,13 @@ export function PassageViewer({
             </p>
           </div>
 
-          <Button type="button" className="w-full" variant={isCompleted ? "secondary" : "primary"} onClick={onComplete}>
+          <Button
+            type="button"
+            className="w-full"
+            variant={isCompleted ? "secondary" : "primary"}
+            onClick={onComplete}
+            data-testid="reading-complete-button"
+          >
             {isCompleted ? "已完成，继续下一篇" : "标记本篇已完成"}
           </Button>
         </div>

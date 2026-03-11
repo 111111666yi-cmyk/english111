@@ -1,4 +1,8 @@
 import { expressions, passages, sentences, words } from "@/lib/content";
+import {
+  buildBlankedChineseText,
+  resolveVisibleHighlights
+} from "@/lib/quiz-support";
 import type { QuizItem, QuizOption } from "@/types/content";
 
 function pickMeaningOptions(index: number): QuizOption[] {
@@ -33,8 +37,9 @@ function makeVocabularyQuiz(wordIndex: number): QuizItem {
         label: option.label
       })),
       answer: "correct",
+      answerText: word.meaningZh,
       explanation: `${word.word} 在这里对应的核心含义是“${word.meaningZh}”。`,
-      relatedWords: [word.word, ...(word.synonyms ?? []).slice(0, 1)],
+      relatedWords: [word.word],
       difficulty: word.difficulty,
       sourceRef: word.id,
       audioRef: {
@@ -51,7 +56,9 @@ function makeVocabularyQuiz(wordIndex: number): QuizItem {
     type: "fill-blank",
     prompt: word.exampleEn.replace(new RegExp(word.word, "i"), "_____"),
     promptZh: "根据例句填写缺失的单词。",
+    promptSupplementZh: buildBlankedChineseText(word.exampleZh, word.word),
     answer: word.word,
+    answerText: word.word,
     explanation: `例句中的关键词是 ${word.word}。`,
     relatedWords: [word.word],
     difficulty: word.difficulty,
@@ -70,6 +77,7 @@ function makeVocabularyQuiz(wordIndex: number): QuizItem {
 
 function makeSentenceQuiz(index: number): QuizItem {
   const sentence = sentences[index];
+  const visibleKeywords = resolveVisibleHighlights(sentence.sentenceEn, sentence.keywords);
 
   if (index % 3 === 0) {
     return {
@@ -82,8 +90,9 @@ function makeSentenceQuiz(index: number): QuizItem {
         label
       })),
       answer: sentence.reorderAnswer,
+      answerText: sentence.reorderAnswer,
       explanation: sentence.explanation,
-      relatedWords: sentence.relatedWords,
+      relatedWords: visibleKeywords,
       difficulty: sentence.difficulty,
       sourceRef: sentence.id,
       audioRef: {
@@ -104,19 +113,21 @@ function makeSentenceQuiz(index: number): QuizItem {
       type: "single-choice",
       prompt: sentence.sentenceEn.replace(new RegExp(sentence.missingWord, "i"), "_____"),
       promptZh: "请选择最适合填入句子的关键词。",
+      promptSupplementZh: buildBlankedChineseText(sentence.sentenceZh, sentence.missingWord),
       options: uniqueOptions.map((option, optionIndex) => ({
         id: option === sentence.missingWord ? "correct" : `option-${optionIndex}`,
         label: option
       })),
       answer: "correct",
+      answerText: sentence.missingWord,
       explanation: sentence.explanation,
-      relatedWords: sentence.relatedWords,
+      relatedWords: [sentence.missingWord],
       difficulty: sentence.difficulty,
       sourceRef: sentence.id
     };
   }
 
-  const pairs = sentence.relatedWords
+  const pairs = visibleKeywords
     .map((item) => ({
       left: item,
       right: wordMeaningLookup.get(item.toLowerCase())
@@ -131,8 +142,9 @@ function makeSentenceQuiz(index: number): QuizItem {
       prompt: "Match the keywords with their Chinese meanings.",
       promptZh: "把关键词和对应中文意思配对。",
       answer: pairs.map((item) => `${item.left}:${item.right}`),
+      answerText: pairs.map((item) => `${item.left} -> ${item.right}`).join(" / "),
       explanation: "关键词和含义配对能帮助你在语境里更快识别重点词。",
-      relatedWords: sentence.relatedWords,
+      relatedWords: visibleKeywords,
       difficulty: sentence.difficulty,
       sourceRef: sentence.id,
       meta: {
@@ -146,9 +158,11 @@ function makeSentenceQuiz(index: number): QuizItem {
     type: "fill-blank",
     prompt: sentence.sentenceEn.replace(new RegExp(sentence.missingWord, "i"), "_____"),
     promptZh: "请根据上下文填写缺失的单词。",
+    promptSupplementZh: buildBlankedChineseText(sentence.sentenceZh, sentence.missingWord),
     answer: sentence.missingWord,
+    answerText: sentence.missingWord,
     explanation: sentence.explanation,
-    relatedWords: sentence.relatedWords,
+    relatedWords: [sentence.missingWord],
     difficulty: sentence.difficulty,
     sourceRef: sentence.id
   };
@@ -170,6 +184,7 @@ function makeExpressionQuiz(index: number): QuizItem {
       label: expressions[optionIndex].advanced
     })),
     answer: item.id,
+    answerText: item.advanced,
     explanation: item.noteZh,
     relatedWords: [item.basic, item.advanced],
     difficulty: 3,

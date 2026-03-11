@@ -12,7 +12,7 @@ export function ClientProviders({ children }: PropsWithChildren) {
   const motionLevel = useLearningStore((state) => state.settings.motionLevel);
 
   useEffect(() => {
-    if (!authHydrated) {
+    if (!authHydrated && currentUsername === undefined) {
       return;
     }
 

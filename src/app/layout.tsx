@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ClientProviders } from "@/components/client-providers";
+import { withBasePath } from "@/lib/base-path";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
   description:
     "A lightweight bilingual English learning site focused on vocabulary, sentences, reading, and review.",
   icons: {
-    icon: "/favicon.svg"
+    icon: withBasePath("/favicon.svg")
   }
 };
 

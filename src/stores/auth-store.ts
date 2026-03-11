@@ -87,7 +87,8 @@ export const useAuthStore = create<AuthState>()(
               createdAt: new Date().toISOString()
             }
           ],
-          currentUsername: normalized
+          currentUsername: normalized,
+          hydrated: true
         }));
 
         return {
@@ -118,18 +119,22 @@ export const useAuthStore = create<AuthState>()(
           };
         }
 
-        set({ currentUsername: normalized });
+        set({ currentUsername: normalized, hydrated: true });
 
         return {
           ok: true,
           message: "登录成功。"
         };
       },
-      logout: () => set({ currentUsername: undefined })
+      logout: () => set({ currentUsername: undefined, hydrated: true })
     }),
     {
       name: "english-climb-auth",
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        users: state.users,
+        currentUsername: state.currentUsername
+      }),
       onRehydrateStorage: () => () => {
         useAuthStore.setState({ hydrated: true });
       }

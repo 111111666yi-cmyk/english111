@@ -1,74 +1,69 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { getReviewPoolSize, getReviewQueue } from "@/data/quizzes";
-import { QuizCard } from "@/components/quiz-card";
+import { useState } from "react";
 import { Shell } from "@/components/shell";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { useLearningStore } from "@/stores/learning-store";
+import { cn } from "@/lib/utils";
+import { ExamModePanel } from "@/features/review/exam-mode-panel";
+import { ReviewPracticePanel } from "@/features/review/review-practice-panel";
+import { TestModePanel } from "@/features/review/test-mode-panel";
+
+const modes = [
+  {
+    id: "review",
+    label: "复习模式",
+    description: "回放当前错题池，并继续把做错的题追踪下去。"
+  },
+  {
+    id: "test",
+    label: "测试模式",
+    description: "把单词和句子串成连续测验，错题直接送入复习。"
+  },
+  {
+    id: "exam",
+    label: "考试模式",
+    description: "进入地图闯关，只用词汇世界做关卡推进和星级结算。"
+  }
+] as const;
+
+type ReviewMode = (typeof modes)[number]["id"];
 
 export function ReviewScreen() {
-  const [index, setIndex] = useState(0);
-  const reviewMistakes = useLearningStore((state) => state.reviewMistakes);
-  const difficultWords = useLearningStore((state) => state.difficultWords.length);
-  const recordQuizResult = useLearningStore((state) => state.recordQuizResult);
-  const logDailyProgress = useLearningStore((state) => state.logDailyProgress);
-
-  const queue = useMemo(() => getReviewQueue(reviewMistakes, 120), [reviewMistakes]);
-  const quiz = queue[index % Math.max(queue.length, 1)];
+  const [mode, setMode] = useState<ReviewMode>("review");
 
   return (
     <Shell>
       <div className="space-y-6">
         <SectionHeading
           eyebrow="Review"
-          title="复习与挑战"
-          description="优先回放错题，再混合高频词、句子理解和阅读理解。题池按需生成，不会把整套内容一次性压进页面。"
+          title="复习、测试与考试"
+          description="复习继续负责清错题，测试负责把单词和句子串起来，考试则单独走地图闯关与星级记录。"
         />
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <p className="text-sm text-slate-500">待复习错题</p>
-            <p className="mt-2 text-4xl font-black text-ink">{reviewMistakes.length}</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-slate-500">难词回顾</p>
-            <p className="mt-2 text-4xl font-black text-ink">{difficultWords}</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-slate-500">挑战题池</p>
-            <p className="mt-2 text-4xl font-black text-ink">{getReviewPoolSize()}</p>
-          </Card>
+        <div className="rounded-[2rem] bg-white/80 p-3 ring-1 ring-slate-200/80">
+          <div className="grid gap-2 md:grid-cols-3" data-testid="review-mode-switch">
+            {modes.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setMode(item.id)}
+                className={cn(
+                  "rounded-[1.5rem] px-4 py-4 text-left transition",
+                  mode === item.id ? "bg-gradient-to-r from-surge to-sky text-white shadow-glass" : "bg-slate-50 text-slate-600"
+                )}
+              >
+                <p className="text-sm font-semibold">{item.label}</p>
+                <p className={cn("mt-2 text-sm leading-6", mode === item.id ? "text-white/90" : "text-slate-500")}>
+                  {item.description}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {quiz ? (
-          <QuizCard
-            quiz={quiz}
-            onResult={(correct) => {
-              recordQuizResult(quiz.id, correct);
-              logDailyProgress({
-                words: 0,
-                sentences: 0,
-                passages: 0,
-                reviews: 1,
-                correct: correct ? 1 : 0,
-                total: 1
-              });
-            }}
-          />
-        ) : (
-          <Card>
-            <p className="text-base text-slate-600">当前没有可用的复习题，请先完成一些学习内容。</p>
-          </Card>
-        )}
-
-        <div className="flex justify-end">
-          <Button type="button" variant="secondary" onClick={() => setIndex((current) => current + 1)}>
-            下一题
-          </Button>
-        </div>
+        {mode === "review" ? <ReviewPracticePanel /> : null}
+        {mode === "test" ? <TestModePanel /> : null}
+        {mode === "exam" ? <ExamModePanel /> : null}
       </div>
     </Shell>
   );
