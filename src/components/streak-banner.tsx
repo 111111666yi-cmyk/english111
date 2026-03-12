@@ -29,13 +29,13 @@ export function StreakBanner({
             href="/vocabulary"
             className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-glass transition hover:-translate-y-0.5"
           >
-            继续单词学习
+            开始今日学习
           </Link>
           <Link
-            href="/challenge"
+            href="/review"
             className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
           >
-            切换到闯关模式
+            进入复习挑战
           </Link>
         </div>
       </div>

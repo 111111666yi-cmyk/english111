@@ -466,6 +466,13 @@ async function runRegression(
 
   await goto(page, baseUrl, "");
   await page.getByText("English Climb").first().waitFor();
+  const navbarChallengeCount = await page.locator("header nav a[href*=\"/challenge\"]").count();
+  assert(navbarChallengeCount === 0, "Challenge link should not appear in the top navigation.");
+  assert(
+    (await page.locator('[data-testid="home-challenge-entry"]').count()) > 0,
+    "Home challenge entry is missing."
+  );
+  recordCheck("challenge entry moved off the navbar and stays available on home");
   await page.getByRole("link", { name: "统计" }).click().catch(async () => {
     await page.locator('a[href*="/stats"]').first().click();
   });
@@ -688,7 +695,9 @@ async function runRegression(
   );
   recordCheck("review mode persists and auto-advances after solving a fill-blank mistake");
 
-  await goto(page, baseUrl, "challenge/");
+  await goto(page, baseUrl, "");
+  await page.locator('[data-testid="home-challenge-entry"]').click();
+  await page.waitForURL((url) => url.pathname.endsWith("/challenge/"));
   assert(
     (await page.locator('[data-testid="challenge-mode-panel"]').count()) > 0,
     "Standalone challenge route did not render."
@@ -699,6 +708,7 @@ async function runRegression(
     `Expected ${examWorlds.length} challenge world switcher buttons, got ${worldSwitcherButtons}.`
   );
   await page.locator('[data-testid="challenge-level-button"]').first().click();
+  await page.locator('[data-testid="challenge-start-level"]').click();
   const betaBeforeChallenge = await readLearningSnapshot(page, BETA_USER);
   await answerCurrentQuiz(page, "wrong", true);
   const challengeIndexText = (await page.locator('[data-testid="challenge-current-index"]').innerText()).trim();

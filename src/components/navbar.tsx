@@ -15,7 +15,6 @@ const links = [
   { href: "/expressions", label: "表达" },
   { href: "/review", label: "复习" },
   { href: "/test", label: "测试" },
-  { href: "/challenge", label: "闯关" },
   { href: "/stats", label: "统计" },
   { href: "/settings", label: "设置" }
 ];
@@ -47,8 +46,7 @@ export function Navbar() {
               const active =
                 pathname === link.href ||
                 (link.href === "/review" && pathname.startsWith("/review")) ||
-                (link.href === "/test" && pathname.startsWith("/test")) ||
-                (link.href === "/challenge" && pathname.startsWith("/challenge"));
+                (link.href === "/test" && pathname.startsWith("/test"));
 
               return (
                 <Link

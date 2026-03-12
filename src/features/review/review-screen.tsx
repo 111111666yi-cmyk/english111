@@ -1,6 +1,5 @@
 "use client";
 
-import { PracticeModeNav } from "@/components/practice-mode-nav";
 import { Shell } from "@/components/shell";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { ReviewPracticePanel } from "@/features/review/review-practice-panel";
@@ -12,10 +11,9 @@ export function ReviewScreen() {
         <SectionHeading
           eyebrow="Review"
           title="复习模式"
-          description="复习继续负责清错题，保留当前账户的本地进度，不会因为切换页面就丢失。"
+          description="复习页只负责回放当前错题池，并继续把做错的题追踪下去。切换页面后会按账户保留本地进度。"
         />
 
-        <PracticeModeNav active="review" />
         <ReviewPracticePanel />
       </div>
     </Shell>

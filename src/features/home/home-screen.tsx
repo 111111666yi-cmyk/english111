@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import contentSummary from "@/data/content-summary.json";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { ProgressCard } from "@/components/progress-card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Shell } from "@/components/shell";
 import { StatsPanel } from "@/components/stats-panel";
 import { StreakBanner } from "@/components/streak-banner";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useLearningSummary } from "@/hooks/use-learning-summary";
 import { useAuthStore } from "@/stores/auth-store";
 import type { ContentSummary } from "@/types/content";
@@ -21,8 +21,7 @@ const entryCards = [
   { href: "/reading", title: "短文阅读", description: "用短文训练主旨、细节和词义猜测。" },
   { href: "/expressions", title: "进阶表达", description: "从基础说法过渡到更自然、更正式的表达。" },
   { href: "/review", title: "复习模式", description: "回放错题池，把做错的题继续追下去。" },
-  { href: "/test", title: "测试模式", description: "单词和句子连续测验，当前题号会自动保存在本地。" },
-  { href: "/challenge", title: "闯关模式", description: "进入地图关卡，按世界推进并独立记录星级。" },
+  { href: "/test", title: "测试模式", description: "单词和句子连续测验，题号和错题会保存在本地。" },
   { href: "/stats", title: "学习统计", description: "查看正确率、进度和连续学习天数。" }
 ];
 
@@ -47,8 +46,8 @@ export function HomeScreen() {
           <Card className="space-y-4">
             <SectionHeading
               eyebrow="Today"
-              title={authHydrated && currentUsername ? `欢迎回来：${currentUsername}` : "开始今天的学习"}
-              description="账户独立、本地优先、默认不消耗任何运行期大模型密钥。你可以按“单词 → 句子 → 短文 → 表达 → 复习 / 测试 / 闯关”的节奏推进。"
+              title={authHydrated && currentUsername ? `欢迎回来，${currentUsername}` : "开始今天的学习"}
+              description="账户独立、本地优先、默认不消耗任何运行期模型密钥。你可以按“单词 -> 句子 -> 短文 -> 表达 -> 复习 / 测试”的节奏推进。"
             />
             <div className="grid gap-3 md:grid-cols-4">
               <div className="rounded-3xl bg-slate-50 p-4">
@@ -75,9 +74,6 @@ export function HomeScreen() {
               <Link href="/review">
                 <Button variant="secondary">进入复习模式</Button>
               </Link>
-              <Link href="/challenge">
-                <Button variant="secondary">进入闯关模式</Button>
-              </Link>
             </div>
           </Card>
 
@@ -88,11 +84,33 @@ export function HomeScreen() {
           </div>
         </section>
 
+        <Card className="overflow-hidden bg-gradient-to-r from-[#5B78FF] via-[#5AA9F5] to-[#74D4F7] text-white">
+          <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+            <div className="space-y-4">
+              <div className="inline-flex w-fit rounded-full bg-white/18 px-4 py-2 text-sm font-semibold backdrop-blur">
+                Journey
+              </div>
+              <div className="space-y-3">
+                <h2 className="text-3xl font-black md:text-4xl">进入闯关地图</h2>
+                <p className="max-w-2xl text-sm leading-7 text-white/90 md:text-base">
+                  闯关不再放在顶栏里，而是作为主页里的独立二级入口。你可以从这里进入地图世界，按世界和关卡推进，查看星级、锁定状态和闯关错题库。
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col items-start gap-3 lg:items-end">
+              <Link href="/challenge" data-testid="home-challenge-entry">
+                <Button className="bg-white text-ink hover:bg-white/90">打开闯关地图</Button>
+              </Link>
+              <p className="text-sm text-white/85">从主页进入，可随时返回。</p>
+            </div>
+          </div>
+        </Card>
+
         <section className="space-y-4">
           <SectionHeading
             eyebrow="Modules"
             title="核心学习入口"
-            description="入口拆开后，复习、测试和闯关不再共用一个冗长页面，电脑端和手机端都会更清晰。"
+            description="复习和测试现在是独立页面；闯关则搬到主页的专属入口里，电脑端和手机端都会更清楚。"
           />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {entryCards.map((item, index) => (
