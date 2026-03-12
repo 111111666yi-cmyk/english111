@@ -26,6 +26,8 @@ export interface LearningSummary {
 }
 
 export function useLearningSummary(totalWords: number, totalSentences: number, totalPassages: number) {
+  // Sole source for business summary fields shared by the home and stats pages.
+  // Same-named metrics must not be recomputed in page components or content preview data.
   const knownWords = useLearningStore((state) => state.knownWords.length);
   const completedSentenceIds = useLearningStore((state) => state.completedSentenceIds.length);
   const completedPassageIds = useLearningStore((state) => state.completedPassageIds.length);
