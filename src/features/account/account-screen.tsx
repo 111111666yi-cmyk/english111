@@ -97,7 +97,12 @@ export function AccountScreen() {
                   <Button>继续学习</Button>
                 </Link>
                 {authHydrated && currentUsername ? (
-                  <Button type="button" variant="secondary" onClick={logout}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={logout}
+                    data-testid="account-logout"
+                  >
                     退出到访客
                   </Button>
                 ) : null}

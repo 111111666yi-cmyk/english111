@@ -67,7 +67,12 @@ export function SentencesScreen() {
           }}
         />
 
-        <QuizCard quiz={quiz} onResult={(correct) => recordQuizResult(quiz.id, correct)} />
+        <QuizCard
+          quiz={quiz}
+          autoAdvance="correct"
+          onAdvance={() => setIndex((current) => (current + 1 >= sentences.length ? 0 : current + 1))}
+          onResult={(correct) => recordQuizResult(quiz.id, correct)}
+        />
       </div>
     </Shell>
   );

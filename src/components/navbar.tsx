@@ -14,6 +14,8 @@ const links = [
   { href: "/reading", label: "短文" },
   { href: "/expressions", label: "表达" },
   { href: "/review", label: "复习" },
+  { href: "/test", label: "测试" },
+  { href: "/challenge", label: "闯关" },
   { href: "/stats", label: "统计" },
   { href: "/settings", label: "设置" }
 ];
@@ -42,7 +44,11 @@ export function Navbar() {
         <div className="flex flex-col gap-3 lg:items-end">
           <nav className="flex flex-wrap gap-2 rounded-3xl bg-white/70 p-1">
             {links.map((link) => {
-              const active = pathname === link.href;
+              const active =
+                pathname === link.href ||
+                (link.href === "/review" && pathname.startsWith("/review")) ||
+                (link.href === "/test" && pathname.startsWith("/test")) ||
+                (link.href === "/challenge" && pathname.startsWith("/challenge"));
 
               return (
                 <Link
@@ -71,10 +77,17 @@ export function Navbar() {
               </span>
             </div>
             <Link href="/account">
-              <Button variant="secondary">{currentUsername ? "切换账户" : "登录 / 注册"}</Button>
+              <Button variant="secondary">
+                {currentUsername ? "切换账户" : "登录 / 注册"}
+              </Button>
             </Link>
             {currentUsername ? (
-              <Button type="button" variant="ghost" onClick={logout}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={logout}
+                data-testid="navbar-logout"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 退出
               </Button>

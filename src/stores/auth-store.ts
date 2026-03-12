@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createPasswordHash, verifyPasswordHash } from "@/lib/password";
+import { useLearningStore } from "@/stores/learning-store";
 
 export interface LocalUserAccount {
   username: string;
@@ -90,6 +91,7 @@ export const useAuthStore = create<AuthState>()(
           currentUsername: normalized,
           hydrated: true
         }));
+        useLearningStore.getState().hydrateForProfile(getActiveProfileKey(normalized));
 
         return {
           ok: true,
@@ -120,13 +122,17 @@ export const useAuthStore = create<AuthState>()(
         }
 
         set({ currentUsername: normalized, hydrated: true });
+        useLearningStore.getState().hydrateForProfile(getActiveProfileKey(normalized));
 
         return {
           ok: true,
           message: "登录成功。"
         };
       },
-      logout: () => set({ currentUsername: undefined, hydrated: true })
+      logout: () => {
+        set({ currentUsername: undefined, hydrated: true });
+        useLearningStore.getState().hydrateForProfile(getActiveProfileKey(undefined));
+      }
     }),
     {
       name: "english-climb-auth",

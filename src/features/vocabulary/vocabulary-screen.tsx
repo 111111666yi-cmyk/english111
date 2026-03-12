@@ -93,7 +93,12 @@ export function VocabularyScreen() {
           }}
         />
 
-        <QuizCard quiz={quiz} onResult={(correct) => recordQuizResult(quiz.id, correct)} />
+        <QuizCard
+          quiz={quiz}
+          autoAdvance="correct"
+          onAdvance={() => goNext()}
+          onResult={(correct) => recordQuizResult(quiz.id, correct)}
+        />
 
         <Card className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">

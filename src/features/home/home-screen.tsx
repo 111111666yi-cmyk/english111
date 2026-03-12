@@ -20,7 +20,9 @@ const entryCards = [
   { href: "/sentences", title: "句子训练", description: "把词汇放进语境，用排序和填空理解句意。" },
   { href: "/reading", title: "短文阅读", description: "用短文训练主旨、细节和词义猜测。" },
   { href: "/expressions", title: "进阶表达", description: "从基础说法过渡到更自然、更正式的表达。" },
-  { href: "/review", title: "复习挑战", description: "错题回放、难词优先、随机挑战。" },
+  { href: "/review", title: "复习模式", description: "回放错题池，把做错的题继续追下去。" },
+  { href: "/test", title: "测试模式", description: "单词和句子连续测验，当前题号会自动保存在本地。" },
+  { href: "/challenge", title: "闯关模式", description: "进入地图关卡，按世界推进并独立记录星级。" },
   { href: "/stats", title: "学习统计", description: "查看正确率、进度和连续学习天数。" }
 ];
 
@@ -45,8 +47,8 @@ export function HomeScreen() {
           <Card className="space-y-4">
             <SectionHeading
               eyebrow="Today"
-              title={authHydrated && currentUsername ? `欢迎回来，${currentUsername}` : "开始今天的学习"}
-              description="账户独立、本地优先、默认不消耗任何运行期大模型密钥。你可以按“单词 → 句子 → 短文 → 表达 → 复习”的节奏推进。"
+              title={authHydrated && currentUsername ? `欢迎回来：${currentUsername}` : "开始今天的学习"}
+              description="账户独立、本地优先、默认不消耗任何运行期大模型密钥。你可以按“单词 → 句子 → 短文 → 表达 → 复习 / 测试 / 闯关”的节奏推进。"
             />
             <div className="grid gap-3 md:grid-cols-4">
               <div className="rounded-3xl bg-slate-50 p-4">
@@ -71,7 +73,10 @@ export function HomeScreen() {
                 <Button>开始今日学习</Button>
               </Link>
               <Link href="/review">
-                <Button variant="secondary">进入复习挑战</Button>
+                <Button variant="secondary">进入复习模式</Button>
+              </Link>
+              <Link href="/challenge">
+                <Button variant="secondary">进入闯关模式</Button>
               </Link>
             </div>
           </Card>
@@ -87,14 +92,14 @@ export function HomeScreen() {
           <SectionHeading
             eyebrow="Modules"
             title="核心学习入口"
-            description="一屏只做一件事。入口清晰、结构稳定，适合单人长期使用。"
+            description="入口拆开后，复习、测试和闯关不再共用一个冗长页面，电脑端和手机端都会更清晰。"
           />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {entryCards.map((item, index) => (
               <Link key={item.href} href={item.href}>
                 <Card className="h-full space-y-4 transition hover:-translate-y-1">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-surge to-sky text-lg font-black text-white">
-                    0{index + 1}
+                    {`${index + 1}`.padStart(2, "0")}
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-ink">{item.title}</h3>
@@ -110,7 +115,7 @@ export function HomeScreen() {
           <SectionHeading
             eyebrow="Preview"
             title="当前内容预览"
-            description="首页只读取内容摘要，避免把整套离线数据直接塞进首屏。"
+            description="首页只读取内容摘要，避免把整套离线数据直接堆进首屏。"
           />
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="space-y-4">

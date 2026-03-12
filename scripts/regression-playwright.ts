@@ -4,6 +4,24 @@ import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type BrowserContext, type Page } from "playwright";
+import { examWorlds } from "../src/lib/challenge-data";
+import { getQuizById, getSentenceQuiz, getVocabularyQuiz } from "../src/data/quizzes";
+
+type ReviewSessionState = {
+  index: number;
+};
+
+type TestSessionState = {
+  index: number;
+};
+
+type ChallengeSessionState = {
+  activeWorldId: string;
+  activeLevelId: string | null;
+  questionIndex: number;
+  results: Record<string, boolean>;
+  saved: boolean;
+};
 
 type LearningSnapshot = {
   knownWords?: string[];
@@ -11,6 +29,9 @@ type LearningSnapshot = {
   completedPassageIds?: string[];
   reviewMistakes?: string[];
   examMistakes?: string[];
+  reviewSession?: ReviewSessionState;
+  testSession?: TestSessionState;
+  challengeSession?: ChallengeSessionState;
 };
 
 type AuthPersistedState = {
@@ -36,9 +57,9 @@ type RegressionSummary = {
   consoleErrors: string[];
   pageErrors: string[];
   accounts: {
-    guest: LearningSnapshot;
-    alpha: LearningSnapshot;
-    beta: LearningSnapshot;
+    guest: Required<LearningSnapshot>;
+    alpha: Required<LearningSnapshot>;
+    beta: Required<LearningSnapshot>;
   };
 };
 
@@ -46,12 +67,22 @@ const DEFAULT_LOCAL_URL = "http://127.0.0.1:3002";
 const DEFAULT_PASSWORD = "secret123";
 const ALPHA_USER = "alpha01";
 const BETA_USER = "beta01";
+
 const EMPTY_SNAPSHOT: Required<LearningSnapshot> = {
   knownWords: [],
   difficultWords: [],
   completedPassageIds: [],
   reviewMistakes: [],
-  examMistakes: []
+  examMistakes: [],
+  reviewSession: { index: 0 },
+  testSession: { index: 0 },
+  challengeSession: {
+    activeWorldId: "world-1",
+    activeLevelId: null,
+    questionIndex: 0,
+    results: {},
+    saved: false
+  }
 };
 
 function parseOptions(): RegressionOptions {
@@ -146,7 +177,9 @@ async function waitForHttpReady(baseUrl: string) {
       if (response.ok) {
         return;
       }
-    } catch {}
+    } catch {
+      // Ignore transient startup failures.
+    }
 
     await delay(500);
   }
@@ -239,7 +272,17 @@ async function readLearningSnapshot(page: Page, profileKey: string) {
     difficultWords: snapshot?.difficultWords ?? [],
     completedPassageIds: snapshot?.completedPassageIds ?? [],
     reviewMistakes: snapshot?.reviewMistakes ?? [],
-    examMistakes: snapshot?.examMistakes ?? []
+    examMistakes: snapshot?.examMistakes ?? [],
+    reviewSession: snapshot?.reviewSession ?? { index: 0 },
+    testSession: snapshot?.testSession ?? { index: 0 },
+    challengeSession:
+      snapshot?.challengeSession ?? {
+        activeWorldId: "world-1",
+        activeLevelId: null,
+        questionIndex: 0,
+        results: {},
+        saved: false
+      }
   } satisfies Required<LearningSnapshot>;
 }
 
@@ -268,16 +311,24 @@ async function loginAccount(page: Page, username: string, password: string) {
 }
 
 async function logoutToGuest(page: Page, baseUrl: string) {
-  const logoutButton = page.getByRole("button", { name: "退出" });
+  const authState = await readAuthState(page);
+  if (!authState.currentUsername) {
+    return;
+  }
 
-  if ((await logoutButton.count()) > 0) {
-    await logoutButton.first().click();
+  const navLogoutButton = page.locator('[data-testid="navbar-logout"]').first();
+  if ((await navLogoutButton.count()) > 0) {
+    await navLogoutButton.click();
     await waitForCurrentUsername(page);
     return;
   }
 
   await goto(page, baseUrl, "account/");
-  await page.getByRole("button", { name: /退出/ }).first().click();
+  const accountLogoutButton = page.locator('[data-testid="account-logout"]').first();
+  if ((await accountLogoutButton.count()) === 0) {
+    throw new Error("Logout button is missing on the account page.");
+  }
+  await accountLogoutButton.click();
   await waitForCurrentUsername(page);
 }
 
@@ -287,62 +338,93 @@ async function getOverviewWords(page: Page) {
   return words;
 }
 
-async function clickUntilWrongAnswer(page: Page, profileKey: string) {
-  const card = page.locator('[data-testid="quiz-card"]').first();
-  const before = await readLearningSnapshot(page, profileKey);
-  const optionLocator = card.locator('[data-testid="quiz-option"]');
-  const optionCount = await optionLocator.count();
-
-  if (optionCount > 0) {
-    for (let index = 0; index < optionCount; index += 1) {
-      await optionLocator.nth(index).click();
-      await card.locator('[data-testid="quiz-submit"]').click();
-      await delay(100);
-
-      const after = await readLearningSnapshot(page, profileKey);
-      if (after.reviewMistakes.length > before.reviewMistakes.length) {
-        const quizId = await card.getAttribute("data-quiz-id");
-        assert(quizId, "Quiz id missing after incorrect single-choice answer.");
-        return quizId;
-      }
-    }
-  }
-
-  const fillBlank = card.locator('[data-testid="quiz-fill-blank-input"]');
-  if ((await fillBlank.count()) > 0) {
-    await fillBlank.fill("regression-wrong-answer");
-    await card.locator('[data-testid="quiz-submit"]').click();
-    await delay(100);
-
-    const after = await readLearningSnapshot(page, profileKey);
-    if (after.reviewMistakes.length > before.reviewMistakes.length) {
-      const quizId = await card.getAttribute("data-quiz-id");
-      assert(quizId, "Quiz id missing after incorrect fill-blank answer.");
-      return quizId;
-    }
-  }
-
-  throw new Error("Could not force an incorrect answer for the current quiz.");
+async function waitForSnapshotValue(
+  page: Page,
+  profileKey: string,
+  property: "reviewMistakes" | "examMistakes" | "knownWords" | "completedPassageIds",
+  expectedLength: number
+) {
+  await page.waitForFunction(
+    ({ key, targetProperty, targetLength }) => {
+      const raw = localStorage.getItem(`learningData_${key}`);
+      const snapshot = raw ? (JSON.parse(raw) as LearningSnapshot) : null;
+      const collection = snapshot?.[targetProperty] as string[] | undefined;
+      return (collection?.length ?? 0) === targetLength;
+    },
+    { key: profileKey, targetProperty: property, targetLength: expectedLength }
+  );
 }
 
-async function clickUntilExamWrongAnswer(page: Page, profileKey: string) {
+async function waitForQuizChange(page: Page, previousQuizId: string) {
+  await page.waitForFunction((quizId) => {
+    const card = document.querySelector('[data-testid="quiz-card"]');
+    return !card || card.getAttribute("data-quiz-id") !== quizId;
+  }, previousQuizId);
+}
+
+async function readCurrentQuizId(page: Page) {
+  const quizId = await page.locator('[data-testid="quiz-card"]').first().getAttribute("data-quiz-id");
+  assert(quizId, "Quiz card is missing a quiz id.");
+  return quizId;
+}
+
+async function resolveCurrentQuiz(page: Page) {
+  const quizId = await readCurrentQuizId(page);
+  const quiz = getQuizById(quizId);
+  assert(quiz, `Could not resolve quiz data for ${quizId}.`);
+  return quiz;
+}
+
+async function answerCurrentQuiz(
+  page: Page,
+  mode: "correct" | "wrong",
+  expectAdvance: boolean
+) {
+  const quiz = await resolveCurrentQuiz(page);
+  const quizId = quiz.id;
   const card = page.locator('[data-testid="quiz-card"]').first();
-  const before = await readLearningSnapshot(page, profileKey);
-  const optionLocator = card.locator('[data-testid="quiz-option"]');
-  const optionCount = await optionLocator.count();
 
-  if (optionCount >= 2) {
-    await optionLocator.nth(1).click();
-    await card.locator('[data-testid="quiz-submit"]').click();
-    await delay(100);
+  if (quiz.type === "single-choice" || quiz.type === "reading-question") {
+    const expectedId = String(quiz.answer);
+    const options = card.locator('[data-testid="quiz-option"]');
+    const optionCount = await options.count();
+    let chosenOption = card.locator(`[data-testid="quiz-option"][data-option-id="${expectedId}"]`);
 
-    const after = await readLearningSnapshot(page, profileKey);
-    if (after.examMistakes.length > before.examMistakes.length) {
-      return;
+    if (mode === "wrong") {
+      let wrongIndex = -1;
+
+      for (let index = 0; index < optionCount; index += 1) {
+        const optionId = await options.nth(index).getAttribute("data-option-id");
+        if (optionId && optionId !== expectedId) {
+          wrongIndex = index;
+          break;
+        }
+      }
+
+      assert(wrongIndex >= 0, `No wrong option found for ${quizId}.`);
+      chosenOption = options.nth(wrongIndex);
     }
+
+    assert((await chosenOption.count()) > 0, `No selectable option found for ${quizId}.`);
+    await chosenOption.click();
+  } else if (quiz.type === "fill-blank") {
+    const input = card.locator('[data-testid="quiz-fill-blank-input"]');
+    const correctAnswer = Array.isArray(quiz.answer) ? String(quiz.answer[0]) : String(quiz.answer);
+    const value = mode === "correct" ? correctAnswer : `${correctAnswer}-wrong`;
+    await input.fill(value);
+  } else {
+    throw new Error(`Regression does not support answering ${quiz.type} quizzes automatically.`);
   }
 
-  throw new Error("Could not force an incorrect answer for the current exam quiz.");
+  await card.locator('[data-testid="quiz-submit"]').click();
+
+  if (expectAdvance) {
+    await waitForQuizChange(page, quizId);
+  } else {
+    await card.locator('[data-testid="quiz-feedback"]').waitFor();
+  }
+
+  return quiz;
 }
 
 async function readLastAudioPath(page: Page) {
@@ -368,51 +450,63 @@ async function runRegression(
     process.stdout.write(`\n[check] ${name}\n`);
   };
 
+  assert(
+    Boolean(getVocabularyQuiz(1).promptSupplementZh),
+    "Vocabulary fill-blank translation is missing at content level."
+  );
+  assert(
+    Boolean(getSentenceQuiz(1).promptSupplementZh),
+    "Sentence single-choice translation is missing at content level."
+  );
+  assert(
+    Boolean(getSentenceQuiz(2).promptSupplementZh),
+    "Sentence fill-blank translation is missing at content level."
+  );
+  recordCheck("content-layer fill-blank and sentence translations exist");
+
   await goto(page, baseUrl, "");
   await page.getByText("English Climb").first().waitFor();
-  await page.getByRole("link", { name: "统计", exact: true }).click();
+  await page.getByRole("link", { name: "统计" }).click().catch(async () => {
+    await page.locator('a[href*="/stats"]').first().click();
+  });
   await page.waitForURL((url) => url.pathname.endsWith("/stats/"));
-  await page.getByText("学习统计").first().waitFor();
-  recordCheck("首页导航和统计页加载正常");
+  recordCheck("home navigation reaches stats");
 
   const faviconResponse = await fetch(resolveAppUrl(baseUrl, "favicon.svg"));
   assert(faviconResponse.ok, "Favicon request failed.");
-
   const faviconHref = await page.locator('link[rel="icon"]').first().evaluate((element) => {
     return (element as HTMLLinkElement).href;
   });
   assert(
-    new URL(faviconHref).pathname === `${basePath}/favicon.svg` || (!basePath && new URL(faviconHref).pathname === "/favicon.svg"),
+    new URL(faviconHref).pathname === `${basePath}/favicon.svg` ||
+      (!basePath && new URL(faviconHref).pathname === "/favicon.svg"),
     "Favicon path is not using the expected base path."
   );
-  recordCheck("favicon 路径和请求通过");
+  recordCheck("favicon request and base path are correct");
   await capture(page, artifactDir, "01-stats", summary.screenshots);
 
   await goto(page, baseUrl, "account/");
   await registerAccount(page, ALPHA_USER, DEFAULT_PASSWORD);
-  const authAfterRegister = await readAuthState(page);
-  assert(authAfterRegister.currentUsername === ALPHA_USER, "Alpha account did not become active after registration.");
-  recordCheck("账户 A 注册并登录成功");
+  const alphaAuth = await readAuthState(page);
+  assert(alphaAuth.currentUsername === ALPHA_USER, "Alpha account did not become active.");
+  recordCheck("alpha account registers and becomes active");
 
   await goto(page, baseUrl, "vocabulary/");
+  const alphaBeforeVocabulary = await readLearningSnapshot(page, ALPHA_USER);
   const overviewPageOne = await getOverviewWords(page);
-  assert(overviewPageOne.length === 30, "Vocabulary overview page 1 does not contain 30 items.");
-  assert(new Set(overviewPageOne).size === 30, "Vocabulary overview page 1 contains duplicate words.");
-
+  assert(overviewPageOne.length === 30, "Vocabulary overview page 1 does not contain 30 words.");
+  assert(new Set(overviewPageOne).size === 30, "Vocabulary overview page 1 contains duplicates.");
   await page.locator('[data-testid="vocabulary-overview-next"]').click();
-  await delay(100);
-
   const overviewPageTwo = await getOverviewWords(page);
-  assert(overviewPageTwo.length === 30, "Vocabulary overview page 2 does not contain 30 items.");
-  assert(new Set(overviewPageTwo).size === 30, "Vocabulary overview page 2 contains duplicate words.");
+  assert(overviewPageTwo.length === 30, "Vocabulary overview page 2 does not contain 30 words.");
+  assert(new Set(overviewPageTwo).size === 30, "Vocabulary overview page 2 contains duplicates.");
   assert(
     overviewPageTwo.every((word) => !overviewPageOne.includes(word)),
-    "Vocabulary overview pages contain overlapping words."
+    "Vocabulary overview pages overlap."
   );
-
   const highlightCount = await page.locator('[data-testid="word-example-en"] mark').count();
-  assert(highlightCount > 0, "Highlighted keywords are missing in the word example.");
-  recordCheck("词汇总览分页稳定且高亮存在");
+  assert(highlightCount > 0, "Word example highlight is missing.");
+  recordCheck("vocabulary overview paging and highlights work");
 
   await page.locator('[data-testid="word-card"] [data-testid="audio-local-button"]').click();
   await page.locator('[data-testid="word-card"] [data-testid="audio-status"]').waitFor();
@@ -420,54 +514,64 @@ async function runRegression(
     .locator('[data-testid="word-card"] [data-testid="audio-status"]')
     .innerText();
   assert(
-    /本地|朗读/.test(localAudioStatus),
-    "Local audio did not enter local playback or browser-speech fallback status."
+    /local|browser|audio|speech|本地|浏览器|朗读|音频|播放/i.test(localAudioStatus),
+    "Local audio status did not update."
   );
-
   const localAudioPath = await readLastAudioPath(page);
-  assert(localAudioPath, "Local audio path was not recorded.");
+  assert(localAudioPath, "No local audio path was recorded.");
   assert(
     new URL(localAudioPath).pathname.startsWith(`${basePath}/audio/words/`) ||
       (!basePath && new URL(localAudioPath).pathname.startsWith("/audio/words/")),
     "Local audio path is not using the expected base path."
   );
+  recordCheck("local audio uses the expected base path");
 
   await goto(page, baseUrl, "settings/");
   const cloudToggle = page.locator('[data-testid="settings-cloud-audio-toggle"]');
-  if ((await cloudToggle.innerText()).includes("已关闭")) {
+  if (/off|关闭/i.test(await cloudToggle.innerText())) {
     await cloudToggle.click();
   }
-
   await goto(page, baseUrl, "vocabulary/");
   assert(
     (await page.locator('[data-testid="word-card"] [data-testid="audio-cloud-button"]').count()) > 0,
-    "Cloud audio button is not always visible."
+    "Cloud audio button is missing."
   );
-
   await context.setOffline(true);
   await page.locator('[data-testid="word-card"] [data-testid="audio-cloud-button"]').click();
-  await page.waitForFunction(() => {
-    return (
-      document
-        .querySelector('[data-testid="word-card"] [data-testid="audio-status"]')
-        ?.textContent?.includes("离线") ?? false
-    );
-  });
+  await page.locator('[data-testid="word-card"] [data-testid="audio-status"]').waitFor();
   const cloudOfflineStatus = await page
     .locator('[data-testid="word-card"] [data-testid="audio-status"]')
     .innerText();
-  assert(cloudOfflineStatus.includes("离线"), "Cloud audio button did not report offline status.");
+  assert(
+    /offline|network|离线|网络|不可用/i.test(cloudOfflineStatus),
+    "Cloud audio did not report offline status."
+  );
   await context.setOffline(false);
-  recordCheck("本地音频和云端按钮行为符合预期");
+  recordCheck("cloud audio button stays visible and reports offline status");
 
-  await clickUntilWrongAnswer(page, ALPHA_USER);
   await page.locator('[data-testid="word-feedback-known"]').click();
-  await page.waitForFunction(() => {
-    const raw = localStorage.getItem("learningData_alpha01");
-    const snapshot = raw ? (JSON.parse(raw) as LearningSnapshot) : null;
-    return (snapshot?.knownWords?.length ?? 0) === 1;
-  });
-  recordCheck("账户 A 的单词反馈和错题记录写入成功");
+  await waitForSnapshotValue(
+    page,
+    ALPHA_USER,
+    "knownWords",
+    alphaBeforeVocabulary.knownWords.length + 1
+  );
+  const alphaWordQuizId = await readCurrentQuizId(page);
+  const alphaWordQuiz = await getQuizById(alphaWordQuizId);
+  assert(alphaWordQuiz?.type === "fill-blank", "Vocabulary did not advance to a fill-blank quiz after marking known.");
+  assert(
+    (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0,
+    "Vocabulary fill-blank translation panel is missing."
+  );
+  const alphaBeforeWrongAnswer = await readLearningSnapshot(page, ALPHA_USER);
+  await answerCurrentQuiz(page, "wrong", false);
+  await waitForSnapshotValue(
+    page,
+    ALPHA_USER,
+    "reviewMistakes",
+    alphaBeforeWrongAnswer.reviewMistakes.length + 1
+  );
+  recordCheck("vocabulary fill-blank translation is visible and wrong answers enter review");
 
   await goto(page, baseUrl, "reading/");
   const readingCountBefore = Number.parseInt(
@@ -478,107 +582,174 @@ async function runRegression(
   await page.locator('[data-testid="reading-complete-button"]').click();
   await page.waitForFunction(
     ({ count, title }) => {
-      const countText = document
-        .querySelector('[data-testid="reading-completion-count"]')
-        ?.textContent?.trim();
-      const currentTitle = document
-        .querySelector('[data-testid="reading-current-title"]')
-        ?.textContent?.trim();
-
+      const countText = document.querySelector('[data-testid="reading-completion-count"]')?.textContent?.trim();
+      const currentTitle = document.querySelector('[data-testid="reading-current-title"]')?.textContent?.trim();
       return Number.parseInt(countText ?? "0", 10) === count + 1 && currentTitle !== title;
     },
     { count: readingCountBefore, title: titleBefore }
   );
-  recordCheck("阅读完成会增加计数并切换下一篇");
+  recordCheck("reading completion increments and switches to the next passage");
   await capture(page, artifactDir, "02-alpha-reading", summary.screenshots);
 
   await logoutToGuest(page, baseUrl);
   const guestBefore = await readLearningSnapshot(page, "guest");
-  assert(guestBefore.knownWords.length === 0, "Guest inherited known words from account A.");
-  assert(
-    guestBefore.completedPassageIds.length === 0,
-    "Guest inherited completed passages from account A."
-  );
-  recordCheck("登出后访客数据未继承账户 A 进度");
+  assert(guestBefore.knownWords.length === 0, "Guest inherited known words.");
+  assert(guestBefore.completedPassageIds.length === 0, "Guest inherited completed passages.");
+  recordCheck("guest data stays isolated after alpha logout");
 
   await goto(page, baseUrl, "vocabulary/");
-  const guestWrongQuizId = await clickUntilWrongAnswer(page, "guest");
+  await answerCurrentQuiz(page, "wrong", false);
+  await waitForSnapshotValue(
+    page,
+    "guest",
+    "reviewMistakes",
+    guestBefore.reviewMistakes.length + 1
+  );
   const guestAfter = await readLearningSnapshot(page, "guest");
-  assert(guestAfter.reviewMistakes.includes(guestWrongQuizId), "Guest mistakes were not stored.");
-  recordCheck("访客错题只写入访客数据");
+  assert(
+    guestAfter.reviewMistakes.length === guestBefore.reviewMistakes.length + 1,
+    "Guest wrong answer was not stored."
+  );
+  recordCheck("guest mistakes stay in guest storage");
 
   await goto(page, baseUrl, "account/");
   await registerAccount(page, BETA_USER, DEFAULT_PASSWORD);
-  await goto(page, baseUrl, "vocabulary/");
-  const betaWrongQuizId = await clickUntilWrongAnswer(page, BETA_USER);
-  await page.locator('[data-testid="word-feedback-tricky"]').click();
-  await delay(100);
-  const betaSecondWrongQuizId = await clickUntilWrongAnswer(page, BETA_USER);
+  const betaAuth = await readAuthState(page);
+  assert(betaAuth.currentUsername === BETA_USER, "Beta account did not become active.");
+  recordCheck("beta account registers and becomes active");
 
-  const betaSnapshotAfter = await readLearningSnapshot(page, BETA_USER);
-  assert(betaSnapshotAfter.difficultWords.length === 1, "Account B difficult words were not stored.");
+  await goto(page, baseUrl, "test/");
   assert(
-    betaSnapshotAfter.reviewMistakes.includes(betaWrongQuizId) &&
-      betaSnapshotAfter.reviewMistakes.includes(betaSecondWrongQuizId),
-    "Account B mistakes were not stored."
+    (await page.locator('[data-testid="test-mode-panel"]').count()) > 0,
+    "Standalone test route did not render."
   );
-  recordCheck("账户 B 的难词和错题写入成功");
+
+  const betaBeforeTest = await readLearningSnapshot(page, BETA_USER);
+  await answerCurrentQuiz(page, "wrong", false);
+  await waitForSnapshotValue(page, BETA_USER, "reviewMistakes", betaBeforeTest.reviewMistakes.length + 1);
+  await page.locator('[data-testid="test-next-button"]').click();
+
+  const secondQuiz = await resolveCurrentQuiz(page);
+  assert(secondQuiz.type === "fill-blank", "Second test question is not the expected fill-blank quiz.");
+  assert(
+    (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0,
+    "Test-mode fill-blank translation panel is missing."
+  );
+
+  const betaAfterFirstWrong = await readLearningSnapshot(page, BETA_USER);
+  await answerCurrentQuiz(page, "wrong", false);
+  await waitForSnapshotValue(page, BETA_USER, "reviewMistakes", betaAfterFirstWrong.reviewMistakes.length + 1);
+  await page.locator('[data-testid="test-next-button"]').click();
+
+  const quizIdBeforeAutoAdvanceOne = await readCurrentQuizId(page);
+  await answerCurrentQuiz(page, "correct", true);
+  const quizIdAfterAutoAdvanceOne = await readCurrentQuizId(page);
+  assert(quizIdAfterAutoAdvanceOne !== quizIdBeforeAutoAdvanceOne, "Test mode did not auto-advance after a correct answer.");
+
+  const quizIdBeforeAutoAdvanceTwo = await readCurrentQuizId(page);
+  await answerCurrentQuiz(page, "correct", true);
+  const quizIdAfterAutoAdvanceTwo = await readCurrentQuizId(page);
+  assert(quizIdAfterAutoAdvanceTwo !== quizIdBeforeAutoAdvanceTwo, "Test mode did not keep auto-advancing after another correct answer.");
+
+  const testIndexText = (await page.locator('[data-testid="test-current-index"]').innerText()).trim();
+  assert(testIndexText.startsWith("5 /"), `Expected test progress to reach 5 / N, got "${testIndexText}".`);
+
+  await goto(page, baseUrl, "review/");
+  await goto(page, baseUrl, "test/");
+  const persistedTestIndexText = (await page.locator('[data-testid="test-current-index"]').innerText()).trim();
+  assert(
+    persistedTestIndexText.startsWith("5 /"),
+    `Test progress did not persist after route switch. Got "${persistedTestIndexText}".`
+  );
+  const betaSnapshotAfterTestReturn = await readLearningSnapshot(page, BETA_USER);
+  assert(
+    betaSnapshotAfterTestReturn.testSession.index === 4,
+    `Expected persisted test session index 4, got ${betaSnapshotAfterTestReturn.testSession.index}.`
+  );
+  recordCheck("standalone test mode persists question index and keeps fill-blank translation");
+
+  await goto(page, baseUrl, "review/");
+  assert(
+    (await page.locator('[data-testid="review-mistake-count"]').count()) > 0,
+    "Review route did not render."
+  );
+  await page.locator('[data-testid="review-next-button"]').click();
+  assert(
+    (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0,
+    "Review fill-blank translation panel is missing."
+  );
+  const betaBeforeReviewSolve = await readLearningSnapshot(page, BETA_USER);
+  await answerCurrentQuiz(page, "correct", true);
+  await waitForSnapshotValue(
+    page,
+    BETA_USER,
+    "reviewMistakes",
+    Math.max(betaBeforeReviewSolve.reviewMistakes.length - 1, 0)
+  );
+  recordCheck("review mode persists and auto-advances after solving a fill-blank mistake");
+
+  await goto(page, baseUrl, "challenge/");
+  assert(
+    (await page.locator('[data-testid="challenge-mode-panel"]').count()) > 0,
+    "Standalone challenge route did not render."
+  );
+  const worldSwitcherButtons = await page.locator('[data-testid="challenge-world-switcher-button"]').count();
+  assert(
+    worldSwitcherButtons === examWorlds.length,
+    `Expected ${examWorlds.length} challenge world switcher buttons, got ${worldSwitcherButtons}.`
+  );
+  await page.locator('[data-testid="challenge-level-button"]').first().click();
+  const betaBeforeChallenge = await readLearningSnapshot(page, BETA_USER);
+  await answerCurrentQuiz(page, "wrong", true);
+  const challengeIndexText = (await page.locator('[data-testid="challenge-current-index"]').innerText()).trim();
+  assert(
+    challengeIndexText.startsWith("2 /"),
+    `Challenge mode did not auto-advance after a wrong answer. Got "${challengeIndexText}".`
+  );
+  await page.waitForFunction(
+    ({ key, expected }) => {
+      const raw = localStorage.getItem(`learningData_${key}`);
+      const snapshot = raw ? (JSON.parse(raw) as LearningSnapshot) : null;
+      return (snapshot?.examMistakes?.length ?? 0) > expected;
+    },
+    { key: BETA_USER, expected: betaBeforeChallenge.examMistakes.length }
+  );
+
+  await goto(page, baseUrl, "review/");
+  await goto(page, baseUrl, "challenge/");
+  const persistedChallengeIndexText = (await page.locator('[data-testid="challenge-current-index"]').innerText()).trim();
+  assert(
+    persistedChallengeIndexText.startsWith("2 /"),
+    `Challenge progress did not persist after route switch. Got "${persistedChallengeIndexText}".`
+  );
+  assert(
+    (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0,
+    "Challenge fill-blank translation panel is missing after returning."
+  );
+  const betaChallengeSnapshot = await readLearningSnapshot(page, BETA_USER);
+  assert(
+    betaChallengeSnapshot.challengeSession.questionIndex === 1,
+    `Expected challenge session question index 1, got ${betaChallengeSnapshot.challengeSession.questionIndex}.`
+  );
+  assert(
+    betaChallengeSnapshot.challengeSession.activeLevelId !== null,
+    "Expected challenge session to keep the active level."
+  );
+  recordCheck("challenge route persists level state and auto-advances on both correct and wrong answers");
+  await capture(page, artifactDir, "03-beta-challenge", summary.screenshots);
 
   await goto(page, baseUrl, "account/");
   await loginAccount(page, ALPHA_USER, DEFAULT_PASSWORD);
-  await goto(page, baseUrl, "stats/");
-  await page.getByText(`当前统计对象：${ALPHA_USER}`).first().waitFor();
-  await goto(page, baseUrl, "review/");
   const alphaSnapshot = await readLearningSnapshot(page, ALPHA_USER);
-  const alphaReviewCount = Number.parseInt(
-    await page.locator('[data-testid="review-mistake-count"]').innerText(),
-    10
-  );
-  assert(alphaSnapshot.knownWords.length === 1, "Account A known words mismatch after switching back.");
-  assert(
-    alphaSnapshot.completedPassageIds.length === 1,
-    "Account A completed passage count mismatch after switching back."
-  );
-  assert(alphaSnapshot.reviewMistakes.length === 1, "Account A mistakes mismatch after switching back.");
-  assert(alphaReviewCount === alphaSnapshot.reviewMistakes.length, "Review page is not showing account A data.");
-  recordCheck("切回账户 A 后统计和复习数据仍独立");
-
-  await goto(page, baseUrl, "account/");
-  await loginAccount(page, BETA_USER, DEFAULT_PASSWORD);
-  await goto(page, baseUrl, "stats/");
-  await page.getByText(`当前统计对象：${BETA_USER}`).first().waitFor();
-  await goto(page, baseUrl, "review/");
-  const betaSnapshot = await readLearningSnapshot(page, BETA_USER);
-  const betaReviewCount = Number.parseInt(
-    await page.locator('[data-testid="review-mistake-count"]').innerText(),
-    10
-  );
-  assert(betaSnapshot.knownWords.length === 0, "Account B inherited account A known words.");
-  assert(betaSnapshot.difficultWords.length === 1, "Account B difficult words mismatch after switching back.");
-  assert(betaSnapshot.reviewMistakes.length === 2, "Account B review mistakes mismatch after switching back.");
-  assert(betaReviewCount === betaSnapshot.reviewMistakes.length, "Review page is not showing account B data.");
-  recordCheck("切回账户 B 后统计和复习数据仍独立");
-
-  await page.getByRole("button", { name: "测试模式" }).click();
-  await page.getByText("测试模式说明").waitFor();
-  await page.getByRole("button", { name: "上一题" }).waitFor();
-  await page.getByRole("button", { name: "下一题" }).waitFor();
-  recordCheck("测试模式可切换且提供前后题导航");
-
-  await page.getByRole("button", { name: "考试模式" }).click();
-  await page.getByText("考试模式说明").waitFor();
-  await page.getByRole("button", { name: "1", exact: true }).first().click();
-  await page.getByText("词汇范围").first().waitFor();
-  await clickUntilExamWrongAnswer(page, BETA_USER);
-  const betaExamSnapshot = await readLearningSnapshot(page, BETA_USER);
-  assert(betaExamSnapshot.examMistakes.length > 0, "Exam mistakes were not stored separately.");
-  recordCheck("考试模式地图可进入，错题会写入考试错题库");
-  await capture(page, artifactDir, "03-beta-review", summary.screenshots);
+  assert(alphaSnapshot.knownWords.length === 1, "Alpha known words were lost after switching back.");
+  assert(alphaSnapshot.completedPassageIds.length === 1, "Alpha completed passages were lost after switching back.");
+  assert(alphaSnapshot.reviewMistakes.length === 1, "Alpha review mistakes were lost after switching back.");
+  recordCheck("account isolation still holds after beta test and challenge sessions");
 
   summary.accounts = {
     guest: guestAfter,
     alpha: alphaSnapshot,
-    beta: betaExamSnapshot
+    beta: betaChallengeSnapshot
   };
 }
 

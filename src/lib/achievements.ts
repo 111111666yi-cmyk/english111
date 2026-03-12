@@ -53,7 +53,7 @@ export function buildAchievements(input: AchievementInput): AchievementItem[] {
     {
       id: "world-2",
       title: "二界通行",
-      description: "解锁考试的第 2 个世界，正式进入地图闯关。",
+      description: "解锁闯关的第 2 个世界，正式进入地图推进。",
       unlocked: examOverview.unlockedWorlds >= 2,
       progressLabel: `${Math.min(examOverview.unlockedWorlds, 2)} / 2`
     },
@@ -67,7 +67,7 @@ export function buildAchievements(input: AchievementInput): AchievementItem[] {
     {
       id: "stars-30",
       title: "星图初成",
-      description: "在考试地图里累计拿到 30 颗星。",
+      description: "在闯关地图里累计拿到 30 颗星。",
       unlocked: examOverview.totalStars >= 30,
       progressLabel: `${Math.min(examOverview.totalStars, 30)} / 30`
     },

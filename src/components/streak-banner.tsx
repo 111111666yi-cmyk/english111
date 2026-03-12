@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Flame, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -23,7 +24,22 @@ export function StreakBanner({
             English Climb 以本地题库、双语互动和轻游戏化进度，让你每天稳定前进，不依赖运行期大模型。
           </p>
         </div>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/vocabulary"
+            className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-glass transition hover:-translate-y-0.5"
+          >
+            继续单词学习
+          </Link>
+          <Link
+            href="/challenge"
+            className="inline-flex items-center justify-center rounded-full border border-white/60 bg-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
+          >
+            切换到闯关模式
+          </Link>
+        </div>
       </div>
+
       <div className="grid gap-4 self-end md:justify-items-end">
         <div className="rounded-4xl bg-white/18 p-5 backdrop-blur">
           <p className="text-sm uppercase tracking-[0.24em] text-white/75">连续学习</p>

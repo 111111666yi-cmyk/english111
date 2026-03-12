@@ -86,7 +86,12 @@ export function ExpressionsScreen() {
           </p>
         </Card>
 
-        <QuizCard quiz={quiz} onResult={(correct) => recordQuizResult(quiz.id, correct)} />
+        <QuizCard
+          quiz={quiz}
+          autoAdvance="correct"
+          onAdvance={() => setIndex((current) => (current + 1 >= expressions.length ? 0 : current + 1))}
+          onResult={(correct) => recordQuizResult(quiz.id, correct)}
+        />
 
         <div className="flex justify-end">
           <Button

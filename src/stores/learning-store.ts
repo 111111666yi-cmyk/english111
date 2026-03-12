@@ -22,6 +22,22 @@ export interface LearningSettings {
   cacheCloudAudio: boolean;
 }
 
+export interface ReviewSessionState {
+  index: number;
+}
+
+export interface TestSessionState {
+  index: number;
+}
+
+export interface ChallengeSessionState {
+  activeWorldId: string;
+  activeLevelId: string | null;
+  questionIndex: number;
+  results: Record<string, boolean>;
+  saved: boolean;
+}
+
 export interface LearningSnapshot {
   knownWords: string[];
   difficultWords: string[];
@@ -35,6 +51,9 @@ export interface LearningSnapshot {
   lastStudyDate?: string;
   sessions: SessionLog[];
   settings: LearningSettings;
+  reviewSession: ReviewSessionState;
+  testSession: TestSessionState;
+  challengeSession: ChallengeSessionState;
 }
 
 interface LearningState extends LearningSnapshot {
@@ -49,6 +68,11 @@ interface LearningState extends LearningSnapshot {
   recordExamWordResult: (wordId: string, correct: boolean) => void;
   saveExamLevelProgress: (levelId: string, accuracy: number, stars: number) => void;
   logDailyProgress: (payload: Omit<SessionLog, "date">) => void;
+  updateReviewSession: (index: number) => void;
+  updateTestSession: (index: number) => void;
+  resetTestSession: () => void;
+  updateChallengeSession: (payload: Partial<ChallengeSessionState>) => void;
+  resetChallengeSession: () => void;
   updateSetting: <K extends keyof LearningSettings>(key: K, value: LearningSettings[K]) => void;
   resetAll: () => void;
 }
@@ -64,6 +88,22 @@ const defaultSettings: LearningSettings = {
   cacheCloudAudio: true
 };
 
+const defaultReviewSession: ReviewSessionState = {
+  index: 0
+};
+
+const defaultTestSession: TestSessionState = {
+  index: 0
+};
+
+const defaultChallengeSession: ChallengeSessionState = {
+  activeWorldId: "world-1",
+  activeLevelId: null,
+  questionIndex: 0,
+  results: {},
+  saved: false
+};
+
 const defaultSnapshot: LearningSnapshot = {
   knownWords: [],
   difficultWords: [],
@@ -76,7 +116,10 @@ const defaultSnapshot: LearningSnapshot = {
   streakDays: 0,
   lastStudyDate: undefined,
   sessions: [],
-  settings: defaultSettings
+  settings: defaultSettings,
+  reviewSession: defaultReviewSession,
+  testSession: defaultTestSession,
+  challengeSession: defaultChallengeSession
 };
 
 const todayKey = () => {
@@ -133,6 +176,29 @@ function normalizeSnapshot(snapshot?: Partial<LearningSnapshot>): LearningSnapsh
     settings: {
       ...defaultSettings,
       ...snapshot?.settings
+    },
+    reviewSession: {
+      index:
+        typeof snapshot?.reviewSession?.index === "number" && snapshot.reviewSession.index >= 0
+          ? snapshot.reviewSession.index
+          : 0
+    },
+    testSession: {
+      index:
+        typeof snapshot?.testSession?.index === "number" && snapshot.testSession.index >= 0
+          ? snapshot.testSession.index
+          : 0
+    },
+    challengeSession: {
+      activeWorldId: snapshot?.challengeSession?.activeWorldId || defaultChallengeSession.activeWorldId,
+      activeLevelId: snapshot?.challengeSession?.activeLevelId ?? null,
+      questionIndex:
+        typeof snapshot?.challengeSession?.questionIndex === "number" &&
+        snapshot.challengeSession.questionIndex >= 0
+          ? snapshot.challengeSession.questionIndex
+          : 0,
+      results: snapshot?.challengeSession?.results ?? {},
+      saved: Boolean(snapshot?.challengeSession?.saved)
     }
   };
 }
@@ -183,7 +249,10 @@ function extractSnapshot(state: LearningState): LearningSnapshot {
     streakDays: state.streakDays,
     lastStudyDate: state.lastStudyDate,
     sessions: state.sessions,
-    settings: state.settings
+    settings: state.settings,
+    reviewSession: state.reviewSession,
+    testSession: state.testSession,
+    challengeSession: state.challengeSession
   };
 }
 
@@ -304,6 +373,33 @@ export const useLearningStore = create<LearningState>()((set, get) => {
                 : 1
         };
       }),
+    updateReviewSession: (index) =>
+      updateAndSave(() => ({
+        reviewSession: {
+          index: Math.max(0, index)
+        }
+      })),
+    updateTestSession: (index) =>
+      updateAndSave(() => ({
+        testSession: {
+          index: Math.max(0, index)
+        }
+      })),
+    resetTestSession: () =>
+      updateAndSave(() => ({
+        testSession: defaultTestSession
+      })),
+    updateChallengeSession: (payload) =>
+      updateAndSave((state) => ({
+        challengeSession: {
+          ...state.challengeSession,
+          ...payload
+        }
+      })),
+    resetChallengeSession: () =>
+      updateAndSave(() => ({
+        challengeSession: defaultChallengeSession
+      })),
     updateSetting: (key, value) =>
       updateAndSave((state) => ({
         settings: {

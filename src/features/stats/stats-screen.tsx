@@ -72,9 +72,9 @@ export function StatsScreen() {
 
         <StatsPanel
           items={[
-            { label: "考试已解锁", value: `${examOverview.unlockedWorlds} 个世界`, hint: "地图闯关当前解锁进度" },
+            { label: "闯关已解锁", value: `${examOverview.unlockedWorlds} 个世界`, hint: "地图闯关当前解锁进度" },
             { label: "关卡通关", value: `${examOverview.clearedLevels}`, hint: "正确率超过 50% 的关卡数" },
-            { label: "累计星星", value: `${examOverview.totalStars}`, hint: "考试模式累计获得的星数" }
+            { label: "累计星星", value: `${examOverview.totalStars}`, hint: "闯关模式累计获得的星数" }
           ]}
         />
 
@@ -82,7 +82,7 @@ export function StatsScreen() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-surge">Achievements</p>
             <h3 className="mt-2 text-2xl font-black text-ink">成就墙</h3>
-            <p className="mt-2 text-sm text-slate-500">把单词掌握、句子训练、考试闯关和连续学习串成一张长期进度表。</p>
+            <p className="mt-2 text-sm text-slate-500">把单词掌握、句子训练、地图闯关和连续学习串成一张长期进度表。</p>
           </div>
           <AchievementPanel items={achievements} />
         </div>

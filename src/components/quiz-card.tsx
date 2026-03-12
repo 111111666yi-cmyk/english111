@@ -1,18 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AudioButton } from "@/components/audio-button";
 import { ResultToast } from "@/components/result-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { resolveQuizAnswerText } from "@/lib/quiz-support";
+import { cn } from "@/lib/utils";
 import type { QuizItem } from "@/types/content";
 
 interface QuizCardProps {
   quiz: QuizItem;
   onResult?: (correct: boolean) => void;
-  variant?: "study" | "test" | "exam";
+  onAdvance?: (correct: boolean) => void;
+  variant?: "study" | "test" | "challenge";
+  autoAdvance?: "off" | "correct" | "always";
+  advanceDelayMs?: number;
 }
 
 function normalizeAnswer(answer: QuizItem["answer"]) {
@@ -23,7 +27,25 @@ function normalizeAnswer(answer: QuizItem["answer"]) {
   return String(answer).trim().toLowerCase();
 }
 
-export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
+function isAnswerEqual(
+  expected: ReturnType<typeof normalizeAnswer>,
+  candidate: string | string[]
+) {
+  if (Array.isArray(expected) && Array.isArray(candidate)) {
+    return JSON.stringify(expected) === JSON.stringify(candidate.slice().sort());
+  }
+
+  return expected === candidate;
+}
+
+export function QuizCard({
+  quiz,
+  onResult,
+  onAdvance,
+  variant = "study",
+  autoAdvance = "off",
+  advanceDelayMs = 900
+}: QuizCardProps) {
   const [selected, setSelected] = useState("");
   const [textAnswer, setTextAnswer] = useState("");
   const [reorderAnswer, setReorderAnswer] = useState<string[]>([]);
@@ -33,10 +55,22 @@ export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
     visible: false,
     correct: false
   });
+  const autoAdvanceTimer = useRef<number | null>(null);
 
-  const showSupport = variant === "study";
+  const showStudySupport = variant === "study";
+  const showFillBlankTranslation =
+    quiz.type === "fill-blank" && Boolean(quiz.promptSupplementZh);
+  const displayAnswer = useMemo(() => resolveQuizAnswerText(quiz), [quiz]);
+  const hasReadingOptionTranslations =
+    quiz.type === "reading-question" &&
+    Boolean(quiz.options?.some((option) => option.detail || option.translationZh));
 
   useEffect(() => {
+    if (autoAdvanceTimer.current !== null) {
+      window.clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = null;
+    }
+
     setSelected("");
     setTextAnswer("");
     setReorderAnswer([]);
@@ -45,11 +79,41 @@ export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
     setFeedback({ visible: false, correct: false });
   }, [quiz.id]);
 
-  const displayAnswer = useMemo(() => {
-    return resolveQuizAnswerText(quiz);
-  }, [quiz]);
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimer.current !== null) {
+        window.clearTimeout(autoAdvanceTimer.current);
+      }
+    };
+  }, []);
+
+  const queueAdvance = (correct: boolean) => {
+    if (!onAdvance) {
+      return;
+    }
+
+    const shouldAdvance =
+      autoAdvance === "always" || (autoAdvance === "correct" && correct);
+
+    if (!shouldAdvance) {
+      return;
+    }
+
+    if (autoAdvanceTimer.current !== null) {
+      window.clearTimeout(autoAdvanceTimer.current);
+    }
+
+    autoAdvanceTimer.current = window.setTimeout(() => {
+      onAdvance(correct);
+      autoAdvanceTimer.current = null;
+    }, advanceDelayMs);
+  };
 
   const submit = () => {
+    if (feedback.visible) {
+      return;
+    }
+
     const expected = normalizeAnswer(quiz.answer);
     const candidate =
       quiz.type === "fill-blank"
@@ -60,13 +124,11 @@ export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
             ? matchedPairs.slice().sort()
             : selected.trim().toLowerCase();
 
-    const correct =
-      Array.isArray(expected) && Array.isArray(candidate)
-        ? JSON.stringify(expected) === JSON.stringify(candidate)
-        : expected === candidate;
+    const correct = isAnswerEqual(expected, candidate);
 
     setFeedback({ visible: true, correct });
     onResult?.(correct);
+    queueAdvance(correct);
   };
 
   const canSubmit =
@@ -80,20 +142,52 @@ export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
 
   return (
     <Card className="space-y-5" data-testid="quiz-card" data-quiz-id={quiz.id}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Badge className="bg-sky/10 text-surge">{quiz.type}</Badge>
-          <h3 className="mt-3 text-xl font-bold text-ink" data-testid="quiz-prompt">
-            {quiz.prompt}
-          </h3>
-          {showSupport && quiz.promptZh ? <p className="mt-2 text-sm text-slate-500">{quiz.promptZh}</p> : null}
-          {showSupport && quiz.promptSupplementZh ? (
-            <p className="mt-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-600">
+      <div
+        className={cn(
+          "grid gap-4",
+          showFillBlankTranslation &&
+            "md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:items-start"
+        )}
+      >
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <Badge className="bg-sky/10 text-surge">{quiz.type}</Badge>
+              <h3 className="mt-3 text-xl font-bold text-ink" data-testid="quiz-prompt">
+                {quiz.prompt}
+              </h3>
+              {showStudySupport && quiz.promptZh ? (
+                <p className="mt-2 text-sm text-slate-500">{quiz.promptZh}</p>
+              ) : null}
+              {showStudySupport && !showFillBlankTranslation && quiz.promptSupplementZh ? (
+                <p className="mt-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-600">
+                  {quiz.promptSupplementZh}
+                </p>
+              ) : null}
+            </div>
+
+            {!showFillBlankTranslation && showStudySupport && quiz.audioRef ? (
+              <AudioButton audioRef={quiz.audioRef} />
+            ) : null}
+          </div>
+        </div>
+
+        {showFillBlankTranslation ? (
+          <div
+            className="rounded-3xl bg-sky/10 p-4"
+            data-testid="quiz-fill-blank-translation"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+              完整句子翻译
+            </p>
+            <p className="mt-3 text-sm leading-7 text-slate-700 md:text-base">
               {quiz.promptSupplementZh}
             </p>
-          ) : null}
-        </div>
-        {showSupport && quiz.audioRef ? <AudioButton audioRef={quiz.audioRef} /> : null}
+            {showStudySupport && quiz.audioRef ? (
+              <AudioButton className="mt-4" audioRef={quiz.audioRef} />
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {quiz.type === "fill-blank" ? (
@@ -153,11 +247,12 @@ export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
                 type="button"
                 onClick={() => setActiveLeft(pair.left)}
                 data-testid="quiz-match-left"
-                className={`w-full rounded-3xl border px-4 py-3 text-left transition ${
+                className={cn(
+                  "w-full rounded-3xl border px-4 py-3 text-left transition",
                   activeLeft === pair.left
                     ? "border-surge bg-sky/10"
                     : "border-slate-200 bg-white"
-                }`}
+                )}
               >
                 {pair.left}
               </button>
@@ -174,7 +269,6 @@ export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
                   }
 
                   const composed = `${activeLeft}:${pair.right}`;
-
                   setMatchedPairs((current) =>
                     current
                       .filter((item) => !item.startsWith(`${activeLeft}:`))
@@ -208,11 +302,12 @@ export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
               onClick={() => setSelected(option.id)}
               data-testid="quiz-option"
               data-option-id={option.id}
-              className={`rounded-3xl border px-4 py-3 text-left transition ${
+              className={cn(
+                "rounded-3xl border px-4 py-3 text-left transition",
                 selected === option.id
                   ? "border-surge bg-sky/10"
                   : "border-slate-200 bg-white hover:border-surge/40"
-              }`}
+              )}
             >
               <p className="font-semibold text-ink">{option.label}</p>
             </button>
@@ -222,7 +317,9 @@ export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-slate-500">
-          {showSupport && quiz.relatedWords.length ? `重点词汇：${quiz.relatedWords.join(" / ")}` : "完成本题后可以继续前进。"}
+          {showStudySupport && quiz.relatedWords.length
+            ? `重点词汇：${quiz.relatedWords.join(" / ")}`
+            : "完成本题后可以继续前进。"}
         </div>
         <Button type="button" onClick={submit} disabled={!canSubmit} data-testid="quiz-submit">
           提交答案
@@ -234,20 +331,28 @@ export function QuizCard({ quiz, onResult, variant = "study" }: QuizCardProps) {
           <ResultToast
             visible={feedback.visible}
             correct={feedback.correct}
-            text={feedback.correct ? "回答正确，继续下一题。" : "这题先记下来，稍后再复习。"}
+            text={
+              feedback.correct
+                ? "回答正确，继续下一题。"
+                : "这题先记下来，稍后再复习。"
+            }
           />
           <p className="text-sm text-slate-600">
             正确答案：<span className="font-semibold text-ink">{displayAnswer}</span>
           </p>
           <p className="text-sm leading-6 text-slate-500">{quiz.explanation}</p>
-          {quiz.type === "reading-question" && quiz.options?.some((option) => option.detail) ? (
+          {hasReadingOptionTranslations ? (
             <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-100">
               <p className="text-sm font-semibold text-ink">选项翻译</p>
               <div className="mt-3 space-y-3">
-                {quiz.options.map((option) => (
+                {quiz.options?.map((option) => (
                   <div key={option.id} className="rounded-2xl bg-slate-50 px-3 py-3">
                     <p className="text-sm font-semibold text-ink">{option.label}</p>
-                    {option.detail ? <p className="mt-1 text-sm leading-6 text-slate-500">{option.detail}</p> : null}
+                    {option.detail || option.translationZh ? (
+                      <p className="mt-1 text-sm leading-6 text-slate-500">
+                        {option.detail ?? option.translationZh}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>

@@ -1,21 +1,53 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { getReviewPoolSize, getReviewQueue } from "@/data/quizzes";
 import { QuizCard } from "@/components/quiz-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLearningStore } from "@/stores/learning-store";
 
+function getWrappedIndex(index: number, total: number) {
+  if (total <= 0) {
+    return 0;
+  }
+
+  if (index >= total) {
+    return total - 1;
+  }
+
+  if (index < 0) {
+    return 0;
+  }
+
+  return index;
+}
+
 export function ReviewPracticePanel() {
-  const [index, setIndex] = useState(0);
   const reviewMistakes = useLearningStore((state) => state.reviewMistakes);
   const difficultWords = useLearningStore((state) => state.difficultWords.length);
   const recordQuizResult = useLearningStore((state) => state.recordQuizResult);
   const logDailyProgress = useLearningStore((state) => state.logDailyProgress);
+  const reviewSession = useLearningStore((state) => state.reviewSession);
+  const updateReviewSession = useLearningStore((state) => state.updateReviewSession);
 
   const queue = useMemo(() => getReviewQueue(reviewMistakes, 120), [reviewMistakes]);
-  const quiz = queue[index % Math.max(queue.length, 1)];
+  const currentIndex = getWrappedIndex(reviewSession.index, queue.length);
+  const quiz = queue[currentIndex];
+
+  useEffect(() => {
+    if (reviewSession.index !== currentIndex) {
+      updateReviewSession(currentIndex);
+    }
+  }, [currentIndex, reviewSession.index, updateReviewSession]);
+
+  const goNext = () => {
+    if (!queue.length) {
+      return;
+    }
+
+    updateReviewSession((currentIndex + 1) % queue.length);
+  };
 
   return (
     <div className="space-y-6">
@@ -39,6 +71,19 @@ export function ReviewPracticePanel() {
       {quiz ? (
         <QuizCard
           quiz={quiz}
+          autoAdvance="correct"
+          onAdvance={(correct) => {
+            if (!correct || !queue.length) {
+              return;
+            }
+
+            const wasTrackedMistake = reviewMistakes.includes(quiz.id);
+            const nextIndex = wasTrackedMistake
+              ? Math.min(currentIndex, Math.max(queue.length - 2, 0))
+              : (currentIndex + 1) % queue.length;
+
+            updateReviewSession(nextIndex);
+          }}
           onResult={(correct) => {
             recordQuizResult(quiz.id, correct);
             logDailyProgress({
@@ -53,12 +98,20 @@ export function ReviewPracticePanel() {
         />
       ) : (
         <Card>
-          <p className="text-base text-slate-600">当前没有可用的复习题，请先完成一些学习内容。</p>
+          <p className="text-base text-slate-600">
+            当前没有可用的复习题，请先完成一些学习内容。
+          </p>
         </Card>
       )}
 
       <div className="flex justify-end">
-        <Button type="button" variant="secondary" onClick={() => setIndex((current) => current + 1)}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={goNext}
+          disabled={!quiz}
+          data-testid="review-next-button"
+        >
           下一题
         </Button>
       </div>

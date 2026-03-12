@@ -1,8 +1,5 @@
 import { expressions, passages, sentences, words } from "@/lib/content";
-import {
-  buildBlankedChineseText,
-  resolveVisibleHighlights
-} from "@/lib/quiz-support";
+import { resolveVisibleHighlights } from "@/lib/quiz-support";
 import type { QuizItem, QuizOption } from "@/types/content";
 
 function pickMeaningOptions(index: number): QuizOption[] {
@@ -56,7 +53,7 @@ function makeVocabularyQuiz(wordIndex: number): QuizItem {
     type: "fill-blank",
     prompt: word.exampleEn.replace(new RegExp(word.word, "i"), "_____"),
     promptZh: "根据例句填写缺失的单词。",
-    promptSupplementZh: buildBlankedChineseText(word.exampleZh, word.word),
+    promptSupplementZh: word.exampleZh,
     answer: word.word,
     answerText: word.word,
     explanation: `例句中的关键词是 ${word.word}。`,
@@ -113,7 +110,7 @@ function makeSentenceQuiz(index: number): QuizItem {
       type: "single-choice",
       prompt: sentence.sentenceEn.replace(new RegExp(sentence.missingWord, "i"), "_____"),
       promptZh: "请选择最适合填入句子的关键词。",
-      promptSupplementZh: buildBlankedChineseText(sentence.sentenceZh, sentence.missingWord),
+      promptSupplementZh: sentence.sentenceZh,
       options: uniqueOptions.map((option, optionIndex) => ({
         id: option === sentence.missingWord ? "correct" : `option-${optionIndex}`,
         label: option
@@ -158,7 +155,7 @@ function makeSentenceQuiz(index: number): QuizItem {
     type: "fill-blank",
     prompt: sentence.sentenceEn.replace(new RegExp(sentence.missingWord, "i"), "_____"),
     promptZh: "请根据上下文填写缺失的单词。",
-    promptSupplementZh: buildBlankedChineseText(sentence.sentenceZh, sentence.missingWord),
+    promptSupplementZh: sentence.sentenceZh,
     answer: sentence.missingWord,
     answerText: sentence.missingWord,
     explanation: sentence.explanation,
