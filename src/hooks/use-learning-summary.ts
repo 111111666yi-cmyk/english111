@@ -1,8 +1,29 @@
 "use client";
 
 import { useMemo } from "react";
+import { buildAchievements } from "@/lib/achievements";
+import { getExamOverview } from "@/lib/challenge-data";
 import { useLearningStore } from "@/stores/learning-store";
 import { percentage } from "@/lib/utils";
+
+export interface LearningSummary {
+  knownWords: number;
+  completedSentences: number;
+  completedPassages: number;
+  difficultWords: number;
+  reviewMistakes: number;
+  streakDays: number;
+  accuracy: number;
+  weeklyMinutes: number;
+  todayWords: number;
+  todaySentences: number;
+  todayPassages: number;
+  wordProgress: number;
+  sentenceProgress: number;
+  passageProgress: number;
+  challengeOverview: ReturnType<typeof getExamOverview>;
+  achievements: ReturnType<typeof buildAchievements>;
+}
 
 export function useLearningSummary(totalWords: number, totalSentences: number, totalPassages: number) {
   const knownWords = useLearningStore((state) => state.knownWords.length);
@@ -12,8 +33,9 @@ export function useLearningSummary(totalWords: number, totalSentences: number, t
   const reviewMistakes = useLearningStore((state) => state.reviewMistakes.length);
   const streakDays = useLearningStore((state) => state.streakDays);
   const sessions = useLearningStore((state) => state.sessions);
+  const examLevelProgress = useLearningStore((state) => state.examLevelProgress);
 
-  return useMemo(() => {
+  return useMemo<LearningSummary>(() => {
     const now = new Date();
     const todayKey = now.toISOString().slice(0, 10);
     const sevenDaysAgo = new Date(now);
@@ -46,7 +68,23 @@ export function useLearningSummary(totalWords: number, totalSentences: number, t
       }
     );
 
+    const challengeOverview = getExamOverview(examLevelProgress);
+    const achievementInput = {
+      knownWords,
+      completedSentences: completedSentenceIds,
+      completedPassages: completedPassageIds,
+      streakDays: streakDays || 0,
+      reviewMistakes,
+      examLevelProgress
+    };
+
     return {
+      knownWords,
+      completedSentences: completedSentenceIds,
+      completedPassages: completedPassageIds,
+      difficultWords,
+      reviewMistakes,
+      streakDays: streakDays || 0,
       wordProgress: percentage(knownWords, totalWords),
       sentenceProgress: percentage(completedSentenceIds, totalSentences),
       passageProgress: percentage(completedPassageIds, totalPassages),
@@ -55,14 +93,14 @@ export function useLearningSummary(totalWords: number, totalSentences: number, t
       todayWords: totals.todayWords,
       todaySentences: totals.todaySentences,
       todayPassages: totals.todayPassages,
-      difficultWords,
-      reviewMistakes,
-      streakDays: streakDays || 0
+      challengeOverview,
+      achievements: buildAchievements(achievementInput)
     };
   }, [
     completedPassageIds,
     completedSentenceIds,
     difficultWords,
+    examLevelProgress,
     knownWords,
     reviewMistakes,
     sessions,

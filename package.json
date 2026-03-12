@@ -12,6 +12,7 @@
     "validate:data:dev": "tsx scripts/validate-data-dev.ts",
     "validate:data:release": "tsx scripts/validate-data-release.ts",
     "validate:audio": "tsx scripts/validate-audio.ts",
+    "content:check:quality": "tsx scripts/check-content-quality.ts",
     "build:content": "tsx scripts/build-content.ts",
     "generate:seed": "tsx scripts/generate-seed-content.ts",
     "expand:content": "tsx scripts/expand-content-library.ts",
