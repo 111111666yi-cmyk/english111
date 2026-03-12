@@ -24,6 +24,7 @@ export function AccountScreen() {
 
   const authHydrated = useAuthStore((state) => state.hydrated);
   const currentUsername = useAuthStore((state) => state.currentUsername);
+  const sessionExpiresAt = useAuthStore((state) => state.sessionExpiresAt);
   const users = useAuthStore((state) => state.users);
   const register = useAuthStore((state) => state.register);
   const login = useAuthStore((state) => state.login);
@@ -46,7 +47,7 @@ export function AccountScreen() {
   const submitRegister = async () => {
     setRegisterBusy(true);
     const result = await register(registerForm.username, registerForm.password);
-    setRegisterMessage(result.message ?? (result.ok ? "账户已创建。" : "创建失败。"));
+    setRegisterMessage(result.message ?? (result.ok ? "本机档案已创建。" : "创建失败。"));
 
     if (result.ok) {
       setRegisterForm(initialForm);
@@ -59,7 +60,7 @@ export function AccountScreen() {
   const submitLogin = async () => {
     setLoginBusy(true);
     const result = await login(loginForm.username, loginForm.password);
-    setLoginMessage(result.message ?? (result.ok ? "登录成功。" : "登录失败。"));
+    setLoginMessage(result.message ?? (result.ok ? "已切换本机档案。" : "切换失败。"));
 
     if (result.ok) {
       setLoginForm(initialForm);
@@ -68,13 +69,17 @@ export function AccountScreen() {
     setLoginBusy(false);
   };
 
+  const sessionExpiryText = sessionExpiresAt
+    ? new Date(sessionExpiresAt).toLocaleString("zh-CN", { hour12: false })
+    : "未开启";
+
   return (
     <Shell>
       <div className="space-y-6">
         <SectionHeading
           eyebrow="Account"
-          title="独立账户"
-          description="每个账户使用独立的本地学习数据。未登录时会进入访客模式，数据不会继承其他账户。"
+          title="独立本机档案"
+          description="每个本机档案使用独立学习数据。这里提供的是轻量续登能力，不是强安全账户系统。"
         />
 
         <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -82,14 +87,14 @@ export function AccountScreen() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="text-2xl font-black text-ink">
-                  {authHydrated ? (currentUsername ? currentUsername : "访客模式") : "正在载入账户"}
+                  {authHydrated ? (currentUsername ? currentUsername : "访客模式") : "正在加载账户"}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   {authHydrated
                     ? currentUsername
-                      ? "当前账户的数据会单独保存在本地浏览器，不会与其他账户互相覆盖。"
-                      : "当前没有登录账户，系统会使用本设备上的访客数据。"
-                    : "正在恢复本地账户和学习数据。"}
+                      ? `当前档案的轻量续登截止时间：${sessionExpiryText}。到期后需要重新切换档案。`
+                      : "当前没有登录档案，系统会使用访客数据。"
+                    : "正在恢复本机档案和学习记录。"}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -119,9 +124,10 @@ export function AccountScreen() {
             </div>
 
             <div className="rounded-3xl bg-sky/10 p-4">
-              <p className="text-sm font-semibold text-sky-700">本地安全说明</p>
+              <p className="text-sm font-semibold text-sky-700">本机轻量认证说明</p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                用户名和加盐后的密码摘要仅保存在当前浏览器，本版本不依赖服务器，不会上传到云端。
+                当前浏览器只保存本机档案名、创建时间和轻量续登时间，不再持久化任何密码摘要或盐值。
+                这不是强安全账户系统，只适合单设备上的轻量切换和学习记录隔离。
               </p>
             </div>
           </Card>
@@ -129,9 +135,9 @@ export function AccountScreen() {
           <div className="grid gap-4">
             <Card className="space-y-4">
               <div>
-                <h3 className="text-lg font-bold text-ink">注册新账户</h3>
+                <h3 className="text-lg font-bold text-ink">创建本机档案</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  新账户从零开始，推荐使用 3 到 20 位的英文用户名。
+                  新档案会从零开始。确认口令只用于本机创建流程，不会以摘要形式落盘。
                 </p>
               </div>
               <form
@@ -156,7 +162,7 @@ export function AccountScreen() {
                   />
                 </label>
                 <label htmlFor="register-password" className="space-y-2">
-                  <span className="text-sm font-medium text-slate-600">密码</span>
+                  <span className="text-sm font-medium text-slate-600">确认口令</span>
                   <input
                     id="register-password"
                     type="password"
@@ -170,13 +176,8 @@ export function AccountScreen() {
                     data-testid="register-password"
                   />
                 </label>
-                <Button
-                  type="submit"
-                  onClick={undefined}
-                  disabled={registerBusy}
-                  data-testid="register-submit"
-                >
-                  {registerBusy ? "创建中..." : "创建并登录"}
+                <Button type="submit" disabled={registerBusy} data-testid="register-submit">
+                  {registerBusy ? "创建中..." : "创建并进入"}
                 </Button>
               </form>
               {registerMessage ? <p className="text-sm text-slate-500">{registerMessage}</p> : null}
@@ -184,9 +185,9 @@ export function AccountScreen() {
 
             <Card className="space-y-4">
               <div>
-                <h3 className="text-lg font-bold text-ink">登录已有账户</h3>
+                <h3 className="text-lg font-bold text-ink">切换已有档案</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  登录后会自动切换到该账户自己的学习数据。
+                  这里用于切换当前设备上的本机档案，并刷新 7 天轻量续登时间。
                 </p>
               </div>
               {users.length ? (
@@ -208,7 +209,7 @@ export function AccountScreen() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">当前浏览器里还没有注册账户。</p>
+                <p className="text-sm text-slate-500">当前浏览器里还没有创建本机档案。</p>
               )}
               <form
                 className="space-y-4"
@@ -232,7 +233,7 @@ export function AccountScreen() {
                   />
                 </label>
                 <label htmlFor="login-password" className="space-y-2">
-                  <span className="text-sm font-medium text-slate-600">密码</span>
+                  <span className="text-sm font-medium text-slate-600">确认口令</span>
                   <input
                     id="login-password"
                     type="password"
@@ -242,18 +243,17 @@ export function AccountScreen() {
                       setLoginForm((state) => ({ ...state, password: event.target.value }))
                     }
                     className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-surge"
-                    placeholder="输入密码"
+                    placeholder="用于确认本机切换"
                     data-testid="login-password"
                   />
                 </label>
                 <Button
                   type="submit"
                   variant="secondary"
-                  onClick={undefined}
                   disabled={loginBusy}
                   data-testid="login-submit"
                 >
-                  {loginBusy ? "登录中..." : "登录并切换"}
+                  {loginBusy ? "切换中..." : "切换档案"}
                 </Button>
               </form>
               {loginMessage ? <p className="text-sm text-slate-500">{loginMessage}</p> : null}

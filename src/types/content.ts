@@ -57,12 +57,14 @@ export interface QuizPair {
 
 export interface QuizItem {
   id: string;
+  questionId?: string;
   type:
     | "single-choice"
     | "fill-blank"
     | "match"
     | "reorder"
-    | "reading-question";
+    | "reading-question"
+    | "error";
   prompt: string;
   promptZh?: string;
   promptSupplementZh?: string;
@@ -73,6 +75,7 @@ export interface QuizItem {
   relatedWords: string[];
   difficulty: number;
   sourceRef: string;
+  errorMessage?: string;
   audioRef?: AudioRef;
   meta?: {
     pairs?: QuizPair[];

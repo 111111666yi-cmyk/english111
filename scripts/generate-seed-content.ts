@@ -1062,14 +1062,16 @@ const generatedPassages = passageSeeds.map((passage) => {
     {
       id: `${passage.id}-q1`,
       type: "reading-question",
+      questionId: `${passage.id}:main-idea`,
       prompt: "What is the main idea of this passage?",
       promptZh: "这篇短文的主旨是什么？",
       options: [
-        { id: "a", label: passage.answerMain },
-        { id: "b", label: "The writer wanted to stop reading and avoid new words." },
-        { id: "c", label: "The class decided that short English texts were a waste of time." }
+        { id: "a", label: passage.answerMain, translationZh: "姝ｇ‘绛旀鐨勪腑鏂囧皢鍦ㄧ敓鎴愬唴瀹规椂鍚屾鍐欏叆銆?" },
+        { id: "b", label: "The writer wanted to stop reading and avoid new words.", translationZh: "浣滆€呮兂鍋滄闃呰锛屽苟涓旇翰寮€鎵€鏈夋柊鍗曡瘝銆?" },
+        { id: "c", label: "The class decided that short English texts were a waste of time.", translationZh: "鍏ㄧ彮瑙夊緱绠€鐭嫳鏂囨潗鏂欐槸鍦ㄦ氮璐规椂闂淬€?" }
       ],
       answer: "a",
+      answerText: passage.answerMain,
       explanation: "主旨题通常要看全文反复出现的目标、方法和结果。",
       relatedWords: passage.keyWords.slice(0, 2),
       difficulty: 2,
@@ -1078,14 +1080,16 @@ const generatedPassages = passageSeeds.map((passage) => {
     {
       id: `${passage.id}-q2`,
       type: "reading-question",
+      questionId: `${passage.id}:mentioned-detail`,
       prompt: "Which detail is mentioned in the passage?",
       promptZh: "文中提到了哪一个细节？",
       options: [
-        { id: "a", label: passage.answerDetail },
-        { id: "b", label: "They sold all of their books to buy a new dictionary." },
-        { id: "c", label: "The teacher cancelled every discussion after one week." }
+        { id: "a", label: passage.answerDetail, translationZh: "姝ｇ‘缁嗚妭鐨勪腑鏂囧皢鍦ㄧ敓鎴愬唴瀹规椂鍚屾鍐欏叆銆?" },
+        { id: "b", label: "They sold all of their books to buy a new dictionary.", translationZh: "浠栦滑鍗栨帀浜嗘墍鏈夌殑涔︼紝鍙负浜嗕拱涓€鏈柊璇嶅吀銆?" },
+        { id: "c", label: "The teacher cancelled every discussion after one week.", translationZh: "鑰佸笀鍦ㄤ竴鍛ㄥ悗鍙栨秷浜嗘墍鏈夎璁恒€?" }
       ],
       answer: "a",
+      answerText: passage.answerDetail,
       explanation: "细节题要回到对应段落，找出文中明确说过的信息。",
       relatedWords: passage.keyWords.slice(1, 4),
       difficulty: 3,
@@ -1094,13 +1098,16 @@ const generatedPassages = passageSeeds.map((passage) => {
     {
       id: `${passage.id}-q3`,
       type: "reading-question",
+      questionId: `${passage.id}:true-false`,
       prompt: passage.trueFalseStatement,
       promptZh: "判断下面这句话是否正确。",
+      promptSupplementZh: passage.trueFalseStatement,
       options: [
-        { id: "true", label: "True" },
-        { id: "false", label: "False" }
+        { id: "true", label: "True", translationZh: "姝ｇ‘" },
+        { id: "false", label: "False", translationZh: "閿欒" }
       ],
       answer: "false",
+      answerText: "False",
       explanation: "判断题要先核对原文，再看题干有没有偷换条件或夸大信息。",
       relatedWords: passage.keyWords.slice(-2),
       difficulty: 2,

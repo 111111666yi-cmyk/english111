@@ -20,8 +20,9 @@ const entryCards = [
   { href: "/sentences", title: "句子训练", description: "把词汇放进语境，用排序和填空理解句意。" },
   { href: "/reading", title: "短文阅读", description: "用短文训练主旨、细节和词义猜测。" },
   { href: "/expressions", title: "进阶表达", description: "从基础说法过渡到更自然、更正式的表达。" },
-  { href: "/review", title: "复习模式", description: "回放错题池，把做错的题继续追下去。" },
-  { href: "/test", title: "测试模式", description: "单词和句子连续测验，题号和错题会保存在本地。" },
+  { href: "/review", title: "复习模式", description: "回放错题池，把做错的题继续追踪下去。" },
+  { href: "/test", title: "测试模式", description: "把单词和句子串成连续测验，并保留本地进度。" },
+  { href: "/challenge", title: "闯关模式", description: "进入地图闯关，按世界和关卡推进词汇掌握。" },
   { href: "/stats", title: "学习统计", description: "查看正确率、进度和连续学习天数。" }
 ];
 
@@ -39,7 +40,7 @@ export function HomeScreen() {
       <div className="space-y-8">
         <StreakBanner
           streakDays={Math.max(summary.streakDays, 1)}
-          weeklyMinutes={Math.max(summary.weeklyMinutes, 24)}
+          weeklyMinutes={summary.weeklyMinutes}
         />
 
         <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
@@ -47,24 +48,30 @@ export function HomeScreen() {
             <SectionHeading
               eyebrow="Today"
               title={authHydrated && currentUsername ? `欢迎回来，${currentUsername}` : "开始今天的学习"}
-              description="账户独立、本地优先、默认不消耗任何运行期模型密钥。你可以按“单词 -> 句子 -> 短文 -> 表达 -> 复习 / 测试”的节奏推进。"
+              description="账户独立、本地优先。你可以按“单词 -> 句子 -> 短文 -> 表达 -> 复习 / 测试 / 闯关”的节奏推进。"
             />
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-4" data-testid="home-today-stats">
               <div className="rounded-3xl bg-slate-50 p-4">
                 <p className="text-sm text-slate-500">单词</p>
-                <p className="mt-2 text-3xl font-black text-ink">8</p>
+                <p className="mt-2 text-3xl font-black text-ink" data-testid="home-today-words">
+                  {summary.todayWords}
+                </p>
               </div>
               <div className="rounded-3xl bg-slate-50 p-4">
                 <p className="text-sm text-slate-500">句子</p>
-                <p className="mt-2 text-3xl font-black text-ink">4</p>
+                <p className="mt-2 text-3xl font-black text-ink" data-testid="home-today-sentences">
+                  {summary.todaySentences}
+                </p>
               </div>
               <div className="rounded-3xl bg-slate-50 p-4">
                 <p className="text-sm text-slate-500">短文</p>
-                <p className="mt-2 text-3xl font-black text-ink">1</p>
+                <p className="mt-2 text-3xl font-black text-ink" data-testid="home-today-passages">
+                  {summary.todayPassages}
+                </p>
               </div>
               <div className="rounded-3xl bg-slate-50 p-4">
                 <p className="text-sm text-slate-500">复习池</p>
-                <p className="mt-2 text-3xl font-black text-ink">{summaryData.totals.reviewPool}</p>
+                <p className="mt-2 text-3xl font-black text-ink">{summary.reviewMistakes}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -93,7 +100,7 @@ export function HomeScreen() {
               <div className="space-y-3">
                 <h2 className="text-3xl font-black md:text-4xl">进入闯关地图</h2>
                 <p className="max-w-2xl text-sm leading-7 text-white/90 md:text-base">
-                  闯关不再放在顶栏里，而是作为主页里的独立二级入口。你可以从这里进入地图世界，按世界和关卡推进，查看星级、锁定状态和闯关错题库。
+                  从首页或顶栏都可以进入闯关模式。你可以按世界和关卡查看锁定状态、星级和地图进度。
                 </p>
               </div>
             </div>
@@ -101,7 +108,7 @@ export function HomeScreen() {
               <Link href="/challenge" data-testid="home-challenge-entry">
                 <Button className="bg-white text-ink hover:bg-white/90">打开闯关地图</Button>
               </Link>
-              <p className="text-sm text-white/85">从主页进入，可随时返回。</p>
+              <p className="text-sm text-white/85">可随时从主页或顶栏返回。</p>
             </div>
           </div>
         </Card>
@@ -110,7 +117,7 @@ export function HomeScreen() {
           <SectionHeading
             eyebrow="Modules"
             title="核心学习入口"
-            description="复习和测试现在是独立页面；闯关则搬到主页的专属入口里，电脑端和手机端都会更清楚。"
+            description="复习、测试和闯关都保留为独立页面，桌面端和手机端共用同一套路由结构。"
           />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {entryCards.map((item, index) => (

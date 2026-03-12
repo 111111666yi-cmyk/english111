@@ -9,6 +9,8 @@
     "preview": "serve out -l 3002",
     "lint": "node ./node_modules/eslint/bin/eslint.js . --ext .js,.jsx,.ts,.tsx",
     "validate:data": "tsx scripts/validate-data.ts",
+    "validate:data:dev": "tsx scripts/validate-data-dev.ts",
+    "validate:data:release": "tsx scripts/validate-data-release.ts",
     "validate:audio": "tsx scripts/validate-audio.ts",
     "build:content": "tsx scripts/build-content.ts",
     "generate:seed": "tsx scripts/generate-seed-content.ts",
@@ -18,6 +20,7 @@
     "sync:audio": "tsx scripts/sync-audio-workflow.ts",
     "tts:local": "powershell -ExecutionPolicy Bypass -File ./scripts/tts-local-workflow.ps1",
     "test": "npm run test:regression",
+    "test:fast": "npm run test:regression -- --skip-build",
     "test:regression": "tsx scripts/regression-playwright.ts"
   },
   "dependencies": {

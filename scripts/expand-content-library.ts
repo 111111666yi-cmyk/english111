@@ -532,14 +532,16 @@ function buildAutoPassages(autoWords: WordEntry[], targetCount: number) {
       {
         id: `${passageId}-q1`,
         type: "reading-question",
+        questionId: `${passageId}:main-idea`,
         prompt: "What is the main idea of this passage?",
         promptZh: "这篇短文的主旨是什么？",
         options: [
-          { id: "a", label: "A small reading routine helps students turn basic words into useful tools." },
-          { id: "b", label: "The class decided to stop reading because every word was too difficult." },
-          { id: "c", label: "The writer only cared about long novels and ignored short texts." }
+          { id: "a", label: "A small reading routine helps students turn basic words into useful tools.", translationZh: "涓€濂楀皬鑰岀ǔ瀹氱殑闃呰缁冧範鑳藉府鍔╁鐢熸妸鍩虹鍗曡瘝鍙樻垚鏈夌敤鐨勫伐鍏枫€?" },
+          { id: "b", label: "The class decided to stop reading because every word was too difficult.", translationZh: "鍏ㄧ彮鍥犱负姣忎釜鍗曡瘝閮藉お闅撅紝鍐冲畾鍋滄闃呰銆?" },
+          { id: "c", label: "The writer only cared about long novels and ignored short texts.", translationZh: "浣滆€呭彧鍦ㄦ剰闀跨瘒灏忚锛屽拷鐣ョ煭鏂囥€?" }
         ],
         answer: "a",
+        answerText: "A small reading routine helps students turn basic words into useful tools.",
         explanation: "主旨题要抓住“计划、方法、结果”这三块反复出现的信息。",
         relatedWords: [w1.word, w2.word],
         difficulty: 2,
@@ -548,14 +550,16 @@ function buildAutoPassages(autoWords: WordEntry[], targetCount: number) {
       {
         id: `${passageId}-q2`,
         type: "reading-question",
+        questionId: `${passageId}:mentioned-detail`,
         prompt: "Which detail is mentioned in the passage?",
         promptZh: "文中提到了哪一个细节？",
         options: [
-          { id: "a", label: `The class wrote one short sentence for each word.` },
-          { id: "b", label: "The students sold their books before class began." },
-          { id: "c", label: "The teacher cancelled the plan after one day." }
+          { id: "a", label: `The class wrote one short sentence for each word.`, translationZh: "鐝笂鍚屽涓烘瘡涓崟璇嶅啓浜嗕竴鍙ョ煭鍙ャ€?" },
+          { id: "b", label: "The students sold their books before class began.", translationZh: "瀛︾敓浠湪涓婅鍓嶅崠鎺変簡浠栦滑鐨勪功銆?" },
+          { id: "c", label: "The teacher cancelled the plan after one day.", translationZh: "鑰佸笀鍦ㄤ竴澶╁悗鍙栨秷浜嗚繖椤硅鍒掋€?" }
         ],
         answer: "a",
+        answerText: "The class wrote one short sentence for each word.",
         explanation: "细节题要回到原文，找出明确出现过的动作或事实。",
         relatedWords: [w3.word, w4.word],
         difficulty: 2,
@@ -564,13 +568,16 @@ function buildAutoPassages(autoWords: WordEntry[], targetCount: number) {
       {
         id: `${passageId}-q3`,
         type: "reading-question",
+        questionId: `${passageId}:true-false`,
         prompt: "The students thought basic words were always useless.",
         promptZh: "判断下面这句话是否正确。",
+        promptSupplementZh: "瀛︾敓浠涓哄熀纭€鍗曡瘝姘歌繙娌℃湁鐢ㄣ€?",
         options: [
-          { id: "true", label: "True" },
-          { id: "false", label: "False" }
+          { id: "true", label: "True", translationZh: "姝ｇ‘" },
+          { id: "false", label: "False", translationZh: "閿欒" }
         ],
         answer: "false",
+        answerText: "False",
         explanation: "结尾明确说明基础词后来变成了有用的阅读工具，所以题干错误。",
         relatedWords: [w2.word, w5.word],
         difficulty: 2,

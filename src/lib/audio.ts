@@ -20,6 +20,7 @@ export interface PlayAudioOptions {
 
 const cloudEnabled = process.env.NEXT_PUBLIC_ENABLE_CLOUD_TTS === "true";
 const cloudEndpoint = process.env.NEXT_PUBLIC_CLOUD_TTS_ENDPOINT;
+const CLOUD_TTS_TIMEOUT_MS = 5000;
 
 export async function playBlobAudio(blob: Blob) {
   const url = URL.createObjectURL(blob);
@@ -68,25 +69,57 @@ export async function requestCloudTts(payload: CloudAudioRequest) {
     };
   }
 
-  const response = await fetch(cloudEndpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), CLOUD_TTS_TIMEOUT_MS);
 
-  if (!response.ok) {
+  try {
+    const response = await fetch(cloudEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      console.error("[audio] Cloud TTS request failed.", {
+        status: response.status,
+        cacheKey: payload.cacheKey
+      });
+      return {
+        ok: false,
+        reason: "云端发音请求失败。"
+      };
+    }
+
+    return {
+      ok: true,
+      blob: await response.blob()
+    };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      console.error("[audio] Cloud TTS request timed out.", {
+        cacheKey: payload.cacheKey,
+        timeoutMs: CLOUD_TTS_TIMEOUT_MS
+      });
+      return {
+        ok: false,
+        reason: "云端发音超时，请稍后再试。"
+      };
+    }
+
+    console.error("[audio] Cloud TTS request threw an error.", {
+      cacheKey: payload.cacheKey,
+      error
+    });
     return {
       ok: false,
-      reason: "云端发音请求失败。"
+      reason: "云端发音失败，已回退到本地播放方式。"
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return {
-    ok: true,
-    blob: await response.blob()
-  };
 }
 
 export async function playPreferredLocalAudio(options: PlayAudioOptions) {
@@ -109,7 +142,10 @@ export async function playPreferredLocalAudio(options: PlayAudioOptions) {
   return {
     ok: false,
     source: "none" as const,
-    reason: options.allowSpeechFallback === false ? "本地音频缺失，且浏览器朗读兜底已关闭。" : "没有可播放的本地音频，也没有可朗读文本。"
+    reason:
+      options.allowSpeechFallback === false
+        ? "本地音频缺失，且浏览器朗读兜底已关闭。"
+        : "没有可播放的本地音频，也没有可朗读文本。"
   };
 }
 

@@ -9,6 +9,43 @@ for (const expression of expressions) {
   expressionMeaningLookup.set(expression.basic.toLowerCase(), expression.meaningZh);
 }
 
+const IRREGULAR_ENGLISH_FORMS: Record<string, string[]> = {
+  went: ["go"],
+  gone: ["go"],
+  saw: ["see"],
+  seen: ["see"],
+  did: ["do"],
+  done: ["do"],
+  was: ["be"],
+  were: ["be"],
+  been: ["be"],
+  had: ["have"],
+  better: ["good", "well"],
+  best: ["good", "well"],
+  worse: ["bad"],
+  worst: ["bad"],
+  brought: ["bring"],
+  bought: ["buy"],
+  thought: ["think"],
+  taught: ["teach"],
+  felt: ["feel"],
+  found: ["find"],
+  made: ["make"],
+  took: ["take"],
+  taken: ["take"],
+  wrote: ["write"],
+  written: ["write"],
+  spoke: ["speak"],
+  spoken: ["speak"],
+  knew: ["know"],
+  known: ["know"],
+  gave: ["give"],
+  given: ["give"],
+  ran: ["run"],
+  kept: ["keep"],
+  left: ["leave"]
+};
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -17,9 +54,13 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
+function normalizeEnglishToken(value: string) {
+  return normalize(value).replace(/[.,!?;:()[\]"]/g, "");
+}
+
 function splitChineseMeaning(meaning: string) {
   return meaning
-    .split(/[；、，,]/)
+    .split(/[锛涖€侊紝,]/)
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -27,19 +68,18 @@ function splitChineseMeaning(meaning: string) {
 function buildChineseVariants(candidate: string) {
   const variants = new Set<string>([candidate]);
 
-  if (candidate.endsWith("的") || candidate.endsWith("地")) {
+  if (candidate.endsWith("鐨?") || candidate.endsWith("鍦?")) {
     variants.add(candidate.slice(0, -1));
   }
 
-  if (candidate.endsWith("了")) {
+  if (candidate.endsWith("浜?")) {
     variants.add(candidate.slice(0, -1));
   }
 
   return Array.from(variants).filter(Boolean);
 }
 
-function buildEnglishForms(keyword: string) {
-  const base = normalize(keyword).replace(/[.,!?]/g, "");
+function buildRuleBasedEnglishForms(base: string) {
   const forms = new Set<string>([base]);
 
   if (base.endsWith("ies") && base.length > 3) {
@@ -62,6 +102,24 @@ function buildEnglishForms(keyword: string) {
 
   if (base.endsWith("s") && base.length > 2) {
     forms.add(base.slice(0, -1));
+  }
+
+  return forms;
+}
+
+function buildEnglishForms(keyword: string) {
+  const base = normalizeEnglishToken(keyword);
+  const forms = new Set<string>([base]);
+
+  for (const candidate of buildRuleBasedEnglishForms(base)) {
+    forms.add(candidate);
+  }
+
+  for (const irregularBase of IRREGULAR_ENGLISH_FORMS[base] ?? []) {
+    forms.add(irregularBase);
+    for (const candidate of buildRuleBasedEnglishForms(irregularBase)) {
+      forms.add(candidate);
+    }
   }
 
   return Array.from(forms).filter(Boolean);
@@ -87,11 +145,16 @@ function getChineseCandidates(keyword: string) {
   return Array.from(matches).sort((left, right) => right.length - left.length);
 }
 
+function buildVisibleHighlightPatterns(keyword: string) {
+  return buildEnglishForms(keyword).map(
+    (form) => new RegExp(`\\b${escapeRegExp(form)}\\b`, "i")
+  );
+}
+
 export function resolveVisibleHighlights(textEn: string, keywords: string[]) {
-  return keywords.filter((keyword) => {
-    const pattern = new RegExp(`\\b${escapeRegExp(keyword)}\\b`, "i");
-    return pattern.test(textEn);
-  });
+  return keywords.filter((keyword) =>
+    buildVisibleHighlightPatterns(keyword).some((pattern) => pattern.test(textEn))
+  );
 }
 
 export function resolveChineseHighlights(textZh: string, keywords: string[]) {

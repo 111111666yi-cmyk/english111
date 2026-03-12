@@ -56,9 +56,15 @@ export interface LearningSnapshot {
   challengeSession: ChallengeSessionState;
 }
 
+interface PersistedLearningState {
+  version: number;
+  data: Partial<LearningSnapshot>;
+}
+
 interface LearningState extends LearningSnapshot {
   profileKey: string;
   hydrated: boolean;
+  storageWarning: string | null;
   hydrateForProfile: (profileKey: string) => void;
   markWord: (wordId: string, feedback: "known" | "tricky" | "unknown") => void;
   toggleFavoriteWord: (wordId: string) => void;
@@ -74,10 +80,15 @@ interface LearningState extends LearningSnapshot {
   updateChallengeSession: (payload: Partial<ChallengeSessionState>) => void;
   resetChallengeSession: () => void;
   updateSetting: <K extends keyof LearningSettings>(key: K, value: LearningSettings[K]) => void;
+  clearStorageWarning: () => void;
   resetAll: () => void;
 }
 
 const LEGACY_STORAGE_KEY = "english-climb-learning";
+const STORAGE_VERSION = 2;
+const SESSION_RETENTION_DAYS = 90;
+const REVIEW_MISTAKE_LIMIT = 500;
+const EXAM_MISTAKE_LIMIT = 500;
 
 const defaultSettings: LearningSettings = {
   chineseAssist: true,
@@ -160,6 +171,21 @@ function unique(items: string[]) {
   return Array.from(new Set(items));
 }
 
+function trimRecentIds(items: string[], limit: number) {
+  const deduped = unique(items);
+  return deduped.slice(Math.max(0, deduped.length - limit));
+}
+
+function trimSessions(sessions: SessionLog[]) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - (SESSION_RETENTION_DAYS - 1));
+  const cutoffKey = cutoff.toISOString().slice(0, 10);
+
+  return sessions
+    .filter((session) => typeof session.date === "string" && session.date >= cutoffKey)
+    .sort((left, right) => left.date.localeCompare(right.date));
+}
+
 function normalizeSnapshot(snapshot?: Partial<LearningSnapshot>): LearningSnapshot {
   return {
     knownWords: unique(snapshot?.knownWords ?? []),
@@ -167,12 +193,12 @@ function normalizeSnapshot(snapshot?: Partial<LearningSnapshot>): LearningSnapsh
     favoriteWords: unique(snapshot?.favoriteWords ?? []),
     completedSentenceIds: unique(snapshot?.completedSentenceIds ?? []),
     completedPassageIds: unique(snapshot?.completedPassageIds ?? []),
-    reviewMistakes: unique(snapshot?.reviewMistakes ?? []),
-    examMistakes: unique(snapshot?.examMistakes ?? []),
+    reviewMistakes: trimRecentIds(snapshot?.reviewMistakes ?? [], REVIEW_MISTAKE_LIMIT),
+    examMistakes: trimRecentIds(snapshot?.examMistakes ?? [], EXAM_MISTAKE_LIMIT),
     examLevelProgress: snapshot?.examLevelProgress ?? {},
     streakDays: snapshot?.streakDays ?? 0,
     lastStudyDate: snapshot?.lastStudyDate,
-    sessions: snapshot?.sessions ?? [],
+    sessions: trimSessions(snapshot?.sessions ?? []),
     settings: {
       ...defaultSettings,
       ...snapshot?.settings
@@ -203,37 +229,71 @@ function normalizeSnapshot(snapshot?: Partial<LearningSnapshot>): LearningSnapsh
   };
 }
 
-function readSnapshot(profileKey: string) {
-  if (typeof window === "undefined") {
+function migrateSnapshot(persisted: unknown): LearningSnapshot {
+  if (!persisted || typeof persisted !== "object") {
     return defaultSnapshot;
   }
 
-  const existing = localStorage.getItem(getStorageKey(profileKey));
-
-  if (existing) {
-    return normalizeSnapshot(JSON.parse(existing) as Partial<LearningSnapshot>);
-  }
-
-  if (profileKey === "guest") {
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-
-    if (legacy) {
-      const migrated = normalizeSnapshot(JSON.parse(legacy) as Partial<LearningSnapshot>);
-      localStorage.setItem(getStorageKey(profileKey), JSON.stringify(migrated));
-      localStorage.removeItem(LEGACY_STORAGE_KEY);
-      return migrated;
+  if ("version" in persisted && "data" in persisted) {
+    const envelope = persisted as PersistedLearningState;
+    if (envelope.version <= STORAGE_VERSION) {
+      return normalizeSnapshot(envelope.data);
     }
   }
 
-  return defaultSnapshot;
+  return normalizeSnapshot(persisted as Partial<LearningSnapshot>);
+}
+
+function readStorageEnvelope(raw: string) {
+  return JSON.parse(raw) as PersistedLearningState | Partial<LearningSnapshot>;
+}
+
+function readSnapshot(profileKey: string) {
+  if (typeof window === "undefined") {
+    return { snapshot: defaultSnapshot, warning: null as string | null };
+  }
+
+  try {
+    const existing = localStorage.getItem(getStorageKey(profileKey));
+
+    if (existing) {
+      const snapshot = migrateSnapshot(readStorageEnvelope(existing));
+      return { snapshot, warning: null as string | null };
+    }
+
+    if (profileKey === "guest") {
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+
+      if (legacy) {
+        const snapshot = migrateSnapshot(JSON.parse(legacy) as Partial<LearningSnapshot>);
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+        return { snapshot, warning: null as string | null };
+      }
+    }
+  } catch (error) {
+    console.error("Failed to read learning snapshot", error);
+    return { snapshot: defaultSnapshot, warning: "本地学习记录读取失败，已使用默认进度。" };
+  }
+
+  return { snapshot: defaultSnapshot, warning: null as string | null };
 }
 
 function saveSnapshot(profileKey: string, snapshot: LearningSnapshot) {
   if (typeof window === "undefined") {
-    return;
+    return null;
   }
 
-  localStorage.setItem(getStorageKey(profileKey), JSON.stringify(snapshot));
+  try {
+    const persisted: PersistedLearningState = {
+      version: STORAGE_VERSION,
+      data: snapshot
+    };
+    localStorage.setItem(getStorageKey(profileKey), JSON.stringify(persisted));
+    return null;
+  } catch (error) {
+    console.error("Failed to persist learning snapshot", error);
+    return "本地存储空间不足，新的学习记录可能没有完整保存。";
+  }
 }
 
 function extractSnapshot(state: LearningState): LearningSnapshot {
@@ -263,22 +323,28 @@ export const useLearningStore = create<LearningState>()((set, get) => {
         ...extractSnapshot(state),
         ...updater(state)
       });
+      const warning = saveSnapshot(state.profileKey, next);
 
-      saveSnapshot(state.profileKey, next);
-
-      return next;
+      return {
+        ...next,
+        storageWarning: warning ?? state.storageWarning
+      };
     });
 
   return {
     ...defaultSnapshot,
     profileKey: "guest",
     hydrated: false,
+    storageWarning: null,
     hydrateForProfile: (profileKey) => {
-      const snapshot = readSnapshot(profileKey);
+      const { snapshot, warning } = readSnapshot(profileKey);
+      const persistWarning = saveSnapshot(profileKey, snapshot);
+
       set({
         ...snapshot,
         profileKey,
-        hydrated: true
+        hydrated: true,
+        storageWarning: warning ?? persistWarning
       });
     },
     markWord: (wordId, feedback) =>
@@ -407,13 +473,15 @@ export const useLearningStore = create<LearningState>()((set, get) => {
           [key]: value
         }
       })),
+    clearStorageWarning: () => set({ storageWarning: null }),
     resetAll: () => {
       const profileKey = get().profileKey;
-      saveSnapshot(profileKey, defaultSnapshot);
+      const warning = saveSnapshot(profileKey, defaultSnapshot);
       set({
         ...defaultSnapshot,
         profileKey,
-        hydrated: true
+        hydrated: true,
+        storageWarning: warning
       });
     }
   };

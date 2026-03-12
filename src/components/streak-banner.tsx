@@ -21,7 +21,7 @@ export function StreakBanner({
             从 3500 词到自然理解句子和短文。
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-7 text-white/90 md:text-base">
-            English Climb 以本地题库、双语互动和轻游戏化进度，让你每天稳定前进，不依赖运行期大模型。
+            English Climb 用本地题库、双语互动和轻游戏化进度，让你每天稳定前进，不依赖运行期大模型。
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -50,7 +50,9 @@ export function StreakBanner({
         </div>
         <div className="rounded-4xl bg-white/18 p-5 backdrop-blur">
           <p className="text-sm uppercase tracking-[0.24em] text-white/75">本周投入</p>
-          <p className="mt-3 text-3xl font-black">{weeklyMinutes} 分钟</p>
+          <p className="mt-3 text-3xl font-black" data-testid="home-weekly-minutes">
+            {weeklyMinutes} 分钟
+          </p>
         </div>
       </div>
     </Card>

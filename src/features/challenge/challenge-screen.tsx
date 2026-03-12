@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { ExamModePanel } from "@/features/review/exam-mode-panel";
+import { ExamModePanel } from "@/features/challenge/exam-mode-panel";
 import { Shell } from "@/components/shell";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";

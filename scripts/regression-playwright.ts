@@ -4,8 +4,9 @@ import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type BrowserContext, type Page } from "playwright";
-import { examWorlds } from "../src/lib/challenge-data";
-import { getQuizById, getSentenceQuiz, getVocabularyQuiz } from "../src/data/quizzes";
+import { examWorlds, examWorldsWarning } from "../src/lib/challenge-data";
+import { expressions } from "../src/lib/content";
+import { canGenerateExpressionQuiz, getQuizById, getSentenceQuiz, getVocabularyQuiz } from "../src/data/quizzes";
 
 type ReviewSessionState = {
   index: number;
@@ -32,6 +33,11 @@ type LearningSnapshot = {
   reviewSession?: ReviewSessionState;
   testSession?: TestSessionState;
   challengeSession?: ChallengeSessionState;
+};
+
+type PersistedLearningState = {
+  version?: number;
+  data?: LearningSnapshot;
 };
 
 type AuthPersistedState = {
@@ -264,7 +270,16 @@ async function readAuthState(page: Page) {
 async function readLearningSnapshot(page: Page, profileKey: string) {
   const snapshot = await page.evaluate((key) => {
     const raw = localStorage.getItem(`learningData_${key}`);
-    return raw ? (JSON.parse(raw) as LearningSnapshot) : null;
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as LearningSnapshot | PersistedLearningState;
+    if (parsed && typeof parsed === "object" && "data" in parsed) {
+      return parsed.data ?? null;
+    }
+
+    return parsed as LearningSnapshot;
   }, profileKey);
 
   return {
@@ -347,7 +362,15 @@ async function waitForSnapshotValue(
   await page.waitForFunction(
     ({ key, targetProperty, targetLength }) => {
       const raw = localStorage.getItem(`learningData_${key}`);
-      const snapshot = raw ? (JSON.parse(raw) as LearningSnapshot) : null;
+      if (!raw) {
+        return targetLength === 0;
+      }
+
+      const parsed = JSON.parse(raw) as LearningSnapshot | PersistedLearningState;
+      const snapshot: LearningSnapshot | null =
+        parsed && typeof parsed === "object" && "data" in parsed
+          ? (parsed.data ?? null)
+          : (parsed as LearningSnapshot);
       const collection = snapshot?.[targetProperty] as string[] | undefined;
       return (collection?.length ?? 0) === targetLength;
     },
@@ -450,29 +473,44 @@ async function runRegression(
     process.stdout.write(`\n[check] ${name}\n`);
   };
 
-  assert(
-    Boolean(getVocabularyQuiz(1).promptSupplementZh),
-    "Vocabulary fill-blank translation is missing at content level."
-  );
-  assert(
-    Boolean(getSentenceQuiz(1).promptSupplementZh),
-    "Sentence single-choice translation is missing at content level."
-  );
-  assert(
-    Boolean(getSentenceQuiz(2).promptSupplementZh),
-    "Sentence fill-blank translation is missing at content level."
-  );
-  recordCheck("content-layer fill-blank and sentence translations exist");
+  for (const route of ["", "vocabulary/", "reading/", "account/", "challenge/"]) {
+    const response = await fetch(resolveAppUrl(baseUrl, route));
+    assert(response.ok, `Smoke check failed for ${route || "/"}.`);
+  }
+
+  const vocabularyFillBlankQuiz = getVocabularyQuiz(1);
+  const sentenceChoiceQuiz = getSentenceQuiz(1);
+  const sentenceFillBlankQuiz = getSentenceQuiz(2);
+  const autoWordQuiz = getQuizById(`quiz-auto-word-${vocabularyFillBlankQuiz.sourceRef}`);
+  const autoSentenceQuiz = getQuizById(`quiz-auto-sentence-${sentenceChoiceQuiz.sourceRef}`);
+  const missingQuiz = getQuizById("quiz-auto-word-does-not-exist");
+
+  assert(Boolean(vocabularyFillBlankQuiz.promptSupplementZh), "Vocabulary fill-blank translation is missing at content level.");
+  assert(Boolean(sentenceChoiceQuiz.promptSupplementZh), "Sentence single-choice translation is missing at content level.");
+  assert(Boolean(sentenceFillBlankQuiz.promptSupplementZh), "Sentence fill-blank translation is missing at content level.");
+  assert(autoWordQuiz.type === vocabularyFillBlankQuiz.type, "quiz-auto-word-* did not resolve to a word quiz.");
+  assert(autoWordQuiz.sourceRef === vocabularyFillBlankQuiz.sourceRef, "quiz-auto-word-* resolved to the wrong word.");
+  assert(autoSentenceQuiz.sourceRef === sentenceChoiceQuiz.sourceRef, "quiz-auto-sentence-* resolved to the wrong sentence.");
+  assert(missingQuiz.type === "error", "Missing quiz ids must resolve to an explicit error quiz.");
+  assert(expressions.length >= 8, "Expression pool must have at least 8 items.");
+  assert(canGenerateExpressionQuiz(), "Expression quiz generator should be enabled once the pool reaches the minimum sample size.");
+  recordCheck("smoke check, translations, and quiz id resolvers behave correctly");
 
   await goto(page, baseUrl, "");
   await page.getByText("English Climb").first().waitFor();
   const navbarChallengeCount = await page.locator("header nav a[href*=\"/challenge\"]").count();
-  assert(navbarChallengeCount === 0, "Challenge link should not appear in the top navigation.");
+  assert(navbarChallengeCount > 0, "Challenge link is missing from the top navigation.");
   assert(
     (await page.locator('[data-testid="home-challenge-entry"]').count()) > 0,
     "Home challenge entry is missing."
   );
-  recordCheck("challenge entry moved off the navbar and stays available on home");
+  recordCheck("challenge is reachable from both navbar and home");
+  await goto(page, baseUrl, "expressions/");
+  assert(
+    (await page.locator('[data-testid="quiz-card"]').count()) > 0,
+    "Expressions page did not render a normal quiz card."
+  );
+  recordCheck("expression quiz remains enabled with the expanded pool");
   await page.getByRole("link", { name: "统计" }).click().catch(async () => {
     await page.locator('a[href*="/stats"]').first().click();
   });
@@ -556,6 +594,10 @@ async function runRegression(
   await context.setOffline(false);
   recordCheck("cloud audio button stays visible and reports offline status");
 
+  const previousVocabularyWord = (
+    await page.locator('[data-testid="word-card-title"]').innerText()
+  ).trim();
+  const previousVocabularyQuizId = await readCurrentQuizId(page);
   await page.locator('[data-testid="word-feedback-known"]').click();
   await waitForSnapshotValue(
     page,
@@ -563,9 +605,14 @@ async function runRegression(
     "knownWords",
     alphaBeforeVocabulary.knownWords.length + 1
   );
+  await page.waitForFunction((previousWord) => {
+    const currentWord = document.querySelector('[data-testid="word-card-title"]')?.textContent?.trim();
+    return Boolean(currentWord) && currentWord !== previousWord;
+  }, previousVocabularyWord);
+  await waitForQuizChange(page, previousVocabularyQuizId);
   const alphaWordQuizId = await readCurrentQuizId(page);
   const alphaWordQuiz = await getQuizById(alphaWordQuizId);
-  assert(alphaWordQuiz?.type === "fill-blank", "Vocabulary did not advance to a fill-blank quiz after marking known.");
+  assert(alphaWordQuiz?.type === "fill-blank", "Vocabulary did not advance to the expected next word quiz.");
   assert(
     (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0,
     "Vocabulary fill-blank translation panel is missing."
@@ -680,9 +727,19 @@ async function runRegression(
     (await page.locator('[data-testid="review-mistake-count"]').count()) > 0,
     "Review route did not render."
   );
-  await page.locator('[data-testid="review-next-button"]').click();
+  let reviewFillBlankVisible = (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0;
+  const betaReviewSnapshot = await readLearningSnapshot(page, BETA_USER);
+
+  for (let attempt = 0; !reviewFillBlankVisible && attempt < Math.max(betaReviewSnapshot.reviewMistakes.length, 1); attempt += 1) {
+    const previousReviewQuizId = await readCurrentQuizId(page);
+    await page.locator('[data-testid="review-next-button"]').click();
+    await waitForQuizChange(page, previousReviewQuizId);
+    reviewFillBlankVisible =
+      (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0;
+  }
+
   assert(
-    (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0,
+    reviewFillBlankVisible,
     "Review fill-blank translation panel is missing."
   );
   const betaBeforeReviewSolve = await readLearningSnapshot(page, BETA_USER);
@@ -695,13 +752,12 @@ async function runRegression(
   );
   recordCheck("review mode persists and auto-advances after solving a fill-blank mistake");
 
-  await goto(page, baseUrl, "");
-  await page.locator('[data-testid="home-challenge-entry"]').click();
-  await page.waitForURL((url) => url.pathname.endsWith("/challenge/"));
+  await goto(page, baseUrl, "challenge/");
   assert(
     (await page.locator('[data-testid="challenge-mode-panel"]').count()) > 0,
     "Standalone challenge route did not render."
   );
+  assert(!examWorldsWarning, `Challenge data warning is set: ${examWorldsWarning}`);
   const worldSwitcherButtons = await page.locator('[data-testid="challenge-world-switcher-button"]').count();
   assert(
     worldSwitcherButtons === examWorlds.length,
@@ -719,7 +775,15 @@ async function runRegression(
   await page.waitForFunction(
     ({ key, expected }) => {
       const raw = localStorage.getItem(`learningData_${key}`);
-      const snapshot = raw ? (JSON.parse(raw) as LearningSnapshot) : null;
+      if (!raw) {
+        return false;
+      }
+
+      const parsed = JSON.parse(raw) as LearningSnapshot | PersistedLearningState;
+      const snapshot: LearningSnapshot | null =
+        parsed && typeof parsed === "object" && "data" in parsed
+          ? (parsed.data ?? null)
+          : (parsed as LearningSnapshot);
       return (snapshot?.examMistakes?.length ?? 0) > expected;
     },
     { key: BETA_USER, expected: betaBeforeChallenge.examMistakes.length }
@@ -755,6 +819,17 @@ async function runRegression(
   assert(alphaSnapshot.completedPassageIds.length === 1, "Alpha completed passages were lost after switching back.");
   assert(alphaSnapshot.reviewMistakes.length === 1, "Alpha review mistakes were lost after switching back.");
   recordCheck("account isolation still holds after beta test and challenge sessions");
+
+  await goto(page, baseUrl, "");
+  const weeklyMinutesText = await page.locator('[data-testid="home-weekly-minutes"]').innerText();
+  const todayWordsText = await page.locator('[data-testid="home-today-words"]').innerText();
+  const todaySentencesText = await page.locator('[data-testid="home-today-sentences"]').innerText();
+  const todayPassagesText = await page.locator('[data-testid="home-today-passages"]').innerText();
+  assert(!Number.isNaN(Number.parseInt(weeklyMinutesText, 10)), "Weekly minutes did not render a numeric value.");
+  assert(todayWordsText.trim() !== "", "Home today words stat is blank.");
+  assert(todaySentencesText.trim() !== "", "Home today sentences stat is blank.");
+  assert(todayPassagesText.trim() !== "", "Home today passages stat is blank.");
+  recordCheck("home stats render real derived values");
 
   summary.accounts = {
     guest: guestAfter,

@@ -3,8 +3,8 @@
     "words": 3500,
     "sentences": 4666,
     "passages": 180,
-    "expressions": 6,
-    "reviewPool": 8712
+    "expressions": 10,
+    "reviewPool": 8716
   },
   "featuredWords": [
     {
@@ -49,7 +49,7 @@
       "id": "expression-important",
       "basic": "very important",
       "advanced": "crucial",
-      "meaningZh": "非常重要的 -> 至关重要的"
+      "meaningZh": "非常重要 -> 至关重要"
     },
     {
       "id": "expression-good-for-you",

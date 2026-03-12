@@ -81,7 +81,7 @@ const worldThemes = [
   },
   {
     id: "world-7",
-    name: "霜岭词境",
+    name: "雾山词境",
     subtitle: "难度抬升，错题开始更有代表性。",
     description: "这里适合专门看你最容易混掉的词义差异。",
     icon: Mountain,
@@ -99,7 +99,7 @@ const worldThemes = [
   },
   {
     id: "world-9",
-    name: "极光词殿",
+    name: "极光词穹",
     subtitle: "最后一段，把词汇地图完整走通。",
     description: "通关这里以后，前 3500 个核心词就真正连成了系统。",
     icon: Orbit,
@@ -115,27 +115,50 @@ function distributeItems(total: number, buckets: number) {
   return Array.from({ length: buckets }, (_, index) => base + (index < remainder ? 1 : 0));
 }
 
-const examWords = words.slice(0, EXAM_WORD_LIMIT);
-const levelSizes = distributeItems(EXAM_WORD_LIMIT, EXAM_WORLD_COUNT * EXAM_LEVELS_PER_WORLD);
+function buildExamWorlds() {
+  const availableWordCount = Math.min(words.length, EXAM_WORD_LIMIT);
 
-let cursor = 0;
-
-export const examWorlds: ExamWorld[] = worldThemes.map((theme, worldIndex) => ({
-  ...theme,
-  levels: Array.from({ length: EXAM_LEVELS_PER_WORLD }, (_, levelIndex) => {
-    const size = levelSizes[worldIndex * EXAM_LEVELS_PER_WORLD + levelIndex];
-    const start = cursor;
-    const end = cursor + size;
-    cursor = end;
-
+  if (availableWordCount < EXAM_WORLD_COUNT * EXAM_LEVELS_PER_WORLD) {
+    console.warn(
+      `[challenge-data] Not enough words to build challenge worlds. Received ${availableWordCount}, expected at least ${EXAM_WORLD_COUNT * EXAM_LEVELS_PER_WORLD}.`
+    );
     return {
-      id: `${theme.id}-level-${levelIndex + 1}`,
-      label: `${levelIndex + 1}`,
-      rangeLabel: `${start + 1}-${end}`,
-      words: examWords.slice(start, end)
+      worlds: [] as ExamWorld[],
+      warning: "当前题库不足，暂无法生成闯关地图。"
     };
-  })
-}));
+  }
+
+  const examWords = words.slice(0, availableWordCount);
+  const levelSizes = distributeItems(availableWordCount, EXAM_WORLD_COUNT * EXAM_LEVELS_PER_WORLD);
+  let cursor = 0;
+
+  const worlds = worldThemes.map((theme, worldIndex) => ({
+    ...theme,
+    levels: Array.from({ length: EXAM_LEVELS_PER_WORLD }, (_, levelIndex) => {
+      const size = levelSizes[worldIndex * EXAM_LEVELS_PER_WORLD + levelIndex];
+      const start = cursor;
+      const end = cursor + size;
+      cursor = end;
+
+      return {
+        id: `${theme.id}-level-${levelIndex + 1}`,
+        label: `${levelIndex + 1}`,
+        rangeLabel: `${start + 1}-${end}`,
+        words: examWords.slice(start, end)
+      };
+    })
+  }));
+
+  return {
+    worlds,
+    warning: null as string | null
+  };
+}
+
+const examData = buildExamWorlds();
+
+export const examWorlds: ExamWorld[] = examData.worlds;
+export const examWorldsWarning = examData.warning;
 
 export function getExamWorldUnlockState(progress: Record<string, ExamLevelRecord>, worldIndex: number) {
   if (worldIndex === 0) {
@@ -143,6 +166,10 @@ export function getExamWorldUnlockState(progress: Record<string, ExamLevelRecord
   }
 
   const previousWorld = examWorlds[worldIndex - 1];
+  if (!previousWorld) {
+    return false;
+  }
+
   return previousWorld.levels.every((level) => progress[level.id]?.cleared);
 }
 

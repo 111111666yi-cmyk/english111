@@ -19,6 +19,11 @@ const wordMeaningLookup = new Map(words.map((word) => [word.word.toLowerCase(), 
 const wordIndexById = new Map(words.map((word, index) => [word.id, index]));
 const sentenceIndexById = new Map(sentences.map((sentence, index) => [sentence.id, index]));
 const expressionIndexById = new Map(expressions.map((expression, index) => [expression.id, index]));
+const MIN_EXPRESSION_QUIZ_SAMPLES = 8;
+
+export function canGenerateExpressionQuiz() {
+  return expressions.length >= MIN_EXPRESSION_QUIZ_SAMPLES;
+}
 
 function makeVocabularyQuiz(wordIndex: number): QuizItem {
   const word = words[wordIndex];
@@ -166,6 +171,10 @@ function makeSentenceQuiz(index: number): QuizItem {
 }
 
 function makeExpressionQuiz(index: number): QuizItem {
+  if (!canGenerateExpressionQuiz()) {
+    return buildQuizLookupError(`expression-pool-too-small-${expressions.length}`);
+  }
+
   const item = expressions[index];
   const optionIndexes = Array.from({ length: Math.min(4, expressions.length) }, (_, offset) => (
     index + offset
@@ -204,7 +213,31 @@ export function getSentenceQuiz(index: number) {
 }
 
 export function getExpressionQuiz(index: number) {
+  if (!canGenerateExpressionQuiz()) {
+    return buildQuizLookupError(`expression-pool-too-small-${expressions.length}`);
+  }
+
   return makeExpressionQuiz(index % expressions.length);
+}
+
+function buildQuizLookupError(quizId: string): QuizItem {
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(`[quiz] Missing quiz data for "${quizId}".`);
+  }
+
+  return {
+    id: `quiz-error-${quizId}`,
+    type: "error",
+    prompt: "This quiz item could not be loaded.",
+    promptZh: "这道题的数据暂时没有加载成功。",
+    answer: "",
+    answerText: "",
+    explanation: "请刷新页面，或稍后重试。如果问题持续存在，需要检查题库索引。",
+    relatedWords: [],
+    difficulty: 0,
+    sourceRef: quizId,
+    errorMessage: quizId
+  };
 }
 
 function stripKnownSuffix(value: string, suffixes: string[]) {
@@ -212,23 +245,61 @@ function stripKnownSuffix(value: string, suffixes: string[]) {
   return match ? value.slice(0, -match.length) : value;
 }
 
+function resolveAutoWordQuizId(quizId: string) {
+  return stripKnownSuffix(quizId.slice("quiz-auto-word-".length), ["-meaning", "-spelling"]);
+}
+
+function resolveWordQuizId(quizId: string) {
+  return stripKnownSuffix(quizId.slice("quiz-".length), ["-meaning", "-spelling"]);
+}
+
+function resolveAutoSentenceQuizId(quizId: string) {
+  return stripKnownSuffix(quizId.slice("quiz-auto-sentence-".length), [
+    "-reorder",
+    "-choice",
+    "-match",
+    "-blank"
+  ]);
+}
+
+function resolveSentenceQuizId(quizId: string) {
+  return stripKnownSuffix(quizId.slice("quiz-".length), [
+    "-reorder",
+    "-choice",
+    "-match",
+    "-blank"
+  ]);
+}
+
 export function getQuizById(quizId: string) {
   if (quizId.endsWith("-quiz")) {
     const expressionId = quizId.slice(0, -"-quiz".length);
     const expressionIndex = expressionIndexById.get(expressionId);
-    return expressionIndex === undefined ? undefined : getExpressionQuiz(expressionIndex);
+    return expressionIndex === undefined ? buildQuizLookupError(quizId) : getExpressionQuiz(expressionIndex);
   }
 
-  if (quizId.startsWith("quiz-word-") || quizId.startsWith("quiz-auto-word-")) {
-    const wordId = stripKnownSuffix(quizId.slice(5), ["-meaning", "-spelling"]);
+  if (quizId.startsWith("quiz-auto-word-")) {
+    const wordId = resolveAutoWordQuizId(quizId);
     const wordIndex = wordIndexById.get(wordId);
-    return wordIndex === undefined ? undefined : getVocabularyQuiz(wordIndex);
+    return wordIndex === undefined ? buildQuizLookupError(quizId) : getVocabularyQuiz(wordIndex);
   }
 
-  if (quizId.startsWith("quiz-sentence-") || quizId.startsWith("quiz-auto-sentence-")) {
-    const sentenceId = stripKnownSuffix(quizId.slice(5), ["-reorder", "-choice", "-match", "-blank"]);
+  if (quizId.startsWith("quiz-word-")) {
+    const wordId = resolveWordQuizId(quizId);
+    const wordIndex = wordIndexById.get(wordId);
+    return wordIndex === undefined ? buildQuizLookupError(quizId) : getVocabularyQuiz(wordIndex);
+  }
+
+  if (quizId.startsWith("quiz-auto-sentence-")) {
+    const sentenceId = resolveAutoSentenceQuizId(quizId);
     const sentenceIndex = sentenceIndexById.get(sentenceId);
-    return sentenceIndex === undefined ? undefined : getSentenceQuiz(sentenceIndex);
+    return sentenceIndex === undefined ? buildQuizLookupError(quizId) : getSentenceQuiz(sentenceIndex);
+  }
+
+  if (quizId.startsWith("quiz-sentence-")) {
+    const sentenceId = resolveSentenceQuizId(quizId);
+    const sentenceIndex = sentenceIndexById.get(sentenceId);
+    return sentenceIndex === undefined ? buildQuizLookupError(quizId) : getSentenceQuiz(sentenceIndex);
   }
 
   for (const passage of passages) {
@@ -238,7 +309,7 @@ export function getQuizById(quizId: string) {
     }
   }
 
-  return undefined;
+  return buildQuizLookupError(quizId);
 }
 
 function sampleIndexes(length: number, limit: number) {
@@ -258,7 +329,8 @@ function sampleIndexes(length: number, limit: number) {
 
 export function getReviewPoolSize() {
   const readingCount = passages.reduce((total, passage) => total + passage.questions.length, 0);
-  return words.length + sentences.length + expressions.length + readingCount;
+  const expressionCount = canGenerateExpressionQuiz() ? expressions.length : 0;
+  return words.length + sentences.length + expressionCount + readingCount;
 }
 
 export function getReviewQueue(reviewMistakeIds: string[], limit = 120) {
@@ -267,7 +339,7 @@ export function getReviewQueue(reviewMistakeIds: string[], limit = 120) {
 
   for (const quizId of reviewMistakeIds) {
     const quiz = getQuizById(quizId);
-    if (quiz && !seen.has(quiz.id)) {
+    if (!seen.has(quiz.id)) {
       queue.push(quiz);
       seen.add(quiz.id);
     }
@@ -294,8 +366,10 @@ export function getReviewQueue(reviewMistakeIds: string[], limit = 120) {
     }
   }
 
-  for (const index of sampleIndexes(expressions.length, expressions.length)) {
-    addQuiz(getExpressionQuiz(index));
+  if (canGenerateExpressionQuiz()) {
+    for (const index of sampleIndexes(expressions.length, expressions.length)) {
+      addQuiz(getExpressionQuiz(index));
+    }
   }
 
   return queue;

@@ -4,10 +4,10 @@
     "level": "L4",
     "basic": "very important",
     "advanced": "crucial",
-    "meaningZh": "非常重要的 -> 至关重要的",
+    "meaningZh": "非常重要 -> 至关重要",
     "exampleBasic": "Sleep is very important for students.",
     "exampleAdvanced": "Sleep is crucial for students.",
-    "noteZh": "crucial 更紧凑，也更适合书面和正式表达。",
+    "noteZh": "crucial 比 very important 更正式，适合写作和说明核心条件。",
     "audioLocalBasic": "/audio/expressions/very-important.wav",
     "audioLocalAdvanced": "/audio/expressions/crucial.wav"
   },
@@ -19,7 +19,7 @@
     "meaningZh": "对你有好处 -> 有益的",
     "exampleBasic": "Daily reading is good for you.",
     "exampleAdvanced": "Daily reading is beneficial.",
-    "noteZh": "beneficial 常用来描述长期收益，比 good for you 更正式。",
+    "noteZh": "beneficial 常用于描述长期收益，比 good for you 更正式。",
     "audioLocalBasic": "/audio/expressions/good-for-you.wav",
     "audioLocalAdvanced": "/audio/expressions/beneficial.wav"
   },
@@ -31,7 +31,7 @@
     "meaningZh": "非常冷静 -> 沉稳的",
     "exampleBasic": "She stayed very calm during the quiz.",
     "exampleAdvanced": "She stayed steady during the quiz.",
-    "noteZh": "steady 常强调状态稳定，适合写作或口语中的成熟表达。",
+    "noteZh": "steady 强调状态稳定，适合描述应对压力时的表现。",
     "audioLocalBasic": "/audio/expressions/very-calm.wav",
     "audioLocalAdvanced": "/audio/expressions/steady.wav"
   },
@@ -55,7 +55,7 @@
     "meaningZh": "变得更好 -> 稳定提升",
     "exampleBasic": "Your reading will get better soon.",
     "exampleAdvanced": "Your reading will improve steadily.",
-    "noteZh": "improve steadily 适合强调过程，不只是结果。",
+    "noteZh": "improve steadily 更强调持续过程，而不只是最后结果。",
     "audioLocalBasic": "/audio/expressions/get-better.wav",
     "audioLocalAdvanced": "/audio/expressions/improve-steadily.wav"
   },
@@ -64,11 +64,59 @@
     "level": "L3",
     "basic": "find out",
     "advanced": "discover",
-    "meaningZh": "找到；弄清 -> 发现",
+    "meaningZh": "弄清楚 -> 发现",
     "exampleBasic": "He found out a better answer.",
     "exampleAdvanced": "He discovered a better answer.",
-    "noteZh": "discover 更适合正式语境，也更适合写作。",
+    "noteZh": "discover 更适合书面或正式语境。",
     "audioLocalBasic": "/audio/expressions/find-out.wav",
     "audioLocalAdvanced": "/audio/expressions/discover.wav"
+  },
+  {
+    "id": "expression-work-together",
+    "level": "L3",
+    "basic": "work together",
+    "advanced": "collaborate",
+    "meaningZh": "一起合作 -> 协作",
+    "exampleBasic": "The students worked together on the project.",
+    "exampleAdvanced": "The students collaborated on the project.",
+    "noteZh": "collaborate 常用于团队任务、项目合作和正式表达。",
+    "audioLocalBasic": "/audio/expressions/work-together.wav",
+    "audioLocalAdvanced": "/audio/expressions/collaborate.wav"
+  },
+  {
+    "id": "expression-easy-to-understand",
+    "level": "L4",
+    "basic": "easy to understand",
+    "advanced": "accessible",
+    "meaningZh": "容易理解 -> 易于理解的",
+    "exampleBasic": "The teacher used easy to understand examples.",
+    "exampleAdvanced": "The teacher used accessible examples.",
+    "noteZh": "accessible 不只指能接触到，也常指内容友好、易懂。",
+    "audioLocalBasic": "/audio/expressions/easy-to-understand.wav",
+    "audioLocalAdvanced": "/audio/expressions/accessible.wav"
+  },
+  {
+    "id": "expression-a-little-afraid",
+    "level": "L4",
+    "basic": "a little afraid",
+    "advanced": "hesitant",
+    "meaningZh": "有点害怕 -> 犹豫的",
+    "exampleBasic": "She was a little afraid to speak first.",
+    "exampleAdvanced": "She was hesitant to speak first.",
+    "noteZh": "hesitant 适合描述因为不确定而迟疑，不只是单纯害怕。",
+    "audioLocalBasic": "/audio/expressions/a-little-afraid.wav",
+    "audioLocalAdvanced": "/audio/expressions/hesitant.wav"
+  },
+  {
+    "id": "expression-keep-going",
+    "level": "L3",
+    "basic": "keep going",
+    "advanced": "stay consistent",
+    "meaningZh": "继续坚持 -> 保持稳定",
+    "exampleBasic": "If you keep going, your reading will improve.",
+    "exampleAdvanced": "If you stay consistent, your reading will improve.",
+    "noteZh": "stay consistent 比 keep going 更强调节奏稳定和长期坚持。",
+    "audioLocalBasic": "/audio/expressions/keep-going.wav",
+    "audioLocalAdvanced": "/audio/expressions/stay-consistent.wav"
   }
 ]

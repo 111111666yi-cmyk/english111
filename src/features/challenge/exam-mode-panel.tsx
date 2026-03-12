@@ -9,6 +9,7 @@ import { QuizCard } from "@/components/quiz-card";
 import {
   type ExamLevel,
   examWorlds,
+  examWorldsWarning,
   getExamOverview,
   getExamStars,
   getExamWorldUnlockState
@@ -117,6 +118,11 @@ function getLevelUnlockState(
   levelIndex: number,
   progress: Record<string, ExamLevelRecord>
 ) {
+  const world = examWorlds[worldIndex];
+  if (!world) {
+    return false;
+  }
+
   if (!getExamWorldUnlockState(progress, worldIndex)) {
     return false;
   }
@@ -125,12 +131,16 @@ function getLevelUnlockState(
     return true;
   }
 
-  const previousLevel = examWorlds[worldIndex].levels[levelIndex - 1];
+  const previousLevel = world.levels[levelIndex - 1];
   return previousLevel ? Boolean(progress[previousLevel.id]?.cleared) : true;
 }
 
 function getFirstAvailableLevel(worldIndex: number, progress: Record<string, ExamLevelRecord>) {
   const world = examWorlds[worldIndex];
+  if (!world) {
+    return null;
+  }
+
   return (
     world.levels.find((level, levelIndex) => getLevelUnlockState(worldIndex, levelIndex, progress)) ??
     world.levels[0]
@@ -142,11 +152,16 @@ function getCurrentPlayerLevel(
   progress: Record<string, ExamLevelRecord>,
   activeLevelId: string | null
 ) {
-  if (activeLevelId) {
-    return examWorlds[worldIndex].levels.find((level) => level.id === activeLevelId) ?? null;
+  const world = examWorlds[worldIndex];
+  if (!world) {
+    return null;
   }
 
-  const unclearedUnlocked = examWorlds[worldIndex].levels.find((level, levelIndex) => {
+  if (activeLevelId) {
+    return world.levels.find((level) => level.id === activeLevelId) ?? null;
+  }
+
+  const unclearedUnlocked = world.levels.find((level, levelIndex) => {
     return getLevelUnlockState(worldIndex, levelIndex, progress) && !progress[level.id]?.cleared;
   });
 
@@ -278,8 +293,23 @@ export function ExamModePanel() {
 
   const overview = useMemo(() => getExamOverview(examLevelProgress), [examLevelProgress]);
 
+  const isChallengeUnavailable = Boolean(examWorldsWarning) || examWorlds.length === 0;
+  const renderUnavailableState = () => {
+    return (
+      <Card className="space-y-4" data-testid="challenge-empty-state">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-surge">Challenge</p>
+          <h3 className="mt-3 text-3xl font-black text-ink">闯关模式暂不可用</h3>
+        </div>
+        <p className="max-w-3xl text-sm leading-7 text-slate-600">
+          当前词库数量还不足以生成完整的闯关地图。请先补充词库内容，再回来开启闯关进度。
+        </p>
+      </Card>
+    );
+  };
+
   const selectedWorld =
-    examWorlds.find((world) => world.id === challengeSession.activeWorldId) ?? examWorlds[0];
+    examWorlds.find((world) => world.id === challengeSession.activeWorldId) ?? examWorlds[0] ?? null;
 
   const activeLevelEntry = useMemo(
     () =>
@@ -290,24 +320,33 @@ export function ExamModePanel() {
   );
 
   const activeWorld = activeLevelEntry?.world ?? selectedWorld;
-  const activeWorldIndex = examWorlds.findIndex((world) => world.id === activeWorld.id);
+  const activeWorldIndex = activeWorld
+    ? examWorlds.findIndex((world) => world.id === activeWorld.id)
+    : -1;
   const activeLevel = activeLevelEntry?.level ?? null;
-  const theme = (worldThemeMap[activeWorld.id as keyof typeof worldThemeMap] ??
+  const theme = ((activeWorld ? worldThemeMap[activeWorld.id as keyof typeof worldThemeMap] : null) ??
     worldThemeMap["world-1"]) as WorldTheme;
 
   useEffect(() => {
+    if (!activeWorld) {
+      return;
+    }
+
     if (challengeSession.activeWorldId !== activeWorld.id) {
       updateChallengeSession({ activeWorldId: activeWorld.id });
     }
-  }, [activeWorld.id, challengeSession.activeWorldId, updateChallengeSession]);
+  }, [activeWorld, challengeSession.activeWorldId, updateChallengeSession]);
 
   useEffect(() => {
-    if (activeLevel) {
+    if (!activeWorld || activeWorldIndex < 0 || activeLevel) {
       return;
     }
 
     const defaultLevel = getFirstAvailableLevel(activeWorldIndex, examLevelProgress);
-    if (!selectedLevelId || !activeWorld.levels.some((level) => level.id === selectedLevelId)) {
+    if (
+      defaultLevel &&
+      (!selectedLevelId || !activeWorld.levels.some((level) => level.id === selectedLevelId))
+    ) {
       setSelectedLevelId(defaultLevel.id);
     }
   }, [activeLevel, activeWorld, activeWorldIndex, examLevelProgress, selectedLevelId]);
@@ -341,24 +380,45 @@ export function ExamModePanel() {
   );
 
   const selectedLevel =
-    activeWorld.levels.find((level) => level.id === selectedLevelId) ??
-    getFirstAvailableLevel(activeWorldIndex, examLevelProgress);
+    activeWorld?.levels.find((level) => level.id === selectedLevelId) ??
+    (activeWorldIndex >= 0 ? getFirstAvailableLevel(activeWorldIndex, examLevelProgress) : null);
 
-  const selectedLevelIndex = activeWorld.levels.findIndex((level) => level.id === selectedLevel.id);
+  if (!selectedLevel) {
+    return (
+      <Card className="space-y-4" data-testid="challenge-empty-state">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-surge">Challenge</p>
+          <h3 className="mt-3 text-3xl font-black text-ink">当前世界还没有可用关卡</h3>
+        </div>
+        <p className="max-w-3xl text-sm leading-7 text-slate-600">
+          当前世界尚未生成可挑战的关卡，请检查题库数据后再试。
+        </p>
+      </Card>
+    );
+  }
+
+  const selectedLevelIndex =
+    activeWorld && selectedLevel
+      ? activeWorld.levels.findIndex((level) => level.id === selectedLevel.id)
+      : -1;
   const selectedLevelUnlocked =
     selectedLevelIndex >= 0
       ? getLevelUnlockState(activeWorldIndex, selectedLevelIndex, examLevelProgress)
       : false;
 
-  const currentPlayerLevel = getCurrentPlayerLevel(
-    activeWorldIndex,
-    examLevelProgress,
-    challengeSession.activeLevelId
-  );
+  const currentPlayerLevel =
+    activeWorldIndex >= 0
+      ? getCurrentPlayerLevel(activeWorldIndex, examLevelProgress, challengeSession.activeLevelId)
+      : null;
 
-  const worldStars = activeWorld.levels.reduce((total, level) => {
-    return total + (examLevelProgress[level.id]?.bestStars ?? 0);
-  }, 0);
+  const worldStars =
+    activeWorld?.levels.reduce((total, level) => {
+      return total + (examLevelProgress[level.id]?.bestStars ?? 0);
+    }, 0) ?? 0;
+
+  if (isChallengeUnavailable || !activeWorld) {
+    return renderUnavailableState();
+  }
 
   const startLevel = (levelId: string) => {
     updateChallengeSession({

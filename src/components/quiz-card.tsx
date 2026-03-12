@@ -19,23 +19,49 @@ interface QuizCardProps {
   advanceDelayMs?: number;
 }
 
-function normalizeAnswer(answer: QuizItem["answer"]) {
-  if (Array.isArray(answer)) {
-    return answer.map((item) => item.trim().toLowerCase()).sort();
-  }
-
-  return String(answer).trim().toLowerCase();
+function normalizeToken(value: string) {
+  return value.trim().toLowerCase();
 }
 
-function isAnswerEqual(
-  expected: ReturnType<typeof normalizeAnswer>,
-  candidate: string | string[]
-) {
-  if (Array.isArray(expected) && Array.isArray(candidate)) {
-    return JSON.stringify(expected) === JSON.stringify(candidate.slice().sort());
+function normalizeScalarAnswer(answer: QuizItem["answer"]) {
+  return normalizeToken(String(answer));
+}
+
+function normalizeStrictSequence(answer: QuizItem["answer"]) {
+  if (Array.isArray(answer)) {
+    return answer.map((item) => normalizeToken(item));
   }
 
-  return expected === candidate;
+  return String(answer)
+    .split(/\s+/)
+    .map((item) => normalizeToken(item))
+    .filter(Boolean);
+}
+
+function normalizeSortedSequence(answer: QuizItem["answer"]) {
+  if (Array.isArray(answer)) {
+    return answer.map((item) => normalizeToken(item)).sort();
+  }
+
+  return [normalizeToken(String(answer))];
+}
+
+function isScalarAnswerEqual(expected: QuizItem["answer"], candidate: string) {
+  return normalizeScalarAnswer(expected) === normalizeToken(candidate);
+}
+
+function isStrictSequenceEqual(expected: QuizItem["answer"], candidate: string[]) {
+  const expectedSequence = normalizeStrictSequence(expected);
+  const candidateSequence = candidate.map((item) => normalizeToken(item)).filter(Boolean);
+
+  return JSON.stringify(expectedSequence) === JSON.stringify(candidateSequence);
+}
+
+function isSortedSequenceEqual(expected: QuizItem["answer"], candidate: string[]) {
+  const expectedSequence = normalizeSortedSequence(expected);
+  const candidateSequence = candidate.map((item) => normalizeToken(item)).sort();
+
+  return JSON.stringify(expectedSequence) === JSON.stringify(candidateSequence);
 }
 
 export function QuizCard({
@@ -58,6 +84,7 @@ export function QuizCard({
   const autoAdvanceTimer = useRef<number | null>(null);
 
   const showStudySupport = variant === "study";
+  const isErrorCard = quiz.type === "error";
   const showFillBlankTranslation =
     quiz.type === "fill-blank" && Boolean(quiz.promptSupplementZh);
   const displayAnswer = useMemo(() => resolveQuizAnswerText(quiz), [quiz]);
@@ -110,29 +137,27 @@ export function QuizCard({
   };
 
   const submit = () => {
-    if (feedback.visible) {
+    if (feedback.visible || isErrorCard) {
       return;
     }
 
-    const expected = normalizeAnswer(quiz.answer);
-    const candidate =
+    const correct =
       quiz.type === "fill-blank"
-        ? textAnswer.trim().toLowerCase()
+        ? isScalarAnswerEqual(quiz.answer, textAnswer)
         : quiz.type === "reorder"
-          ? reorderAnswer.join(" ").trim().toLowerCase()
+          ? isStrictSequenceEqual(quiz.answer, reorderAnswer)
           : quiz.type === "match"
-            ? matchedPairs.slice().sort()
-            : selected.trim().toLowerCase();
-
-    const correct = isAnswerEqual(expected, candidate);
+            ? isSortedSequenceEqual(quiz.answer, matchedPairs)
+            : isScalarAnswerEqual(quiz.answer, selected);
 
     setFeedback({ visible: true, correct });
     onResult?.(correct);
     queueAdvance(correct);
   };
 
-  const canSubmit =
-    quiz.type === "fill-blank"
+  const canSubmit = isErrorCard
+    ? false
+    : quiz.type === "fill-blank"
       ? Boolean(textAnswer.trim())
       : quiz.type === "reorder"
         ? reorderAnswer.length > 0
@@ -190,7 +215,22 @@ export function QuizCard({
         ) : null}
       </div>
 
-      {quiz.type === "fill-blank" ? (
+      {isErrorCard ? (
+        <div
+          className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"
+          data-testid="quiz-error-state"
+        >
+          <p className="font-semibold">当前题目暂时无法加载。</p>
+          <p className="mt-2">
+            这道题不会参与判题、计分或错题统计。请刷新页面，或继续处理其他题目。
+          </p>
+          {quiz.errorMessage ? (
+            <p className="mt-2 break-all text-xs text-amber-800/80">
+              Source: {quiz.errorMessage}
+            </p>
+          ) : null}
+        </div>
+      ) : quiz.type === "fill-blank" ? (
         <input
           value={textAnswer}
           onChange={(event) => setTextAnswer(event.target.value)}
@@ -270,9 +310,7 @@ export function QuizCard({
 
                   const composed = `${activeLeft}:${pair.right}`;
                   setMatchedPairs((current) =>
-                    current
-                      .filter((item) => !item.startsWith(`${activeLeft}:`))
-                      .concat(composed)
+                    current.filter((item) => !item.startsWith(`${activeLeft}:`)).concat(composed)
                   );
                   setActiveLeft("");
                 }}
@@ -285,8 +323,7 @@ export function QuizCard({
           </div>
           <div className="space-y-3 md:col-span-2">
             <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-500">
-              当前配对：
-              {matchedPairs.length ? matchedPairs.join(" / ") : "先点左侧英文，再点右侧中文。"}
+              当前配对：{matchedPairs.length ? matchedPairs.join(" / ") : "先点左侧英文，再点右侧中文。"}
             </div>
             <Button type="button" variant="ghost" onClick={() => setMatchedPairs([])}>
               清空配对
@@ -317,9 +354,11 @@ export function QuizCard({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-slate-500">
-          {showStudySupport && quiz.relatedWords.length
-            ? `重点词汇：${quiz.relatedWords.join(" / ")}`
-            : "完成本题后可以继续前进。"}
+          {isErrorCard
+            ? "当前题目已进入可见错误态，不会污染统计结果。"
+            : showStudySupport && quiz.relatedWords.length
+              ? `重点词汇：${quiz.relatedWords.join(" / ")}`
+              : "完成本题后可以继续前进。"}
         </div>
         <Button type="button" onClick={submit} disabled={!canSubmit} data-testid="quiz-submit">
           提交答案
@@ -331,11 +370,7 @@ export function QuizCard({
           <ResultToast
             visible={feedback.visible}
             correct={feedback.correct}
-            text={
-              feedback.correct
-                ? "回答正确，继续下一题。"
-                : "这题先记下来，稍后再复习。"
-            }
+            text={feedback.correct ? "回答正确，继续下一题。" : "这题先记下来，稍后再复习。"}
           />
           <p className="text-sm text-slate-600">
             正确答案：<span className="font-semibold text-ink">{displayAnswer}</span>

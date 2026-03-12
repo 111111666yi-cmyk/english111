@@ -15,6 +15,7 @@ const links = [
   { href: "/expressions", label: "表达" },
   { href: "/review", label: "复习" },
   { href: "/test", label: "测试" },
+  { href: "/challenge", label: "闯关" },
   { href: "/stats", label: "统计" },
   { href: "/settings", label: "设置" }
 ];
@@ -45,8 +46,7 @@ export function Navbar() {
             {links.map((link) => {
               const active =
                 pathname === link.href ||
-                (link.href === "/review" && pathname.startsWith("/review")) ||
-                (link.href === "/test" && pathname.startsWith("/test"));
+                pathname.startsWith(`${link.href}/`);
 
               return (
                 <Link
@@ -68,7 +68,7 @@ export function Navbar() {
               <UserCircle2 className="h-4 w-4 text-surge" />
               <span className="font-medium text-ink">
                 {currentUsername
-                  ? `账户：${currentUsername}`
+                  ? `当前账户：${currentUsername}`
                   : authHydrated
                     ? "当前：访客模式"
                     : "正在加载账户"}

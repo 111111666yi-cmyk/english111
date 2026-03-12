@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AudioButton } from "@/components/audio-button";
-import { getExpressionQuiz } from "@/data/quizzes";
+import { canGenerateExpressionQuiz, getExpressionQuiz } from "@/data/quizzes";
 import { QuizCard } from "@/components/quiz-card";
 import { Shell } from "@/components/shell";
 import { DifficultyBadge } from "@/components/difficulty-badge";
@@ -15,7 +15,8 @@ import { useLearningStore } from "@/stores/learning-store";
 export function ExpressionsScreen() {
   const [index, setIndex] = useState(0);
   const expression = expressions[index] ?? expressions[0];
-  const quiz = getExpressionQuiz(index);
+  const canShowQuiz = canGenerateExpressionQuiz();
+  const quiz = canShowQuiz ? getExpressionQuiz(index) : null;
   const recordQuizResult = useLearningStore((state) => state.recordQuizResult);
 
   return (
@@ -86,12 +87,21 @@ export function ExpressionsScreen() {
           </p>
         </Card>
 
-        <QuizCard
-          quiz={quiz}
-          autoAdvance="correct"
-          onAdvance={() => setIndex((current) => (current + 1 >= expressions.length ? 0 : current + 1))}
-          onResult={(correct) => recordQuizResult(quiz.id, correct)}
-        />
+        {quiz ? (
+          <QuizCard
+            quiz={quiz}
+            autoAdvance="correct"
+            onAdvance={() => setIndex((current) => (current + 1 >= expressions.length ? 0 : current + 1))}
+            onResult={(correct) => recordQuizResult(quiz.id, correct)}
+          />
+        ) : (
+          <Card className="space-y-3">
+            <p className="text-lg font-bold text-ink">表达测验暂未开启</p>
+            <p className="text-sm leading-7 text-slate-600">
+              当前表达题样本少于 8 条。为避免生成质量过低的干扰项，这一题型会暂时关闭，等样本池补足后再恢复。
+            </p>
+          </Card>
+        )}
 
         <div className="flex justify-end">
           <Button
