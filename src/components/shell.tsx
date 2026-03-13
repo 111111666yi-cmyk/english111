@@ -9,9 +9,9 @@ export function Shell({ children }: PropsWithChildren) {
   const clearStorageWarning = useLearningStore((state) => state.clearStorageWarning);
 
   return (
-    <div className="min-h-screen bg-hero-mesh">
+    <div className="app-frame bg-hero-mesh">
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-10">
+      <main className="app-main mx-auto max-w-6xl px-4 py-5 md:px-6 md:py-8">
         {storageWarning ? (
           <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -21,7 +21,7 @@ export function Shell({ children }: PropsWithChildren) {
                 className="font-semibold text-amber-900 underline-offset-2 hover:underline"
                 onClick={clearStorageWarning}
               >
-                知道了
+                {"\u77e5\u9053\u4e86"}
               </button>
             </div>
           </div>

@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "preview": "serve out -l 3002",
+    "android:add": "npx cap add android",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:apk:debug": "powershell -ExecutionPolicy Bypass -File ./scripts/build-android-debug.ps1",
     "lint": "node ./node_modules/eslint/bin/eslint.js . --ext .js,.jsx,.ts,.tsx",
     "validate:data": "tsx scripts/validate-data.ts",
     "validate:data:dev": "tsx scripts/validate-data-dev.ts",
@@ -25,6 +29,8 @@
     "test:regression": "tsx scripts/regression-playwright.ts"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.6.2",
     "lucide-react": "^0.511.0",
@@ -34,6 +40,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.2.0",
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",

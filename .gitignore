@@ -17,3 +17,4 @@ preview-server.log
 dev-server.log
 .playwright-cli/
 output/
+.tools/

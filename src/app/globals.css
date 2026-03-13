@@ -4,6 +4,10 @@
 
 :root {
   color-scheme: light;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 * {
@@ -43,10 +47,36 @@ body {
     "Hiragino Sans GB",
     "Microsoft YaHei",
     "Noto Sans CJK SC",
-    "Avenir Next",
     sans-serif;
   color: #102033;
   background: #edf5ff;
+}
+
+.app-frame {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-header-safe {
+  padding-top: calc(0.25rem + var(--safe-top, 0px));
+  padding-left: calc(0rem + var(--safe-left, 0px));
+  padding-right: calc(0rem + var(--safe-right, 0px));
+}
+
+.app-bottom-safe {
+  padding-bottom: calc(0.5rem + var(--safe-bottom, 0px));
+  padding-left: calc(0.25rem + var(--safe-left, 0px));
+  padding-right: calc(0.25rem + var(--safe-right, 0px));
+}
+
+.app-main {
+  padding-bottom: calc(6rem + var(--safe-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .app-main {
+    padding-bottom: 2.75rem;
+  }
 }
 
 a {

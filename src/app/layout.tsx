@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ClientProviders } from "@/components/client-providers";
 import { withBasePath } from "@/lib/base-path";
 import "@/app/globals.css";
@@ -10,6 +10,13 @@ export const metadata: Metadata = {
   icons: {
     icon: withBasePath("/favicon.svg")
   }
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#edf5ff"
 };
 
 export default function RootLayout({
