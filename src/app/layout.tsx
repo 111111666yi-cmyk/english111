@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body>
+      <body className="app-frame">
         <ClientProviders>{children}</ClientProviders>
       </body>
     </html>

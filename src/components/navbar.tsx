@@ -201,13 +201,18 @@ export function Navbar() {
   const authHydrated = useAuthStore((state) => state.hydrated);
   const currentUsername = useAuthStore((state) => state.currentUsername);
   const headerConfig = getHeaderConfig(pathname);
+  const accountLabel = currentUsername
+    ? currentUsername
+    : authHydrated
+      ? "\u8bbf\u5ba2"
+      : "\u52a0\u8f7d\u4e2d";
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/70 bg-shell/95 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-shell/90">
+      <header className="sticky top-0 z-40 border-b border-white/70 bg-shell/95 backdrop-blur supports-[backdrop-filter]:bg-shell/90">
         <div className="app-header-safe">
           <div className="mx-auto max-w-6xl px-4 md:px-6">
-            <div className="flex items-center justify-between gap-3 py-2.5 md:py-3">
+            <div className="flex items-center justify-between gap-3 py-2 md:py-3">
               <div className="flex min-w-0 items-center gap-3">
                 {headerConfig.backHref ? (
                   <Link
@@ -234,42 +239,43 @@ export function Navbar() {
                 </div>
               </div>
 
-              <div className="hidden min-w-0 items-center gap-3 md:flex">
-                <nav className="flex items-center gap-2 rounded-full bg-white/75 p-1 shadow-soft">
+              <div className="hidden min-w-0 items-center gap-2 md:flex">
+                <nav className="flex items-center gap-2 rounded-full bg-white/80 p-1 shadow-soft">
                   <PrimaryNavLinks pathname={pathname} />
                 </nav>
                 <Link
                   href="/account"
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-2 text-sm text-slate-500 shadow-sm transition hover:text-ink"
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 text-sm text-slate-500 shadow-sm transition hover:text-ink"
+                  aria-label="\u6253\u5f00\u6211\u7684"
                 >
                   <UserCircle2 className="h-4 w-4 text-surge" />
-                  <span className="max-w-[180px] truncate font-medium text-ink">
-                    {currentUsername
-                      ? currentUsername
-                      : authHydrated
-                        ? "\u8bbf\u5ba2\u6a21\u5f0f"
-                        : "\u6b63\u5728\u52a0\u8f7d"}
-                  </span>
+                  <span className="max-w-[120px] truncate font-medium text-ink">{accountLabel}</span>
                 </Link>
               </div>
 
               <div className="md:hidden">
                 <Link
                   href="/account"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white/90 text-slate-600 shadow-sm"
+                  className="inline-flex h-10 min-w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white/90 px-3 text-slate-600 shadow-sm"
                   aria-label="\u6253\u5f00\u6211\u7684"
                 >
                   {currentUsername ? (
-                    <UserCircle2 className="h-5 w-5 text-surge" />
+                    <span className="inline-flex items-center gap-2">
+                      <UserCircle2 className="h-5 w-5 text-surge" />
+                      <span className="max-w-[64px] truncate text-xs font-semibold text-ink">{accountLabel}</span>
+                    </span>
                   ) : (
-                    <LogIn className="h-5 w-5 text-surge" />
+                    <span className="inline-flex items-center gap-2">
+                      <LogIn className="h-5 w-5 text-surge" />
+                      <span className="text-xs font-semibold text-ink">{accountLabel}</span>
+                    </span>
                   )}
                 </Link>
               </div>
             </div>
 
             {headerConfig.tabs?.length ? (
-              <div className="pb-2.5 md:pb-3">
+              <div className="pb-2 md:pb-3">
                 <div className="flex gap-2 overflow-x-auto scrollbar-none">
                   {headerConfig.tabs.map((tab) => {
                     const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
@@ -294,9 +300,9 @@ export function Navbar() {
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/70 bg-shell/95 shadow-[0_-16px_30px_rgba(16,32,51,0.08)] backdrop-blur supports-[backdrop-filter]:bg-shell/90 md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/70 bg-shell/95 backdrop-blur supports-[backdrop-filter]:bg-shell/90 md:hidden">
         <div className="app-bottom-safe">
-          <div className="grid grid-cols-5 gap-1 px-3 pt-2">
+          <div className="grid grid-cols-5 gap-1 px-2 pt-2">
             <PrimaryNavLinks pathname={pathname} mobile />
           </div>
         </div>
