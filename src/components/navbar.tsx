@@ -32,36 +32,36 @@ type HeaderConfig = {
 const primaryNavItems: PrimaryNavItem[] = [
   {
     href: "/vocabulary",
-    label: "基础",
-    shortLabel: "基础",
+    label: "\u57fa\u7840",
+    shortLabel: "\u57fa\u7840",
     icon: BookOpenText,
     matches: ["/vocabulary", "/sentences", "/reading", "/expressions"]
   },
   {
     href: "/word-library",
-    label: "词库",
-    shortLabel: "词库",
+    label: "\u8bcd\u5e93",
+    shortLabel: "\u8bcd\u5e93",
     icon: Sparkles,
     matches: ["/word-library"]
   },
   {
     href: "/challenge",
-    label: "闯关",
-    shortLabel: "闯关",
+    label: "\u95ef\u5173",
+    shortLabel: "\u95ef\u5173",
     icon: Flag,
     matches: ["/challenge"]
   },
   {
     href: "/test",
-    label: "测试",
-    shortLabel: "测试",
+    label: "\u6d4b\u8bd5",
+    shortLabel: "\u6d4b\u8bd5",
     icon: NotebookTabs,
     matches: ["/test", "/review"]
   },
   {
     href: "/account",
-    label: "我的",
-    shortLabel: "我的",
+    label: "\u6211\u7684",
+    shortLabel: "\u6211\u7684",
     icon: UserCircle2,
     matches: ["/account", "/stats", "/settings", "/achievements", "/version-log"]
   }
@@ -75,46 +75,50 @@ function getHeaderConfig(pathname: string): HeaderConfig {
   if (matchesRoute(pathname, ["/vocabulary", "/sentences", "/reading", "/expressions"])) {
     return {
       tabs: [
-        { href: "/vocabulary", label: "单词" },
-        { href: "/sentences", label: "句子" },
-        { href: "/reading", label: "短文" },
-        { href: "/expressions", label: "表达" }
+        { href: "/vocabulary", label: "\u5355\u8bcd" },
+        { href: "/sentences", label: "\u53e5\u5b50" },
+        { href: "/reading", label: "\u77ed\u6587" },
+        { href: "/expressions", label: "\u8868\u8fbe" },
+        { href: "/challenge", label: "\u95ef\u5173" },
+        { href: "/test", label: "\u6d4b\u8bd5" },
+        { href: "/review", label: "\u590d\u4e60" },
+        { href: "/settings", label: "\u8bbe\u7f6e" }
       ]
     };
   }
 
   if (matchesRoute(pathname, ["/test", "/review"])) {
     return {
-      title: "测试",
+      title: "\u6d4b\u8bd5",
       tabs: [
-        { href: "/test", label: "测试" },
-        { href: "/review", label: "复习" }
+        { href: "/test", label: "\u6d4b\u8bd5" },
+        { href: "/review", label: "\u590d\u4e60" }
       ]
     };
   }
 
   if (matchesRoute(pathname, ["/challenge"])) {
-    return { title: "闯关" };
+    return { title: "\u95ef\u5173" };
   }
 
   if (matchesRoute(pathname, ["/account"])) {
-    return { title: "我的" };
+    return { title: "\u6211\u7684" };
   }
 
   if (matchesRoute(pathname, ["/stats"])) {
-    return { title: "统计", backHref: "/account", backLabel: "返回我的" };
+    return { title: "\u7edf\u8ba1", backHref: "/account", backLabel: "\u8fd4\u56de\u6211\u7684" };
   }
 
   if (matchesRoute(pathname, ["/settings"])) {
-    return { title: "设置", backHref: "/account", backLabel: "返回我的" };
+    return { title: "\u8bbe\u7f6e", backHref: "/account", backLabel: "\u8fd4\u56de\u6211\u7684" };
   }
 
   if (matchesRoute(pathname, ["/version-log"])) {
-    return { title: "版本日志", backHref: "/settings", backLabel: "返回设置" };
+    return { title: "\u7248\u672c\u65e5\u5fd7", backHref: "/settings", backLabel: "\u8fd4\u56de\u8bbe\u7f6e" };
   }
 
   if (matchesRoute(pathname, ["/achievements"])) {
-    return { title: "成就", backHref: "/account", backLabel: "返回我的" };
+    return { title: "\u6210\u5c31", backHref: "/account", backLabel: "\u8fd4\u56de\u6211\u7684" };
   }
 
   return {};
@@ -224,7 +228,7 @@ export function Navbar() {
                     href={headerConfig.backHref}
                     onClick={() => persistNow()}
                     className="theme-nav-chip inline-flex h-9 w-9 items-center justify-center rounded-2xl transition hover:text-ink"
-                    aria-label={headerConfig.backLabel ?? "返回"}
+                    aria-label={headerConfig.backLabel ?? "\u8fd4\u56de"}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Link>
