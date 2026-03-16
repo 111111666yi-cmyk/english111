@@ -1,6 +1,6 @@
 {
   "name": "english-climb",
-  "version": "0.1.0",
+  "version": "1.4.0",
   "private": true,
   "scripts": {
     "dev": "node ./scripts/dev.mjs",
@@ -16,6 +16,7 @@
     "validate:data:dev": "tsx scripts/validate-data-dev.ts",
     "validate:data:release": "tsx scripts/validate-data-release.ts",
     "validate:audio": "tsx scripts/validate-audio.ts",
+    "audio:compress": "tsx scripts/compress-local-audio.ts",
     "content:check:quality": "tsx scripts/check-content-quality.ts",
     "build:content": "tsx scripts/build-content.ts",
     "generate:seed": "tsx scripts/generate-seed-content.ts",
@@ -30,6 +31,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
+    "@capacitor/app": "^8.0.1",
     "@capacitor/core": "^8.2.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.6.2",
@@ -47,6 +49,7 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.3.0",
+    "ffmpeg-static": "^5.3.0",
     "playwright": "^1.58.2",
     "postcss": "^8.5.3",
     "serve": "^14.2.6",

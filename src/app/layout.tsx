@@ -4,7 +4,7 @@ import { withBasePath } from "@/lib/base-path";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
-  title: "English Climb",
+  title: "Open English",
   description:
     "A lightweight bilingual English learning site focused on vocabulary, sentences, reading, and review.",
   icons: {

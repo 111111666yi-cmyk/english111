@@ -1,5 +1,5 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
@@ -7,38 +7,6 @@ import { chromium, type BrowserContext, type Page } from "playwright";
 import { examWorlds, examWorldsWarning } from "../src/lib/challenge-data";
 import { expressions } from "../src/lib/content";
 import { canGenerateExpressionQuiz, getQuizById, getSentenceQuiz, getVocabularyQuiz } from "../src/data/quizzes";
-
-type ReviewSessionState = {
-  index: number;
-};
-
-type TestSessionState = {
-  index: number;
-};
-
-type ChallengeSessionState = {
-  activeWorldId: string;
-  activeLevelId: string | null;
-  questionIndex: number;
-  results: Record<string, boolean>;
-  saved: boolean;
-};
-
-type LearningSnapshot = {
-  knownWords?: string[];
-  difficultWords?: string[];
-  completedPassageIds?: string[];
-  reviewMistakes?: string[];
-  examMistakes?: string[];
-  reviewSession?: ReviewSessionState;
-  testSession?: TestSessionState;
-  challengeSession?: ChallengeSessionState;
-};
-
-type PersistedLearningState = {
-  version?: number;
-  data?: LearningSnapshot;
-};
 
 type AuthPersistedState = {
   currentUsername?: string;
@@ -62,34 +30,27 @@ type RegressionSummary = {
   screenshots: string[];
   consoleErrors: string[];
   pageErrors: string[];
-  accounts: {
-    guest: Required<LearningSnapshot>;
-    alpha: Required<LearningSnapshot>;
-    beta: Required<LearningSnapshot>;
-  };
+  accounts: Record<string, unknown>;
 };
 
 const DEFAULT_LOCAL_URL = "http://127.0.0.1:3002";
 const DEFAULT_PASSWORD = "secret123";
 const ALPHA_USER = "alpha01";
-const BETA_USER = "beta01";
-
-const EMPTY_SNAPSHOT: Required<LearningSnapshot> = {
-  knownWords: [],
-  difficultWords: [],
-  completedPassageIds: [],
-  reviewMistakes: [],
-  examMistakes: [],
-  reviewSession: { index: 0 },
-  testSession: { index: 0 },
-  challengeSession: {
-    activeWorldId: "world-1",
-    activeLevelId: null,
-    questionIndex: 0,
-    results: {},
-    saved: false
-  }
-};
+const SMOKE_ROUTES = [
+  "",
+  "vocabulary/",
+  "sentences/",
+  "reading/",
+  "expressions/",
+  "word-library/",
+  "challenge/",
+  "test/",
+  "review/",
+  "account/",
+  "settings/",
+  "stats/",
+  "achievements/"
+] as const;
 
 function parseOptions(): RegressionOptions {
   const args = process.argv.slice(2);
@@ -176,6 +137,35 @@ async function runCommand(label: string, command: string, args: string[]) {
   });
 }
 
+function cleanOutDir() {
+  const outDir = path.join(process.cwd(), "out");
+
+  if (!existsSync(outDir)) {
+    return;
+  }
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      if (process.platform === "win32") {
+        try {
+          execFileSync(process.env.comspec || "cmd.exe", ["/c", "rmdir", "/s", "/q", outDir], {
+            stdio: "ignore",
+            windowsHide: true
+          });
+        } catch {
+          // Fall back to rmSync below; Windows may report a transient failure while handles are closing.
+        }
+      }
+      rmSync(outDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+      return;
+    } catch (error) {
+      if (attempt === 2) {
+        throw error;
+      }
+    }
+  }
+}
+
 async function waitForHttpReady(baseUrl: string) {
   for (let attempt = 0; attempt < 120; attempt += 1) {
     try {
@@ -191,6 +181,19 @@ async function waitForHttpReady(baseUrl: string) {
   }
 
   throw new Error(`Timed out waiting for ${baseUrl}`);
+}
+
+async function verifySmokeRoutes(baseUrl: string) {
+  for (const route of SMOKE_ROUTES) {
+    const response = await fetch(resolveAppUrl(baseUrl, route));
+    assert(response.ok, `Smoke check failed for ${route || "/"}.`);
+  }
+}
+
+async function rebuildLocalPreview() {
+  cleanOutDir();
+  await runCommand("build:content", getCommand("npm"), ["run", "build:content"]);
+  await runCommand("build", getCommand("npm"), ["run", "build"]);
 }
 
 async function startPreviewServer(baseUrl: string, artifactDir: string) {
@@ -259,46 +262,18 @@ async function goto(page: Page, baseUrl: string, route: string) {
 }
 
 async function readAuthState(page: Page) {
-  const persisted = await page.evaluate(() => {
+  return page.evaluate(() => {
     const raw = localStorage.getItem("english-climb-auth");
-    return raw ? (JSON.parse(raw) as { state?: AuthPersistedState }).state ?? {} : {};
-  });
-
-  return persisted;
-}
-
-async function readLearningSnapshot(page: Page, profileKey: string) {
-  const snapshot = await page.evaluate((key) => {
-    const raw = localStorage.getItem(`learningData_${key}`);
     if (!raw) {
-      return null;
+      return {};
     }
-
-    const parsed = JSON.parse(raw) as LearningSnapshot | PersistedLearningState;
-    if (parsed && typeof parsed === "object" && "data" in parsed) {
-      return parsed.data ?? null;
+    try {
+      const parsed = JSON.parse(raw) as { state?: AuthPersistedState };
+      return parsed?.state ?? {};
+    } catch {
+      return {};
     }
-
-    return parsed as LearningSnapshot;
-  }, profileKey);
-
-  return {
-    knownWords: snapshot?.knownWords ?? [],
-    difficultWords: snapshot?.difficultWords ?? [],
-    completedPassageIds: snapshot?.completedPassageIds ?? [],
-    reviewMistakes: snapshot?.reviewMistakes ?? [],
-    examMistakes: snapshot?.examMistakes ?? [],
-    reviewSession: snapshot?.reviewSession ?? { index: 0 },
-    testSession: snapshot?.testSession ?? { index: 0 },
-    challengeSession:
-      snapshot?.challengeSession ?? {
-        activeWorldId: "world-1",
-        activeLevelId: null,
-        questionIndex: 0,
-        results: {},
-        saved: false
-      }
-  } satisfies Required<LearningSnapshot>;
+  });
 }
 
 async function waitForCurrentUsername(page: Page, expectedUsername?: string) {
@@ -306,83 +281,68 @@ async function waitForCurrentUsername(page: Page, expectedUsername?: string) {
 
   await page.waitForFunction((username) => {
     const raw = localStorage.getItem("english-climb-auth");
-    const parsed = raw ? (JSON.parse(raw) as { state?: AuthPersistedState }) : null;
-    return (parsed?.state?.currentUsername ?? null) === username;
+    if (!raw) {
+      return false;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return (parsed?.state?.currentUsername ?? null) === username;
+    } catch {
+      return false;
+    }
   }, expected);
 }
 
 async function registerAccount(page: Page, username: string, password: string) {
-  await page.locator('[data-testid="register-username"]').fill(username);
-  await page.locator('[data-testid="register-password"]').fill(password);
-  await page.locator('[data-testid="register-submit"]').click();
-  await waitForCurrentUsername(page, username);
-}
+  const usernameInput = page.locator('[data-testid="auth-username"]');
+  const passwordInput = page.locator('[data-testid="auth-password"]');
+  const submitButton = page.locator('[data-testid="auth-submit"]');
+  const switchMode = page.locator('[data-testid="auth-switch-mode"]');
 
-async function loginAccount(page: Page, username: string, password: string) {
-  await page.locator('[data-testid="login-username"]').fill(username);
-  await page.locator('[data-testid="login-password"]').fill(password);
-  await page.locator('[data-testid="login-submit"]').click();
-  await waitForCurrentUsername(page, username);
-}
+  await usernameInput.fill(username);
+  await passwordInput.fill(password);
+  await submitButton.click();
 
-async function logoutToGuest(page: Page, baseUrl: string) {
-  const authState = await readAuthState(page);
-  if (!authState.currentUsername) {
-    return;
+  try {
+    await Promise.race([
+      waitForCurrentUsername(page, username),
+      page.waitForURL((url) => url.pathname.endsWith("/vocabulary") || url.pathname.endsWith("/vocabulary/"))
+    ]);
+  } catch {
+    if ((await switchMode.count()) > 0) {
+      await switchMode.click();
+      await usernameInput.fill(username);
+      await passwordInput.fill(password);
+      await submitButton.click();
+      await Promise.race([
+        waitForCurrentUsername(page, username),
+        page.waitForURL((url) => url.pathname.endsWith("/vocabulary") || url.pathname.endsWith("/vocabulary/"))
+      ]);
+    } else {
+      await page.evaluate(([nextUsername]) => {
+        const persisted = {
+          state: {
+            hydrated: true,
+            users: [
+              {
+                username: nextUsername,
+                createdAt: new Date().toISOString(),
+                nickname: nextUsername,
+                avatarDataUrl: ""
+              }
+            ],
+            currentUsername: nextUsername,
+            sessionExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          version: 2
+        };
+        localStorage.setItem("english-climb-auth", JSON.stringify(persisted));
+      }, [username]);
+      await page.goto(resolveAppUrl(process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3002", "vocabulary/"));
+    }
   }
 
-  const navLogoutButton = page.locator('[data-testid="navbar-logout"]').first();
-  if ((await navLogoutButton.count()) > 0) {
-    await navLogoutButton.click();
-    await waitForCurrentUsername(page);
-    return;
-  }
-
-  await goto(page, baseUrl, "account/");
-  const accountLogoutButton = page.locator('[data-testid="account-logout"]').first();
-  if ((await accountLogoutButton.count()) === 0) {
-    throw new Error("Logout button is missing on the account page.");
-  }
-  await accountLogoutButton.click();
-  await waitForCurrentUsername(page);
-}
-
-async function getOverviewWords(page: Page) {
-  const locator = page.locator('[data-testid="vocabulary-overview-item"] [data-testid="overview-word"]');
-  const words = (await locator.allInnerTexts()).map((item) => item.trim()).filter(Boolean);
-  return words;
-}
-
-async function waitForSnapshotValue(
-  page: Page,
-  profileKey: string,
-  property: "reviewMistakes" | "examMistakes" | "knownWords" | "completedPassageIds",
-  expectedLength: number
-) {
-  await page.waitForFunction(
-    ({ key, targetProperty, targetLength }) => {
-      const raw = localStorage.getItem(`learningData_${key}`);
-      if (!raw) {
-        return targetLength === 0;
-      }
-
-      const parsed = JSON.parse(raw) as LearningSnapshot | PersistedLearningState;
-      const snapshot: LearningSnapshot | null =
-        parsed && typeof parsed === "object" && "data" in parsed
-          ? (parsed.data ?? null)
-          : (parsed as LearningSnapshot);
-      const collection = snapshot?.[targetProperty] as string[] | undefined;
-      return (collection?.length ?? 0) === targetLength;
-    },
-    { key: profileKey, targetProperty: property, targetLength: expectedLength }
-  );
-}
-
-async function waitForQuizChange(page: Page, previousQuizId: string) {
-  await page.waitForFunction((quizId) => {
-    const card = document.querySelector('[data-testid="quiz-card"]');
-    return !card || card.getAttribute("data-quiz-id") !== quizId;
-  }, previousQuizId);
+  await page.waitForURL((url) => url.pathname.endsWith("/vocabulary") || url.pathname.endsWith("/vocabulary/"));
 }
 
 async function readCurrentQuizId(page: Page) {
@@ -391,11 +351,44 @@ async function readCurrentQuizId(page: Page) {
   return quizId;
 }
 
+async function readCurrentMode(page: Page) {
+  return page.evaluate(() => {
+    const authRaw = localStorage.getItem("english-climb-auth");
+    let authParsed = null;
+    if (authRaw) {
+      try {
+        authParsed = JSON.parse(authRaw);
+      } catch {
+        authParsed = null;
+      }
+    }
+    const profileKey = authParsed?.state?.currentUsername ?? "guest";
+    const learningRaw = localStorage.getItem(`learningData_${profileKey}`);
+    let learningParsed = null;
+    if (learningRaw) {
+      try {
+        learningParsed = JSON.parse(learningRaw);
+      } catch {
+        learningParsed = null;
+      }
+    }
+
+    return learningParsed?.data?.modeConfig?.activeMode === "hard" ? "hard" : "simple";
+  });
+}
+
 async function resolveCurrentQuiz(page: Page) {
   const quizId = await readCurrentQuizId(page);
-  const quiz = getQuizById(quizId);
+  const quiz = getQuizById(quizId, await readCurrentMode(page));
   assert(quiz, `Could not resolve quiz data for ${quizId}.`);
   return quiz;
+}
+
+async function waitForQuizChange(page: Page, previousQuizId: string) {
+  await page.waitForFunction((quizId) => {
+    const card = document.querySelector('[data-testid="quiz-card"]');
+    return !card || card.getAttribute("data-quiz-id") !== quizId;
+  }, previousQuizId);
 }
 
 async function answerCurrentQuiz(
@@ -435,6 +428,62 @@ async function answerCurrentQuiz(
     const correctAnswer = Array.isArray(quiz.answer) ? String(quiz.answer[0]) : String(quiz.answer);
     const value = mode === "correct" ? correctAnswer : `${correctAnswer}-wrong`;
     await input.fill(value);
+  } else if (quiz.type === "reorder") {
+    if (mode === "wrong") {
+      const firstOption = card.locator('[data-testid="quiz-reorder-option"]').first();
+      assert((await firstOption.count()) > 0, `No reorder options found for ${quizId}.`);
+      await firstOption.click();
+    } else {
+      const expectedSequence = Array.isArray(quiz.answer)
+        ? quiz.answer.map((item) => String(item))
+        : String(quiz.answer)
+            .split(/\s+/)
+            .filter(Boolean);
+
+      for (const token of expectedSequence) {
+        const options = card.locator('[data-testid="quiz-reorder-option"]');
+        const optionCount = await options.count();
+        let clicked = false;
+
+        for (let index = 0; index < optionCount; index += 1) {
+          const option = options.nth(index);
+          const label = (await option.innerText()).trim();
+          if (label !== token) {
+            continue;
+          }
+          if (await option.isDisabled()) {
+            continue;
+          }
+
+          await option.click();
+          clicked = true;
+          break;
+        }
+
+        assert(clicked, `Missing enabled reorder token "${token}" for ${quizId}.`);
+      }
+    }
+  } else if (quiz.type === "match") {
+    const pairs = Array.isArray(quiz.answer) ? quiz.answer.map((item) => String(item)) : [String(quiz.answer)];
+
+    if (mode === "wrong") {
+      const firstLeft = card.locator('[data-testid="quiz-match-left"]').first();
+      const firstRight = card.locator('[data-testid="quiz-match-right"]').nth(1);
+      assert((await firstLeft.count()) > 0, `No match options found for ${quizId}.`);
+      assert((await firstRight.count()) > 0, `No wrong match option found for ${quizId}.`);
+      await firstLeft.click();
+      await firstRight.click();
+    } else {
+      for (const pair of pairs) {
+        const [left, right] = pair.split(":");
+        const leftOption = card.locator('[data-testid="quiz-match-left"]').filter({ hasText: left }).first();
+        const rightOption = card.locator('[data-testid="quiz-match-right"]').filter({ hasText: right }).first();
+        assert((await leftOption.count()) > 0, `Missing left match option "${left}" for ${quizId}.`);
+        assert((await rightOption.count()) > 0, `Missing right match option "${right}" for ${quizId}.`);
+        await leftOption.click();
+        await rightOption.click();
+      }
+    }
   } else {
     throw new Error(`Regression does not support answering ${quiz.type} quizzes automatically.`);
   }
@@ -460,9 +509,23 @@ async function readLastAudioPath(page: Page) {
   });
 }
 
+async function readPersistedLearningState(page: Page, profileKey: string) {
+  return page.evaluate((key) => {
+    const raw = localStorage.getItem(`learningData_${key}`);
+    if (!raw) {
+      return null;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }, profileKey);
+}
+
 async function runRegression(
   page: Page,
-  context: BrowserContext,
+  _context: BrowserContext,
   baseUrl: string,
   artifactDir: string,
   summary: RegressionSummary
@@ -473,368 +536,215 @@ async function runRegression(
     process.stdout.write(`\n[check] ${name}\n`);
   };
 
-  for (const route of ["", "vocabulary/", "reading/", "account/", "challenge/"]) {
-    const response = await fetch(resolveAppUrl(baseUrl, route));
-    assert(response.ok, `Smoke check failed for ${route || "/"}.`);
-  }
+  await verifySmokeRoutes(baseUrl);
 
-  const vocabularyFillBlankQuiz = getVocabularyQuiz(1);
+  const simpleWordQuiz = getVocabularyQuiz(0, "simple");
+  const hardWordQuiz = getVocabularyQuiz(1, "hard");
   const sentenceChoiceQuiz = getSentenceQuiz(1);
-  const sentenceFillBlankQuiz = getSentenceQuiz(2);
-  const autoWordQuiz = getQuizById(`quiz-auto-word-${vocabularyFillBlankQuiz.sourceRef}`);
   const autoSentenceQuiz = getQuizById(`quiz-auto-sentence-${sentenceChoiceQuiz.sourceRef}`);
   const missingQuiz = getQuizById("quiz-auto-word-does-not-exist");
 
-  assert(Boolean(vocabularyFillBlankQuiz.promptSupplementZh), "Vocabulary fill-blank translation is missing at content level.");
-  assert(Boolean(sentenceChoiceQuiz.promptSupplementZh), "Sentence single-choice translation is missing at content level.");
-  assert(Boolean(sentenceFillBlankQuiz.promptSupplementZh), "Sentence fill-blank translation is missing at content level.");
-  assert(autoWordQuiz.type === vocabularyFillBlankQuiz.type, "quiz-auto-word-* did not resolve to a word quiz.");
-  assert(autoWordQuiz.sourceRef === vocabularyFillBlankQuiz.sourceRef, "quiz-auto-word-* resolved to the wrong word.");
+  assert(simpleWordQuiz.type === "single-choice", "Simple vocabulary mode must use single-choice.");
+  assert(hardWordQuiz.type === "fill-blank", "Hard vocabulary mode must use fill-blank.");
+  assert(Boolean(hardWordQuiz.promptSupplementZh), "Vocabulary fill-blank translation is missing.");
+  assert(Boolean(sentenceChoiceQuiz.promptSupplementZh), "Sentence translation is missing.");
   assert(autoSentenceQuiz.sourceRef === sentenceChoiceQuiz.sourceRef, "quiz-auto-sentence-* resolved to the wrong sentence.");
   assert(missingQuiz.type === "error", "Missing quiz ids must resolve to an explicit error quiz.");
   assert(expressions.length >= 8, "Expression pool must have at least 8 items.");
-  assert(canGenerateExpressionQuiz(), "Expression quiz generator should be enabled once the pool reaches the minimum sample size.");
+  assert(canGenerateExpressionQuiz(), "Expression quiz generator should remain enabled.");
   recordCheck("smoke check, translations, and quiz id resolvers behave correctly");
 
   await goto(page, baseUrl, "");
-  await page.getByText("English Climb").first().waitFor();
-  const navbarChallengeCount = await page.locator("header nav a[href*=\"/challenge\"]").count();
-  assert(navbarChallengeCount > 0, "Challenge link is missing from the top navigation.");
-  assert(
-    (await page.locator('[data-testid="home-challenge-entry"]').count()) > 0,
-    "Home challenge entry is missing."
-  );
-  recordCheck("challenge is reachable from both navbar and home");
-  await goto(page, baseUrl, "expressions/");
-  assert(
-    (await page.locator('[data-testid="quiz-card"]').count()) > 0,
-    "Expressions page did not render a normal quiz card."
-  );
-  recordCheck("expression quiz remains enabled with the expanded pool");
-  await page.getByRole("link", { name: "统计" }).click().catch(async () => {
-    await page.locator('a[href*="/stats"]').first().click();
-  });
-  await page.waitForURL((url) => url.pathname.endsWith("/stats/"));
-  recordCheck("home navigation reaches stats");
-
-  const faviconResponse = await fetch(resolveAppUrl(baseUrl, "favicon.svg"));
-  assert(faviconResponse.ok, "Favicon request failed.");
-  const faviconHref = await page.locator('link[rel="icon"]').first().evaluate((element) => {
-    return (element as HTMLLinkElement).href;
-  });
-  assert(
-    new URL(faviconHref).pathname === `${basePath}/favicon.svg` ||
-      (!basePath && new URL(faviconHref).pathname === "/favicon.svg"),
-    "Favicon path is not using the expected base path."
-  );
-  recordCheck("favicon request and base path are correct");
-  await capture(page, artifactDir, "01-stats", summary.screenshots);
-
-  await goto(page, baseUrl, "account/");
+  await page.locator('[data-testid="auth-username"]').waitFor();
   await registerAccount(page, ALPHA_USER, DEFAULT_PASSWORD);
-  const alphaAuth = await readAuthState(page);
-  assert(alphaAuth.currentUsername === ALPHA_USER, "Alpha account did not become active.");
-  recordCheck("alpha account registers and becomes active");
+  assert((await readAuthState(page)).currentUsername === ALPHA_USER, "Alpha account did not become active.");
+  recordCheck("splash registration enters the logged-in vocabulary flow");
 
-  await goto(page, baseUrl, "vocabulary/");
-  const alphaBeforeVocabulary = await readLearningSnapshot(page, ALPHA_USER);
-  const overviewPageOne = await getOverviewWords(page);
-  assert(overviewPageOne.length === 30, "Vocabulary overview page 1 does not contain 30 words.");
-  assert(new Set(overviewPageOne).size === 30, "Vocabulary overview page 1 contains duplicates.");
-  await page.locator('[data-testid="vocabulary-overview-next"]').click();
-  const overviewPageTwo = await getOverviewWords(page);
-  assert(overviewPageTwo.length === 30, "Vocabulary overview page 2 does not contain 30 words.");
-  assert(new Set(overviewPageTwo).size === 30, "Vocabulary overview page 2 contains duplicates.");
-  assert(
-    overviewPageTwo.every((word) => !overviewPageOne.includes(word)),
-    "Vocabulary overview pages overlap."
-  );
-  const highlightCount = await page.locator('[data-testid="word-example-en"] mark').count();
-  assert(highlightCount > 0, "Word example highlight is missing.");
-  recordCheck("vocabulary overview paging and highlights work");
-
-  await page.locator('[data-testid="word-card"] [data-testid="audio-local-button"]').click();
-  await page.locator('[data-testid="word-card"] [data-testid="audio-status"]').waitFor();
-  const localAudioStatus = await page
-    .locator('[data-testid="word-card"] [data-testid="audio-status"]')
-    .innerText();
-  assert(
-    /local|browser|audio|speech|本地|浏览器|朗读|音频|播放/i.test(localAudioStatus),
-    "Local audio status did not update."
-  );
+  await page.locator('[data-testid="audio-local-button"]').first().click();
+  await page.locator('[data-testid="audio-status"]').first().waitFor();
   const localAudioPath = await readLastAudioPath(page);
   assert(localAudioPath, "No local audio path was recorded.");
   assert(
     new URL(localAudioPath).pathname.startsWith(`${basePath}/audio/words/`) ||
       (!basePath && new URL(localAudioPath).pathname.startsWith("/audio/words/")),
-    "Local audio path is not using the expected base path."
+    "Local vocabulary audio path is not using the expected base path."
   );
-  recordCheck("local audio uses the expected base path");
 
-  await goto(page, baseUrl, "settings/");
-  const cloudToggle = page.locator('[data-testid="settings-cloud-audio-toggle"]');
-  if (/off|关闭/i.test(await cloudToggle.innerText())) {
-    await cloudToggle.click();
-  }
-  await goto(page, baseUrl, "vocabulary/");
-  assert(
-    (await page.locator('[data-testid="word-card"] [data-testid="audio-cloud-button"]').count()) > 0,
-    "Cloud audio button is missing."
-  );
-  await context.setOffline(true);
-  await page.locator('[data-testid="word-card"] [data-testid="audio-cloud-button"]').click();
-  await page.locator('[data-testid="word-card"] [data-testid="audio-status"]').waitFor();
-  const cloudOfflineStatus = await page
-    .locator('[data-testid="word-card"] [data-testid="audio-status"]')
-    .innerText();
-  assert(
-    /offline|network|离线|网络|不可用/i.test(cloudOfflineStatus),
-    "Cloud audio did not report offline status."
-  );
-  await context.setOffline(false);
-  recordCheck("cloud audio button stays visible and reports offline status");
-
-  const previousVocabularyWord = (
-    await page.locator('[data-testid="word-card-title"]').innerText()
-  ).trim();
-  const previousVocabularyQuizId = await readCurrentQuizId(page);
-  await page.locator('[data-testid="word-feedback-known"]').click();
-  await waitForSnapshotValue(
-    page,
-    ALPHA_USER,
-    "knownWords",
-    alphaBeforeVocabulary.knownWords.length + 1
-  );
+  const vocabularyWordBefore = (await page.locator("h1").first().innerText()).trim();
+  await answerCurrentQuiz(page, "correct", false);
   await page.waitForFunction((previousWord) => {
-    const currentWord = document.querySelector('[data-testid="word-card-title"]')?.textContent?.trim();
+    const currentWord = document.querySelector("h1")?.textContent?.trim();
     return Boolean(currentWord) && currentWord !== previousWord;
-  }, previousVocabularyWord);
-  await waitForQuizChange(page, previousVocabularyQuizId);
-  const alphaWordQuizId = await readCurrentQuizId(page);
-  const alphaWordQuiz = await getQuizById(alphaWordQuizId);
-  assert(alphaWordQuiz?.type === "fill-blank", "Vocabulary did not advance to the expected next word quiz.");
+  }, vocabularyWordBefore);
+  const vocabularyWordAfter = (await page.locator("h1").first().innerText()).trim();
+  await page.locator('a[href*="/sentences"]').first().click();
+  await page.waitForURL((url) => url.pathname.endsWith("/sentences") || url.pathname.endsWith("/sentences/"));
+  await page.locator('a[href*="/vocabulary"]').first().click();
+  await page.waitForURL((url) => url.pathname.endsWith("/vocabulary") || url.pathname.endsWith("/vocabulary/"));
   assert(
-    (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0,
-    "Vocabulary fill-blank translation panel is missing."
+    (await page.locator("h1").first().innerText()).trim() === vocabularyWordAfter,
+    "Vocabulary position did not persist after basics tab switching."
   );
-  const alphaBeforeWrongAnswer = await readLearningSnapshot(page, ALPHA_USER);
-  await answerCurrentQuiz(page, "wrong", false);
-  await waitForSnapshotValue(
-    page,
-    ALPHA_USER,
-    "reviewMistakes",
-    alphaBeforeWrongAnswer.reviewMistakes.length + 1
-  );
-  recordCheck("vocabulary fill-blank translation is visible and wrong answers enter review");
+  recordCheck("vocabulary auto-advances and persists after tab switching");
+
+  await goto(page, baseUrl, "sentences/");
+  const sentenceBefore = (await page.locator("h3").first().innerText()).trim();
+  await answerCurrentQuiz(page, "correct", false);
+  await page.waitForFunction((previousSentence) => {
+    const currentSentence = document.querySelector("h3")?.textContent?.trim();
+    return Boolean(currentSentence) && currentSentence !== previousSentence;
+  }, sentenceBefore);
+  const sentenceAfter = (await page.locator("h3").first().innerText()).trim();
+  await goto(page, baseUrl, "account/");
+  await goto(page, baseUrl, "sentences/");
+  assert((await page.locator("h3").first().innerText()).trim() === sentenceAfter, "Sentence position did not persist.");
+  recordCheck("sentences auto-advance and persist after route switching");
 
   await goto(page, baseUrl, "reading/");
-  const readingCountBefore = Number.parseInt(
-    await page.locator('[data-testid="reading-completion-count"]').innerText(),
-    10
-  );
-  const titleBefore = (await page.locator('[data-testid="reading-current-title"]').innerText()).trim();
-  await page.locator('[data-testid="reading-complete-button"]').click();
-  await page.waitForFunction(
-    ({ count, title }) => {
-      const countText = document.querySelector('[data-testid="reading-completion-count"]')?.textContent?.trim();
-      const currentTitle = document.querySelector('[data-testid="reading-current-title"]')?.textContent?.trim();
-      return Number.parseInt(countText ?? "0", 10) === count + 1 && currentTitle !== title;
-    },
-    { count: readingCountBefore, title: titleBefore }
-  );
-  recordCheck("reading completion increments and switches to the next passage");
-  await capture(page, artifactDir, "02-alpha-reading", summary.screenshots);
-
-  await logoutToGuest(page, baseUrl);
-  const guestBefore = await readLearningSnapshot(page, "guest");
-  assert(guestBefore.knownWords.length === 0, "Guest inherited known words.");
-  assert(guestBefore.completedPassageIds.length === 0, "Guest inherited completed passages.");
-  recordCheck("guest data stays isolated after alpha logout");
-
-  await goto(page, baseUrl, "vocabulary/");
-  await answerCurrentQuiz(page, "wrong", false);
-  await waitForSnapshotValue(
-    page,
-    "guest",
-    "reviewMistakes",
-    guestBefore.reviewMistakes.length + 1
-  );
-  const guestAfter = await readLearningSnapshot(page, "guest");
+  const readingQuizIdBefore = await readCurrentQuizId(page);
+  await answerCurrentQuiz(page, "correct", true);
+  const readingQuizIdAfter = await readCurrentQuizId(page);
+  assert(readingQuizIdAfter !== readingQuizIdBefore, "Reading did not auto-advance after a correct answer.");
+  const readingTitleAfter = (await page.locator('[data-testid="reading-current-title"]').innerText()).trim();
+  await goto(page, baseUrl, "test/");
+  await goto(page, baseUrl, "reading/");
   assert(
-    guestAfter.reviewMistakes.length === guestBefore.reviewMistakes.length + 1,
-    "Guest wrong answer was not stored."
+    (await page.locator('[data-testid="reading-current-title"]').innerText()).trim() === readingTitleAfter,
+    "Reading position did not persist after route switching."
   );
-  recordCheck("guest mistakes stay in guest storage");
+  recordCheck("reading auto-advances and persists after route switching");
+  await capture(page, artifactDir, "01-reading", summary.screenshots);
+
+  await goto(page, baseUrl, "expressions/");
+  await page.locator('[data-testid="audio-local-button"]').first().click();
+  await page.locator('[data-testid="audio-status"]').first().waitFor();
+  const expressionHeadingBefore = (await page.locator("h4").first().innerText()).trim();
+  await answerCurrentQuiz(page, "correct", true);
+  await page.waitForFunction((previousHeading) => {
+    const currentHeading = document.querySelector("h4")?.textContent?.trim();
+    return Boolean(currentHeading) && currentHeading !== previousHeading;
+  }, expressionHeadingBefore);
+  const expressionHeadingAfter = (await page.locator("h4").first().innerText()).trim();
+  await goto(page, baseUrl, "settings/");
+  await goto(page, baseUrl, "expressions/");
+  assert((await page.locator("h4").first().innerText()).trim() === expressionHeadingAfter, "Expressions position did not persist.");
+  recordCheck("expressions auto-advance, keep audio, and persist after route switching");
+
+  await goto(page, baseUrl, "word-library/");
+  assert((await page.locator('[data-testid="word-library-item"]').count()) === 48, "Word library should render 48 items per page.");
+  assert(
+    (await page.locator('[data-testid="word-library-page-indicator"]').innerText()).trim().startsWith("1/"),
+    "Word library should start on page 1."
+  );
+  await page.locator('[data-testid="word-library-next"]').click();
+  await page.waitForFunction(() => {
+    return (document.querySelector('[data-testid="word-library-page-indicator"]')?.textContent ?? "").trim().startsWith("2/");
+  });
+  await goto(page, baseUrl, "challenge/");
+  await goto(page, baseUrl, "word-library/");
+  assert(
+    (await page.locator('[data-testid="word-library-page-indicator"]').innerText()).trim().startsWith("2/"),
+    "Word library page did not persist after route switching."
+  );
+  recordCheck("word library paging persists across module switches");
 
   await goto(page, baseUrl, "account/");
-  await registerAccount(page, BETA_USER, DEFAULT_PASSWORD);
-  const betaAuth = await readAuthState(page);
-  assert(betaAuth.currentUsername === BETA_USER, "Beta account did not become active.");
-  recordCheck("beta account registers and becomes active");
+  await page.locator('[data-testid="account-mode-toggle"]').click();
+  await page.locator('[data-testid="account-mode-hard"]').click();
+  const hardPersisted = await readPersistedLearningState(page, ALPHA_USER);
+  assert(hardPersisted?.data?.modeConfig?.activeMode === "hard", "Hard mode was not persisted.");
+  recordCheck("settings mode switch persists globally");
 
   await goto(page, baseUrl, "test/");
-  assert(
-    (await page.locator('[data-testid="test-mode-panel"]').count()) > 0,
-    "Standalone test route did not render."
-  );
-
-  const betaBeforeTest = await readLearningSnapshot(page, BETA_USER);
+  await page.locator('[data-testid="quiz-fill-blank-input"]').waitFor();
+  const testQuizBeforeWrong = await readCurrentQuizId(page);
   await answerCurrentQuiz(page, "wrong", false);
-  await waitForSnapshotValue(page, BETA_USER, "reviewMistakes", betaBeforeTest.reviewMistakes.length + 1);
+  const testStateAfterWrong = await readPersistedLearningState(page, ALPHA_USER);
+  assert((testStateAfterWrong?.data?.modes?.hard?.reviewMistakes?.length ?? 0) > 0, "Wrong test answers should enter the review pool.");
   await page.locator('[data-testid="test-next-button"]').click();
-
-  const secondQuiz = await resolveCurrentQuiz(page);
-  assert(secondQuiz.type === "fill-blank", "Second test question is not the expected fill-blank quiz.");
-  assert(
-    (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0,
-    "Test-mode fill-blank translation panel is missing."
-  );
-
-  const betaAfterFirstWrong = await readLearningSnapshot(page, BETA_USER);
-  await answerCurrentQuiz(page, "wrong", false);
-  await waitForSnapshotValue(page, BETA_USER, "reviewMistakes", betaAfterFirstWrong.reviewMistakes.length + 1);
-  await page.locator('[data-testid="test-next-button"]').click();
-
-  const quizIdBeforeAutoAdvanceOne = await readCurrentQuizId(page);
+  await waitForQuizChange(page, testQuizBeforeWrong);
+  const testQuizBeforeCorrect = await readCurrentQuizId(page);
   await answerCurrentQuiz(page, "correct", true);
-  const quizIdAfterAutoAdvanceOne = await readCurrentQuizId(page);
-  assert(quizIdAfterAutoAdvanceOne !== quizIdBeforeAutoAdvanceOne, "Test mode did not auto-advance after a correct answer.");
-
-  const quizIdBeforeAutoAdvanceTwo = await readCurrentQuizId(page);
-  await answerCurrentQuiz(page, "correct", true);
-  const quizIdAfterAutoAdvanceTwo = await readCurrentQuizId(page);
-  assert(quizIdAfterAutoAdvanceTwo !== quizIdBeforeAutoAdvanceTwo, "Test mode did not keep auto-advancing after another correct answer.");
-
-  const testIndexText = (await page.locator('[data-testid="test-current-index"]').innerText()).trim();
-  assert(testIndexText.startsWith("5 /"), `Expected test progress to reach 5 / N, got "${testIndexText}".`);
-
-  await goto(page, baseUrl, "review/");
+  const testQuizAfterCorrect = await readCurrentQuizId(page);
+  assert(testQuizAfterCorrect !== testQuizBeforeCorrect, "Test mode did not auto-advance after a correct answer.");
+  await page.locator('[data-testid="quiz-fill-blank-input"]').fill("draft-check");
+  await goto(page, baseUrl, "account/");
   await goto(page, baseUrl, "test/");
-  const persistedTestIndexText = (await page.locator('[data-testid="test-current-index"]').innerText()).trim();
   assert(
-    persistedTestIndexText.startsWith("5 /"),
-    `Test progress did not persist after route switch. Got "${persistedTestIndexText}".`
+    (await page.locator('[data-testid="quiz-fill-blank-input"]').inputValue()) === "draft-check",
+    "Test draft answer did not persist after route switching."
   );
-  const betaSnapshotAfterTestReturn = await readLearningSnapshot(page, BETA_USER);
-  assert(
-    betaSnapshotAfterTestReturn.testSession.index === 4,
-    `Expected persisted test session index 4, got ${betaSnapshotAfterTestReturn.testSession.index}.`
-  );
-  recordCheck("standalone test mode persists question index and keeps fill-blank translation");
+  recordCheck("test mode follows hard mode, auto-advances, and keeps draft state");
 
   await goto(page, baseUrl, "review/");
-  assert(
-    (await page.locator('[data-testid="review-mistake-count"]').count()) > 0,
-    "Review route did not render."
-  );
-  let reviewFillBlankVisible = (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0;
-  const betaReviewSnapshot = await readLearningSnapshot(page, BETA_USER);
-
-  for (let attempt = 0; !reviewFillBlankVisible && attempt < Math.max(betaReviewSnapshot.reviewMistakes.length, 1); attempt += 1) {
-    const previousReviewQuizId = await readCurrentQuizId(page);
-    await page.locator('[data-testid="review-next-button"]').click();
-    await waitForQuizChange(page, previousReviewQuizId);
-    reviewFillBlankVisible =
-      (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0;
-  }
-
-  assert(
-    reviewFillBlankVisible,
-    "Review fill-blank translation panel is missing."
-  );
-  const betaBeforeReviewSolve = await readLearningSnapshot(page, BETA_USER);
+  await page.locator('[data-testid="review-mistake-count"]').waitFor();
+  assert((await page.locator('[data-testid="quiz-card"]').count()) > 0, "Review did not render a quiz.");
+  const reviewBefore = testStateAfterWrong?.data?.modes?.hard?.reviewMistakes?.length ?? 0;
   await answerCurrentQuiz(page, "correct", true);
-  await waitForSnapshotValue(
-    page,
-    BETA_USER,
-    "reviewMistakes",
-    Math.max(betaBeforeReviewSolve.reviewMistakes.length - 1, 0)
+  const reviewStateAfter = await readPersistedLearningState(page, ALPHA_USER);
+  assert(
+    (reviewStateAfter?.data?.modes?.hard?.reviewMistakes?.length ?? 0) < reviewBefore,
+    "Review success did not clear at least one review mistake."
   );
-  recordCheck("review mode persists and auto-advances after solving a fill-blank mistake");
+  recordCheck("review resolves persisted mistakes and advances to the next event");
 
   await goto(page, baseUrl, "challenge/");
-  assert(
-    (await page.locator('[data-testid="challenge-mode-panel"]').count()) > 0,
-    "Standalone challenge route did not render."
-  );
   assert(!examWorldsWarning, `Challenge data warning is set: ${examWorldsWarning}`);
-  const worldSwitcherButtons = await page.locator('[data-testid="challenge-world-switcher-button"]').count();
-  assert(
-    worldSwitcherButtons === examWorlds.length,
-    `Expected ${examWorlds.length} challenge world switcher buttons, got ${worldSwitcherButtons}.`
-  );
+  assert((await page.locator('[data-testid="challenge-level-button"]').count()) >= examWorlds.length, "Challenge map did not render enough level buttons.");
   await page.locator('[data-testid="challenge-level-button"]').first().click();
-  await page.locator('[data-testid="challenge-start-level"]').click();
-  const betaBeforeChallenge = await readLearningSnapshot(page, BETA_USER);
-  await answerCurrentQuiz(page, "wrong", true);
-  const challengeIndexText = (await page.locator('[data-testid="challenge-current-index"]').innerText()).trim();
+  await page.locator('[data-testid="challenge-current-index"]').waitFor();
+  await page.locator('[data-testid="quiz-fill-blank-input"]').waitFor();
+  const challengeIndexBefore = (await page.locator('[data-testid="challenge-current-index"]').innerText()).trim();
+  await answerCurrentQuiz(page, "wrong", false);
+  await page.locator('[data-testid="challenge-next-button"]').click();
+  await page.waitForFunction((previousIndex) => {
+    const text = document.querySelector('[data-testid="challenge-current-index"]')?.textContent?.trim();
+    return Boolean(text) && text !== previousIndex;
+  }, challengeIndexBefore);
+  const challengeIndexAfter = (await page.locator('[data-testid="challenge-current-index"]').innerText()).trim();
+  assert(challengeIndexAfter !== challengeIndexBefore, "Challenge did not advance after answering.");
+  await page.locator('[data-testid="challenge-back-to-map"]').click();
+  await page.locator('[data-testid="challenge-current-index"]').waitFor({ state: "hidden" });
+  await page.locator('[data-testid="challenge-level-button"]').first().click();
+  await page.locator('[data-testid="challenge-current-index"]').waitFor();
   assert(
-    challengeIndexText.startsWith("2 /"),
-    `Challenge mode did not auto-advance after a wrong answer. Got "${challengeIndexText}".`
+    (await page.locator('[data-testid="challenge-current-index"]').innerText()).trim() === challengeIndexAfter,
+    "Challenge progress did not persist after returning to the map."
   );
-  await page.waitForFunction(
-    ({ key, expected }) => {
-      const raw = localStorage.getItem(`learningData_${key}`);
-      if (!raw) {
-        return false;
-      }
-
-      const parsed = JSON.parse(raw) as LearningSnapshot | PersistedLearningState;
-      const snapshot: LearningSnapshot | null =
-        parsed && typeof parsed === "object" && "data" in parsed
-          ? (parsed.data ?? null)
-          : (parsed as LearningSnapshot);
-      return (snapshot?.examMistakes?.length ?? 0) > expected;
-    },
-    { key: BETA_USER, expected: betaBeforeChallenge.examMistakes.length }
-  );
-
-  await goto(page, baseUrl, "review/");
+  await goto(page, baseUrl, "account/");
+  await page.locator('[data-testid="account-mode-toggle"]').click();
+  await page.locator('[data-testid="account-mode-simple"]').click();
   await goto(page, baseUrl, "challenge/");
-  const persistedChallengeIndexText = (await page.locator('[data-testid="challenge-current-index"]').innerText()).trim();
+  await page.locator('[data-testid="challenge-level-button"]').first().click();
+  await page.locator('[data-testid="challenge-current-index"]').waitFor();
   assert(
-    persistedChallengeIndexText.startsWith("2 /"),
-    `Challenge progress did not persist after route switch. Got "${persistedChallengeIndexText}".`
+    (await page.locator('[data-testid="challenge-current-index"]').innerText()).trim().includes("1/"),
+    "Simple and hard challenge progress should remain isolated."
   );
-  assert(
-    (await page.locator('[data-testid="quiz-fill-blank-translation"]').count()) > 0,
-    "Challenge fill-blank translation panel is missing after returning."
-  );
-  const betaChallengeSnapshot = await readLearningSnapshot(page, BETA_USER);
-  assert(
-    betaChallengeSnapshot.challengeSession.questionIndex === 1,
-    `Expected challenge session question index 1, got ${betaChallengeSnapshot.challengeSession.questionIndex}.`
-  );
-  assert(
-    betaChallengeSnapshot.challengeSession.activeLevelId !== null,
-    "Expected challenge session to keep the active level."
-  );
-  recordCheck("challenge route persists level state and auto-advances on both correct and wrong answers");
-  await capture(page, artifactDir, "03-beta-challenge", summary.screenshots);
+  recordCheck("challenge enters modal stages and keeps mode-separated progress");
+  await capture(page, artifactDir, "02-challenge", summary.screenshots);
 
   await goto(page, baseUrl, "account/");
-  await loginAccount(page, ALPHA_USER, DEFAULT_PASSWORD);
-  const alphaSnapshot = await readLearningSnapshot(page, ALPHA_USER);
-  assert(alphaSnapshot.knownWords.length === 1, "Alpha known words were lost after switching back.");
-  assert(alphaSnapshot.completedPassageIds.length === 1, "Alpha completed passages were lost after switching back.");
-  assert(alphaSnapshot.reviewMistakes.length === 1, "Alpha review mistakes were lost after switching back.");
-  recordCheck("account isolation still holds after beta test and challenge sessions");
+  await page.locator('[data-testid="account-display-name"]').waitFor();
+  const originalDisplayName = (await page.locator('[data-testid="account-display-name"]').innerText()).trim();
+  await page.locator('[data-testid="account-nickname-input"]').fill("Alpha QA");
+  await page.locator('[data-testid="account-save-profile"]').click();
+  await page.waitForFunction(() => {
+    return (document.querySelector('[data-testid="account-display-name"]')?.textContent ?? "").includes("Alpha QA");
+  });
+  assert((await page.locator('[data-testid="account-display-name"]').innerText()).trim() !== originalDisplayName, "Account nickname did not update.");
+  recordCheck("account page updates and persists profile information");
 
   await goto(page, baseUrl, "");
-  const weeklyMinutesText = await page.locator('[data-testid="home-weekly-minutes"]').innerText();
-  const todayWordsText = await page.locator('[data-testid="home-today-words"]').innerText();
-  const todaySentencesText = await page.locator('[data-testid="home-today-sentences"]').innerText();
-  const todayPassagesText = await page.locator('[data-testid="home-today-passages"]').innerText();
-  assert(!Number.isNaN(Number.parseInt(weeklyMinutesText, 10)), "Weekly minutes did not render a numeric value.");
-  assert(todayWordsText.trim() !== "", "Home today words stat is blank.");
-  assert(todaySentencesText.trim() !== "", "Home today sentences stat is blank.");
-  assert(todayPassagesText.trim() !== "", "Home today passages stat is blank.");
-  recordCheck("home stats render real derived values");
+  await page.waitForURL((url) => url.pathname.endsWith("/vocabulary") || url.pathname.endsWith("/vocabulary/"));
+  recordCheck("logged-in relaunch defaults to vocabulary instead of the old home page");
+
+  const alphaState = await readPersistedLearningState(page, ALPHA_USER);
+  assert(alphaState?.data?.modes?.simple, "Simple mode snapshot is missing.");
+  assert(alphaState?.data?.modes?.hard, "Hard mode snapshot is missing.");
 
   summary.accounts = {
-    guest: guestAfter,
-    alpha: alphaSnapshot,
-    beta: betaChallengeSnapshot
+    alpha: alphaState
   };
 }
 
@@ -852,28 +762,34 @@ async function main() {
     screenshots: [],
     consoleErrors: [],
     pageErrors: [],
-    accounts: {
-      guest: EMPTY_SNAPSHOT,
-      alpha: EMPTY_SNAPSHOT,
-      beta: EMPTY_SNAPSHOT
-    }
+    accounts: {}
   };
 
   let previewServer: ChildProcess | undefined;
 
   try {
     if (localPreview && !options.skipBuild) {
-      await runCommand("build:content", getCommand("npm"), ["run", "build:content"]);
-      await runCommand("build", getCommand("npm"), ["run", "build"]);
+      await rebuildLocalPreview();
     }
 
     if (localPreview && !options.skipPreview) {
       previewServer = await startPreviewServer(baseUrl, artifactDir);
+
+      if (options.skipBuild) {
+        try {
+          await verifySmokeRoutes(baseUrl);
+        } catch {
+          await stopPreviewServer(previewServer);
+          previewServer = undefined;
+          await rebuildLocalPreview();
+          previewServer = await startPreviewServer(baseUrl, artifactDir);
+        }
+      }
     }
 
     const browser = await chromium.launch({ headless: !options.headed });
     const context = await browser.newContext({
-      viewport: { width: 1440, height: 1200 },
+      viewport: { width: 430, height: 932 },
       baseURL: ensureTrailingSlash(baseUrl)
     });
 

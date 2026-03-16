@@ -2,6 +2,7 @@
 node_modules
 out
 dist
+build
 .vercel
 .env
 .env.*
@@ -18,3 +19,8 @@ dev-server.log
 .playwright-cli/
 output/
 .tools/
+coverage/
+android/.gradle/
+android/local.properties
+*.keystore
+*.jks
