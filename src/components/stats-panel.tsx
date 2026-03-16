@@ -11,7 +11,7 @@ export function StatsPanel({
         <Card key={item.label} className="space-y-2">
           <p className="text-sm font-medium text-slate-500">{item.label}</p>
           <p className="text-3xl font-bold text-ink">{item.value}</p>
-          <p className="text-sm text-slate-500">{item.hint}</p>
+          <p className="neu-inset rounded-2xl px-3 py-2 text-sm text-slate-500">{item.hint}</p>
         </Card>
       ))}
     </div>

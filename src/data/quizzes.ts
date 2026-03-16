@@ -1,5 +1,6 @@
 import { expressions, passages, sentences, words } from "@/lib/content";
 import { resolveVisibleHighlights } from "@/lib/quiz-support";
+import type { ReviewMistakeEvent, StudyMode } from "@/stores/learning-store";
 import type { QuizItem, QuizOption } from "@/types/content";
 
 function pickMeaningOptions(index: number): QuizOption[] {
@@ -25,43 +26,46 @@ export function canGenerateExpressionQuiz() {
   return expressions.length >= MIN_EXPRESSION_QUIZ_SAMPLES;
 }
 
-function makeVocabularyQuiz(wordIndex: number): QuizItem {
+function makeVocabularyChoiceQuiz(wordIndex: number): QuizItem {
   const word = words[wordIndex];
 
-  if (wordIndex % 2 === 0) {
-    return {
-      id: `quiz-${word.id}-meaning`,
-      type: "single-choice",
-      prompt: `Choose the best Chinese meaning for ${word.word}.`,
-      promptZh: `请选择 ${word.word} 最准确的中文意思。`,
-      options: pickMeaningOptions(wordIndex).map((option) => ({
-        id: option.id,
-        label: option.label
-      })),
-      answer: "correct",
-      answerText: word.meaningZh,
-      explanation: `${word.word} 在这里对应的核心含义是“${word.meaningZh}”。`,
-      relatedWords: [word.word],
-      difficulty: word.difficulty,
-      sourceRef: word.id,
-      audioRef: {
-        kind: "word",
-        cacheKey: `quiz-${word.id}`,
-        localPath: word.audioLocal,
-        text: word.word
-      }
-    };
-  }
+  return {
+    id: `quiz-${word.id}-meaning`,
+    type: "single-choice",
+    prompt: `Choose the best Chinese meaning for ${word.word}.`,
+    promptZh: `Select the most accurate Chinese meaning for ${word.word}.`,
+    promptSupplementZh: word.exampleZh,
+    options: pickMeaningOptions(wordIndex).map((option) => ({
+      id: option.id,
+      label: option.label
+    })),
+    answer: "correct",
+    answerText: word.meaningZh,
+    explanation: `${word.word} matches "${word.meaningZh}" in this context.`,
+    relatedWords: [word.word],
+    difficulty: word.difficulty,
+    sourceRef: word.id,
+    audioRef: {
+      kind: "word",
+      cacheKey: `quiz-${word.id}`,
+      localPath: word.audioLocal,
+      text: word.word
+    }
+  };
+}
+
+function makeVocabularyFillBlankQuiz(wordIndex: number): QuizItem {
+  const word = words[wordIndex];
 
   return {
     id: `quiz-${word.id}-spelling`,
     type: "fill-blank",
     prompt: word.exampleEn.replace(new RegExp(word.word, "i"), "_____"),
-    promptZh: "根据例句填写缺失的单词。",
+    promptZh: "Fill in the missing word from the example sentence.",
     promptSupplementZh: word.exampleZh,
     answer: word.word,
     answerText: word.word,
-    explanation: `例句中的关键词是 ${word.word}。`,
+    explanation: `The missing keyword is ${word.word}.`,
     relatedWords: [word.word],
     difficulty: word.difficulty,
     sourceRef: word.id,
@@ -86,7 +90,7 @@ function makeSentenceQuiz(index: number): QuizItem {
       id: `quiz-${sentence.id}-reorder`,
       type: "reorder",
       prompt: "Rebuild the key part of the sentence.",
-      promptZh: "根据提示重组句子的关键部分。",
+      promptZh: "Reorder the key phrase into the correct sentence.",
       options: sentence.jumbled.map((label, tokenIndex) => ({
         id: `${sentence.id}-${tokenIndex}`,
         label
@@ -114,7 +118,7 @@ function makeSentenceQuiz(index: number): QuizItem {
       id: `quiz-${sentence.id}-choice`,
       type: "single-choice",
       prompt: sentence.sentenceEn.replace(new RegExp(sentence.missingWord, "i"), "_____"),
-      promptZh: "请选择最适合填入句子的关键词。",
+      promptZh: "Choose the best word to complete the sentence.",
       promptSupplementZh: sentence.sentenceZh,
       options: uniqueOptions.map((option, optionIndex) => ({
         id: option === sentence.missingWord ? "correct" : `option-${optionIndex}`,
@@ -142,10 +146,10 @@ function makeSentenceQuiz(index: number): QuizItem {
       id: `quiz-${sentence.id}-match`,
       type: "match",
       prompt: "Match the keywords with their Chinese meanings.",
-      promptZh: "把关键词和对应中文意思配对。",
+      promptZh: "Match each keyword with the correct Chinese meaning.",
       answer: pairs.map((item) => `${item.left}:${item.right}`),
       answerText: pairs.map((item) => `${item.left} -> ${item.right}`).join(" / "),
-      explanation: "关键词和含义配对能帮助你在语境里更快识别重点词。",
+      explanation: "Matching keywords with meanings helps anchor the sentence in context.",
       relatedWords: visibleKeywords,
       difficulty: sentence.difficulty,
       sourceRef: sentence.id,
@@ -159,7 +163,7 @@ function makeSentenceQuiz(index: number): QuizItem {
     id: `quiz-${sentence.id}-blank`,
     type: "fill-blank",
     prompt: sentence.sentenceEn.replace(new RegExp(sentence.missingWord, "i"), "_____"),
-    promptZh: "请根据上下文填写缺失的单词。",
+    promptZh: "Fill in the missing word from context.",
     promptSupplementZh: sentence.sentenceZh,
     answer: sentence.missingWord,
     answerText: sentence.missingWord,
@@ -184,7 +188,7 @@ function makeExpressionQuiz(index: number): QuizItem {
     id: `${item.id}-quiz`,
     type: "single-choice",
     prompt: `Which advanced expression can replace "${item.basic}"?`,
-    promptZh: `哪个进阶表达可以替换 “${item.basic}”？`,
+    promptZh: `Which advanced expression can replace "${item.basic}"?`,
     options: optionIndexes.map((optionIndex) => ({
       id: expressions[optionIndex].id,
       label: expressions[optionIndex].advanced
@@ -204,8 +208,11 @@ function makeExpressionQuiz(index: number): QuizItem {
   };
 }
 
-export function getVocabularyQuiz(wordIndex: number) {
-  return makeVocabularyQuiz(wordIndex % words.length);
+export function getVocabularyQuiz(wordIndex: number, mode: StudyMode = "simple") {
+  const safeIndex = wordIndex % words.length;
+  return mode === "hard"
+    ? makeVocabularyFillBlankQuiz(safeIndex)
+    : makeVocabularyChoiceQuiz(safeIndex);
 }
 
 export function getSentenceQuiz(index: number) {
@@ -221,18 +228,14 @@ export function getExpressionQuiz(index: number) {
 }
 
 function buildQuizLookupError(quizId: string): QuizItem {
-  if (process.env.NODE_ENV !== "production") {
-    console.warn(`[quiz] Missing quiz data for "${quizId}".`);
-  }
-
   return {
     id: `quiz-error-${quizId}`,
     type: "error",
     prompt: "This quiz item could not be loaded.",
-    promptZh: "这道题的数据暂时没有加载成功。",
+    promptZh: "This quiz item could not be loaded.",
     answer: "",
     answerText: "",
-    explanation: "请刷新页面，或稍后重试。如果问题持续存在，需要检查题库索引。",
+    explanation: "Refresh the page and try again. If the issue persists, the quiz index needs checking.",
     relatedWords: [],
     difficulty: 0,
     sourceRef: quizId,
@@ -271,7 +274,7 @@ function resolveSentenceQuizId(quizId: string) {
   ]);
 }
 
-export function getQuizById(quizId: string) {
+export function getQuizById(quizId: string, mode: StudyMode = "simple") {
   if (quizId.endsWith("-quiz")) {
     const expressionId = quizId.slice(0, -"-quiz".length);
     const expressionIndex = expressionIndexById.get(expressionId);
@@ -281,13 +284,13 @@ export function getQuizById(quizId: string) {
   if (quizId.startsWith("quiz-auto-word-")) {
     const wordId = resolveAutoWordQuizId(quizId);
     const wordIndex = wordIndexById.get(wordId);
-    return wordIndex === undefined ? buildQuizLookupError(quizId) : getVocabularyQuiz(wordIndex);
+    return wordIndex === undefined ? buildQuizLookupError(quizId) : getVocabularyQuiz(wordIndex, mode);
   }
 
   if (quizId.startsWith("quiz-word-")) {
     const wordId = resolveWordQuizId(quizId);
     const wordIndex = wordIndexById.get(wordId);
-    return wordIndex === undefined ? buildQuizLookupError(quizId) : getVocabularyQuiz(wordIndex);
+    return wordIndex === undefined ? buildQuizLookupError(quizId) : getVocabularyQuiz(wordIndex, mode);
   }
 
   if (quizId.startsWith("quiz-auto-sentence-")) {
@@ -312,65 +315,17 @@ export function getQuizById(quizId: string) {
   return buildQuizLookupError(quizId);
 }
 
-function sampleIndexes(length: number, limit: number) {
-  if (length <= limit) {
-    return Array.from({ length }, (_, index) => index);
-  }
-
-  const step = length / limit;
-  const indexes = new Set<number>();
-
-  for (let slot = 0; slot < limit; slot += 1) {
-    indexes.add(Math.min(length - 1, Math.floor(slot * step)));
-  }
-
-  return Array.from(indexes);
+export function getReviewPoolSize(reviewMistakes: ReviewMistakeEvent[]) {
+  return reviewMistakes.length;
 }
 
-export function getReviewPoolSize() {
-  const readingCount = passages.reduce((total, passage) => total + passage.questions.length, 0);
-  const expressionCount = canGenerateExpressionQuiz() ? expressions.length : 0;
-  return words.length + sentences.length + expressionCount + readingCount;
-}
-
-export function getReviewQueue(reviewMistakeIds: string[], limit = 120) {
-  const queue: QuizItem[] = [];
-  const seen = new Set<string>();
-
-  for (const quizId of reviewMistakeIds) {
-    const quiz = getQuizById(quizId);
-    if (!seen.has(quiz.id)) {
-      queue.push(quiz);
-      seen.add(quiz.id);
-    }
-  }
-
-  const addQuiz = (quiz: QuizItem) => {
-    if (!seen.has(quiz.id) && queue.length < limit) {
-      queue.push(quiz);
-      seen.add(quiz.id);
-    }
-  };
-
-  for (const index of sampleIndexes(words.length, 36)) {
-    addQuiz(getVocabularyQuiz(index));
-  }
-
-  for (const index of sampleIndexes(sentences.length, 48)) {
-    addQuiz(getSentenceQuiz(index));
-  }
-
-  for (const passageIndex of sampleIndexes(passages.length, 18)) {
-    for (const question of passages[passageIndex].questions) {
-      addQuiz(question);
-    }
-  }
-
-  if (canGenerateExpressionQuiz()) {
-    for (const index of sampleIndexes(expressions.length, expressions.length)) {
-      addQuiz(getExpressionQuiz(index));
-    }
-  }
-
-  return queue;
+export function getReviewQueue(reviewMistakes: ReviewMistakeEvent[], limit = 120, mode: StudyMode = "simple") {
+  return reviewMistakes
+    .slice()
+    .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+    .slice(0, limit)
+    .map((event) => ({
+      event,
+      quiz: getQuizById(event.quizId, mode)
+    }));
 }

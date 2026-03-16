@@ -8,8 +8,8 @@
     "exampleBasic": "Sleep is very important for students.",
     "exampleAdvanced": "Sleep is crucial for students.",
     "noteZh": "crucial 比 very important 更正式，适合写作和说明核心条件。",
-    "audioLocalBasic": "/audio/expressions/very-important.wav",
-    "audioLocalAdvanced": "/audio/expressions/crucial.wav"
+    "audioLocalBasic": "/audio/expressions/very-important.mp3",
+    "audioLocalAdvanced": "/audio/expressions/crucial.mp3"
   },
   {
     "id": "expression-good-for-you",
@@ -20,8 +20,8 @@
     "exampleBasic": "Daily reading is good for you.",
     "exampleAdvanced": "Daily reading is beneficial.",
     "noteZh": "beneficial 常用于描述长期收益，比 good for you 更正式。",
-    "audioLocalBasic": "/audio/expressions/good-for-you.wav",
-    "audioLocalAdvanced": "/audio/expressions/beneficial.wav"
+    "audioLocalBasic": "/audio/expressions/good-for-you.mp3",
+    "audioLocalAdvanced": "/audio/expressions/beneficial.mp3"
   },
   {
     "id": "expression-very-calm",
@@ -32,8 +32,8 @@
     "exampleBasic": "She stayed very calm during the quiz.",
     "exampleAdvanced": "She stayed steady during the quiz.",
     "noteZh": "steady 强调状态稳定，适合描述应对压力时的表现。",
-    "audioLocalBasic": "/audio/expressions/very-calm.wav",
-    "audioLocalAdvanced": "/audio/expressions/steady.wav"
+    "audioLocalBasic": "/audio/expressions/very-calm.mp3",
+    "audioLocalAdvanced": "/audio/expressions/steady.mp3"
   },
   {
     "id": "expression-very-clear",
@@ -44,8 +44,8 @@
     "exampleBasic": "The writer's idea is very clear.",
     "exampleAdvanced": "The writer's idea is well-defined.",
     "noteZh": "well-defined 适合描述观点、结构和任务要求。",
-    "audioLocalBasic": "/audio/expressions/very-clear.wav",
-    "audioLocalAdvanced": "/audio/expressions/well-defined.wav"
+    "audioLocalBasic": "/audio/expressions/very-clear.mp3",
+    "audioLocalAdvanced": "/audio/expressions/well-defined.mp3"
   },
   {
     "id": "expression-get-better",
@@ -56,8 +56,8 @@
     "exampleBasic": "Your reading will get better soon.",
     "exampleAdvanced": "Your reading will improve steadily.",
     "noteZh": "improve steadily 更强调持续过程，而不只是最后结果。",
-    "audioLocalBasic": "/audio/expressions/get-better.wav",
-    "audioLocalAdvanced": "/audio/expressions/improve-steadily.wav"
+    "audioLocalBasic": "/audio/expressions/get-better.mp3",
+    "audioLocalAdvanced": "/audio/expressions/improve-steadily.mp3"
   },
   {
     "id": "expression-find-out",
@@ -68,8 +68,8 @@
     "exampleBasic": "He found out a better answer.",
     "exampleAdvanced": "He discovered a better answer.",
     "noteZh": "discover 更适合书面或正式语境。",
-    "audioLocalBasic": "/audio/expressions/find-out.wav",
-    "audioLocalAdvanced": "/audio/expressions/discover.wav"
+    "audioLocalBasic": "/audio/expressions/find-out.mp3",
+    "audioLocalAdvanced": "/audio/expressions/discover.mp3"
   },
   {
     "id": "expression-work-together",
@@ -80,8 +80,8 @@
     "exampleBasic": "The students worked together on the project.",
     "exampleAdvanced": "The students collaborated on the project.",
     "noteZh": "collaborate 常用于团队任务、项目合作和正式表达。",
-    "audioLocalBasic": "/audio/expressions/work-together.wav",
-    "audioLocalAdvanced": "/audio/expressions/collaborate.wav"
+    "audioLocalBasic": "/audio/expressions/work-together.mp3",
+    "audioLocalAdvanced": "/audio/expressions/collaborate.mp3"
   },
   {
     "id": "expression-easy-to-understand",
@@ -92,8 +92,8 @@
     "exampleBasic": "The teacher used easy to understand examples.",
     "exampleAdvanced": "The teacher used accessible examples.",
     "noteZh": "accessible 不只指能接触到，也常指内容友好、易懂。",
-    "audioLocalBasic": "/audio/expressions/easy-to-understand.wav",
-    "audioLocalAdvanced": "/audio/expressions/accessible.wav"
+    "audioLocalBasic": "/audio/expressions/easy-to-understand.mp3",
+    "audioLocalAdvanced": "/audio/expressions/accessible.mp3"
   },
   {
     "id": "expression-a-little-afraid",
@@ -104,8 +104,8 @@
     "exampleBasic": "She was a little afraid to speak first.",
     "exampleAdvanced": "She was hesitant to speak first.",
     "noteZh": "hesitant 适合描述因为不确定而迟疑，不只是单纯害怕。",
-    "audioLocalBasic": "/audio/expressions/a-little-afraid.wav",
-    "audioLocalAdvanced": "/audio/expressions/hesitant.wav"
+    "audioLocalBasic": "/audio/expressions/a-little-afraid.mp3",
+    "audioLocalAdvanced": "/audio/expressions/hesitant.mp3"
   },
   {
     "id": "expression-keep-going",
@@ -116,7 +116,7 @@
     "exampleBasic": "If you keep going, your reading will improve.",
     "exampleAdvanced": "If you stay consistent, your reading will improve.",
     "noteZh": "stay consistent 比 keep going 更强调节奏稳定和长期坚持。",
-    "audioLocalBasic": "/audio/expressions/keep-going.wav",
-    "audioLocalAdvanced": "/audio/expressions/stay-consistent.wav"
+    "audioLocalBasic": "/audio/expressions/keep-going.mp3",
+    "audioLocalAdvanced": "/audio/expressions/stay-consistent.mp3"
   }
 ]

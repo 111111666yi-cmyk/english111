@@ -56,7 +56,7 @@ export function AudioButton({
       result.ok
         ? result.source === "local"
           ? "正在播放本地音频。"
-          : "本地文件缺失，已切换为浏览器朗读。"
+          : "本地音频缺失，已切换为浏览器朗读。"
         : result.reason ?? "本地发音不可用。"
     );
   };
@@ -93,12 +93,7 @@ export function AudioButton({
   return (
     <div className={className} data-testid="audio-controls" data-audio-key={audioRef.cacheKey}>
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={playLocal}
-          data-testid="audio-local-button"
-        >
+        <Button type="button" variant="secondary" onClick={playLocal} data-testid="audio-local-button">
           <Volume2 className="mr-2 h-4 w-4" />
           {localLabel}
         </Button>
@@ -107,7 +102,7 @@ export function AudioButton({
           variant="ghost"
           className={cloudDisabledReason ? "opacity-70" : undefined}
           onClick={playCloud}
-          title={cloudDisabledReason || "需要联网和服务端代理"}
+          title={cloudDisabledReason || "需要联网和服务端支持"}
           data-testid="audio-cloud-button"
           data-disabled-reason={cloudDisabledReason || undefined}
         >

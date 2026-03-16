@@ -17,7 +17,7 @@ export function ProgressCard({
         <span className="text-lg font-bold text-ink">{value}%</span>
       </div>
       <ProgressBar value={value} />
-      <p className="text-sm text-slate-500">{detail}</p>
+      <p className="neu-inset rounded-2xl px-3 py-2 text-sm text-slate-500">{detail}</p>
     </Card>
   );
 }

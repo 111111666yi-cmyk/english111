@@ -50,7 +50,7 @@ export async function playLocalAudio(path?: string) {
     await audio.play();
     return { ok: true };
   } catch {
-    return { ok: false, reason: "本地音频未找到，已切换为浏览器朗读。" };
+    return { ok: false, reason: "本地音频缺失，将尝试浏览器朗读。" };
   }
 }
 
@@ -135,7 +135,7 @@ export async function playPreferredLocalAudio(options: PlayAudioOptions) {
     return {
       ok: speechResult.ok,
       source: "speech" as const,
-      reason: speechResult.reason ?? "已使用浏览器朗读作为兜底。"
+      reason: speechResult.reason ?? "已切换为浏览器朗读。"
     };
   }
 
@@ -144,7 +144,7 @@ export async function playPreferredLocalAudio(options: PlayAudioOptions) {
     source: "none" as const,
     reason:
       options.allowSpeechFallback === false
-        ? "本地音频缺失，且浏览器朗读兜底已关闭。"
+        ? "本地音频缺失，且浏览器朗读回退已关闭。"
         : "没有可播放的本地音频，也没有可朗读文本。"
   };
 }

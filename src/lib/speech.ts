@@ -18,7 +18,5 @@ export function hasSpeechRecognition() {
     return false;
   }
 
-  return Boolean(
-    (window as Window & { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition
-  );
+  return Boolean((window as Window & { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition);
 }

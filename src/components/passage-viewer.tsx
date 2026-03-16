@@ -74,11 +74,7 @@ export function PassageViewer({
                   : "border-transparent bg-slate-50 hover:border-surge/20"
               }`}
             >
-              <button
-                type="button"
-                className="w-full text-left"
-                onClick={() => setActiveParagraph(index)}
-              >
+              <button type="button" className="w-full text-left" onClick={() => setActiveParagraph(index)}>
                 <p className="text-base leading-8 text-ink">
                   <HighlightedText text={paragraph} highlights={passage.keyWords} />
                 </p>
@@ -109,18 +105,14 @@ export function PassageViewer({
 
         <div className="space-y-4">
           <div className="rounded-3xl bg-white p-5 ring-1 ring-slate-100">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-              当前段落
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">当前段落</p>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              点击左侧段落可以聚焦理解。当前选中第 {activeParagraph + 1} 段。
+              点击左侧段落可聚焦理解。当前选中第 {activeParagraph + 1} 段。
             </p>
           </div>
 
           <div className="rounded-3xl bg-sky/10 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
-              Key Words
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Key Words</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {passage.keyWords.map((keyword) => (
                 <Badge key={keyword} className="bg-white text-surge">
@@ -133,7 +125,7 @@ export function PassageViewer({
           <div className="rounded-3xl bg-slate-50 p-5">
             <p className="text-sm leading-6 text-slate-600">
               {isCompleted
-                ? "当前账户已完成这篇短文，继续下篇会更有效。"
+                ? "当前账户已完成这篇短文，继续下一篇会更高效。"
                 : "完成后会写入当前账户的阅读进度，并计入今日学习统计。"}
             </p>
           </div>

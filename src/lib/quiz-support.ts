@@ -46,6 +46,9 @@ const IRREGULAR_ENGLISH_FORMS: Record<string, string[]> = {
   left: ["leave"]
 };
 
+const CHINESE_SPLIT_PATTERN = /[、，,；;。！？!?\s/／|（）()：:]+/;
+const CHINESE_TRAILING_PARTICLES = ["的", "地", "得", "了", "着", "过"];
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -60,7 +63,7 @@ function normalizeEnglishToken(value: string) {
 
 function splitChineseMeaning(meaning: string) {
   return meaning
-    .split(/[锛涖€侊紝,]/)
+    .split(CHINESE_SPLIT_PATTERN)
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -68,12 +71,10 @@ function splitChineseMeaning(meaning: string) {
 function buildChineseVariants(candidate: string) {
   const variants = new Set<string>([candidate]);
 
-  if (candidate.endsWith("鐨?") || candidate.endsWith("鍦?")) {
-    variants.add(candidate.slice(0, -1));
-  }
-
-  if (candidate.endsWith("浜?")) {
-    variants.add(candidate.slice(0, -1));
+  for (const particle of CHINESE_TRAILING_PARTICLES) {
+    if (candidate.length > 1 && candidate.endsWith(particle)) {
+      variants.add(candidate.slice(0, -1));
+    }
   }
 
   return Array.from(variants).filter(Boolean);
@@ -146,9 +147,7 @@ function getChineseCandidates(keyword: string) {
 }
 
 function buildVisibleHighlightPatterns(keyword: string) {
-  return buildEnglishForms(keyword).map(
-    (form) => new RegExp(`\\b${escapeRegExp(form)}\\b`, "i")
-  );
+  return buildEnglishForms(keyword).map((form) => new RegExp(`\\b${escapeRegExp(form)}\\b`, "i"));
 }
 
 export function resolveVisibleHighlights(textEn: string, keywords: string[]) {

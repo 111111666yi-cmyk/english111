@@ -26,10 +26,10 @@
       "stories",
       "a"
     ],
-    "audioLocal": "/audio/sentences/sentence-bridge.wav",
+    "audioLocal": "/audio/sentences/sentence-bridge.mp3",
     "keywordAudio": {
-      "bridge": "/audio/words/bridge.wav",
-      "link": "/audio/words/link.wav"
+      "bridge": "/audio/words/bridge.mp3",
+      "link": "/audio/words/link.mp3"
     }
   },
   {
@@ -57,10 +57,10 @@
       "sentence",
       "notice"
     ],
-    "audioLocal": "/audio/sentences/sentence-notice.wav",
+    "audioLocal": "/audio/sentences/sentence-notice.mp3",
     "keywordAudio": {
-      "notice": "/audio/words/notice.wav",
-      "observe": "/audio/words/observe.wav"
+      "notice": "/audio/words/notice.mp3",
+      "observe": "/audio/words/observe.mp3"
     }
   },
   {
@@ -88,10 +88,10 @@
       "organize",
       "her"
     ],
-    "audioLocal": "/audio/sentences/sentence-organize.wav",
+    "audioLocal": "/audio/sentences/sentence-organize.mp3",
     "keywordAudio": {
-      "organize": "/audio/words/organize.wav",
-      "arrange": "/audio/words/arrange.wav"
+      "organize": "/audio/words/organize.mp3",
+      "arrange": "/audio/words/arrange.mp3"
     }
   },
   {
@@ -117,10 +117,10 @@
       "for",
       "long-term"
     ],
-    "audioLocal": "/audio/sentences/sentence-beneficial.wav",
+    "audioLocal": "/audio/sentences/sentence-beneficial.mp3",
     "keywordAudio": {
-      "beneficial": "/audio/words/beneficial.wav",
-      "helpful": "/audio/words/helpful.wav"
+      "beneficial": "/audio/words/beneficial.mp3",
+      "helpful": "/audio/words/helpful.mp3"
     }
   },
   {
@@ -148,10 +148,10 @@
       "crucial",
       "when"
     ],
-    "audioLocal": "/audio/sentences/sentence-crucial.wav",
+    "audioLocal": "/audio/sentences/sentence-crucial.mp3",
     "keywordAudio": {
-      "crucial": "/audio/words/crucial.wav",
-      "essential": "/audio/words/essential.wav"
+      "crucial": "/audio/words/crucial.mp3",
+      "essential": "/audio/words/essential.mp3"
     }
   },
   {
@@ -178,10 +178,10 @@
       "reading",
       "gradually"
     ],
-    "audioLocal": "/audio/sentences/sentence-gradually.wav",
+    "audioLocal": "/audio/sentences/sentence-gradually.mp3",
     "keywordAudio": {
-      "gradually": "/audio/words/gradually.wav",
-      "slowly": "/audio/words/slowly.wav"
+      "gradually": "/audio/words/gradually.mp3",
+      "slowly": "/audio/words/slowly.mp3"
     }
   },
   {
@@ -208,10 +208,10 @@
       "reading",
       "improve"
     ],
-    "audioLocal": "/audio/sentences/sentence-improve.wav",
+    "audioLocal": "/audio/sentences/sentence-improve.mp3",
     "keywordAudio": {
-      "improve": "/audio/words/improve.wav",
-      "develop": "/audio/words/develop.wav"
+      "improve": "/audio/words/improve.mp3",
+      "develop": "/audio/words/develop.mp3"
     }
   },
   {
@@ -239,10 +239,10 @@
       "writing",
       "compare"
     ],
-    "audioLocal": "/audio/sentences/sentence-compare.wav",
+    "audioLocal": "/audio/sentences/sentence-compare.mp3",
     "keywordAudio": {
-      "compare": "/audio/words/compare.wav",
-      "contrast": "/audio/words/contrast.wav"
+      "compare": "/audio/words/compare.mp3",
+      "contrast": "/audio/words/contrast.mp3"
     }
   },
   {
@@ -271,10 +271,10 @@
       "passage",
       "support"
     ],
-    "audioLocal": "/audio/sentences/sentence-support.wav",
+    "audioLocal": "/audio/sentences/sentence-support.mp3",
     "keywordAudio": {
-      "support": "/audio/words/support.wav",
-      "help": "/audio/words/help.wav"
+      "support": "/audio/words/support.mp3",
+      "help": "/audio/words/help.mp3"
     }
   },
   {
@@ -301,10 +301,10 @@
       "the",
       "key"
     ],
-    "audioLocal": "/audio/sentences/sentence-focus.wav",
+    "audioLocal": "/audio/sentences/sentence-focus.mp3",
     "keywordAudio": {
-      "focus": "/audio/words/focus.wav",
-      "concentrate": "/audio/words/concentrate.wav"
+      "focus": "/audio/words/focus.mp3",
+      "concentrate": "/audio/words/concentrate.mp3"
     }
   },
   {
@@ -332,10 +332,10 @@
       "of",
       "practice"
     ],
-    "audioLocal": "/audio/sentences/sentence-practice.wav",
+    "audioLocal": "/audio/sentences/sentence-practice.mp3",
     "keywordAudio": {
-      "practice": "/audio/words/practice.wav",
-      "training": "/audio/words/training.wav"
+      "practice": "/audio/words/practice.mp3",
+      "training": "/audio/words/training.mp3"
     }
   },
   {
@@ -363,10 +363,10 @@
       "of",
       "a"
     ],
-    "audioLocal": "/audio/sentences/sentence-context.wav",
+    "audioLocal": "/audio/sentences/sentence-context.mp3",
     "keywordAudio": {
-      "context": "/audio/words/context.wav",
-      "background": "/audio/words/background.wav"
+      "context": "/audio/words/context.mp3",
+      "background": "/audio/words/background.mp3"
     }
   },
   {
@@ -393,10 +393,10 @@
       "one",
       "useful"
     ],
-    "audioLocal": "/audio/sentences/sentence-phrase.wav",
+    "audioLocal": "/audio/sentences/sentence-phrase.mp3",
     "keywordAudio": {
-      "phrase": "/audio/words/phrase.wav",
-      "expression": "/audio/words/expression.wav"
+      "phrase": "/audio/words/phrase.mp3",
+      "expression": "/audio/words/expression.mp3"
     }
   },
   {
@@ -425,10 +425,10 @@
       "a",
       "short"
     ],
-    "audioLocal": "/audio/sentences/sentence-choice.wav",
+    "audioLocal": "/audio/sentences/sentence-choice.mp3",
     "keywordAudio": {
-      "choice": "/audio/words/choice.wav",
-      "option": "/audio/words/option.wav"
+      "choice": "/audio/words/choice.mp3",
+      "option": "/audio/words/option.mp3"
     }
   },
   {
@@ -457,10 +457,10 @@
       "class",
       "a"
     ],
-    "audioLocal": "/audio/sentences/sentence-library.wav",
+    "audioLocal": "/audio/sentences/sentence-library.mp3",
     "keywordAudio": {
-      "library": "/audio/words/library.wav",
-      "reading room": "/audio/words/reading-room.wav"
+      "library": "/audio/words/library.mp3",
+      "reading room": "/audio/words/reading-room.mp3"
     }
   },
   {
@@ -488,10 +488,10 @@
       "your",
       "memory"
     ],
-    "audioLocal": "/audio/sentences/sentence-memory.wav",
+    "audioLocal": "/audio/sentences/sentence-memory.mp3",
     "keywordAudio": {
-      "memory": "/audio/words/memory.wav",
-      "recall": "/audio/words/recall.wav"
+      "memory": "/audio/words/memory.mp3",
+      "recall": "/audio/words/recall.mp3"
     }
   },
   {
@@ -520,10 +520,10 @@
       "a",
       "long"
     ],
-    "audioLocal": "/audio/sentences/sentence-challenge.wav",
+    "audioLocal": "/audio/sentences/sentence-challenge.mp3",
     "keywordAudio": {
-      "challenge": "/audio/words/challenge.wav",
-      "test": "/audio/words/test.wav"
+      "challenge": "/audio/words/challenge.mp3",
+      "test": "/audio/words/test.mp3"
     }
   },
   {
@@ -551,10 +551,10 @@
       "to",
       "the"
     ],
-    "audioLocal": "/audio/sentences/sentence-solution.wav",
+    "audioLocal": "/audio/sentences/sentence-solution.mp3",
     "keywordAudio": {
-      "solution": "/audio/words/solution.wav",
-      "answer": "/audio/words/answer.wav"
+      "solution": "/audio/words/solution.mp3",
+      "answer": "/audio/words/answer.mp3"
     }
   },
   {
@@ -581,10 +581,10 @@
       "a",
       "healthy"
     ],
-    "audioLocal": "/audio/sentences/sentence-habit.wav",
+    "audioLocal": "/audio/sentences/sentence-habit.mp3",
     "keywordAudio": {
-      "habit": "/audio/words/habit.wav",
-      "routine": "/audio/words/routine.wav"
+      "habit": "/audio/words/habit.mp3",
+      "routine": "/audio/words/routine.mp3"
     }
   },
   {
@@ -610,10 +610,10 @@
       "new",
       "topics"
     ],
-    "audioLocal": "/audio/sentences/sentence-explore.wav",
+    "audioLocal": "/audio/sentences/sentence-explore.mp3",
     "keywordAudio": {
-      "explore": "/audio/words/explore.wav",
-      "discover": "/audio/words/discover.wav"
+      "explore": "/audio/words/explore.mp3",
+      "discover": "/audio/words/discover.mp3"
     }
   },
   {
@@ -643,10 +643,10 @@
       "new",
       "idea"
     ],
-    "audioLocal": "/audio/sentences/sentence-connect.wav",
+    "audioLocal": "/audio/sentences/sentence-connect.mp3",
     "keywordAudio": {
-      "connect": "/audio/words/connect.wav",
-      "link": "/audio/words/link.wav"
+      "connect": "/audio/words/connect.mp3",
+      "link": "/audio/words/link.mp3"
     }
   },
   {
@@ -673,10 +673,10 @@
       "discussion",
       "prepare"
     ],
-    "audioLocal": "/audio/sentences/sentence-prepare.wav",
+    "audioLocal": "/audio/sentences/sentence-prepare.mp3",
     "keywordAudio": {
-      "prepare": "/audio/words/prepare.wav",
-      "plan": "/audio/words/plan.wav"
+      "prepare": "/audio/words/prepare.mp3",
+      "plan": "/audio/words/plan.mp3"
     }
   },
   {
@@ -704,10 +704,10 @@
       "words",
       "on"
     ],
-    "audioLocal": "/audio/sentences/sentence-review.wav",
+    "audioLocal": "/audio/sentences/sentence-review.mp3",
     "keywordAudio": {
-      "review": "/audio/words/review.wav",
-      "revise": "/audio/words/revise.wav"
+      "review": "/audio/words/review.mp3",
+      "revise": "/audio/words/revise.mp3"
     }
   },
   {
@@ -735,10 +735,10 @@
       "can",
       "save"
     ],
-    "audioLocal": "/audio/sentences/sentence-useful.wav",
+    "audioLocal": "/audio/sentences/sentence-useful.mp3",
     "keywordAudio": {
-      "useful": "/audio/words/useful.wav",
-      "helpful": "/audio/words/helpful.wav"
+      "useful": "/audio/words/useful.mp3",
+      "helpful": "/audio/words/helpful.mp3"
     }
   },
   {
@@ -767,10 +767,10 @@
       "patient",
       "when"
     ],
-    "audioLocal": "/audio/sentences/sentence-patient.wav",
+    "audioLocal": "/audio/sentences/sentence-patient.mp3",
     "keywordAudio": {
-      "patient": "/audio/words/patient.wav",
-      "calm": "/audio/words/calm.wav"
+      "patient": "/audio/words/patient.mp3",
+      "calm": "/audio/words/calm.mp3"
     }
   },
   {
@@ -797,10 +797,10 @@
       "twice",
       "sounded"
     ],
-    "audioLocal": "/audio/sentences/sentence-confident.wav",
+    "audioLocal": "/audio/sentences/sentence-confident.mp3",
     "keywordAudio": {
-      "confident": "/audio/words/confident.wav",
-      "sure": "/audio/words/sure.wav"
+      "confident": "/audio/words/confident.mp3",
+      "sure": "/audio/words/sure.mp3"
     }
   },
   {
@@ -828,10 +828,10 @@
       "discovered",
       "a"
     ],
-    "audioLocal": "/audio/sentences/sentence-discover.wav",
+    "audioLocal": "/audio/sentences/sentence-discover.mp3",
     "keywordAudio": {
-      "discover": "/audio/words/discover.wav",
-      "find": "/audio/words/find.wav"
+      "discover": "/audio/words/discover.mp3",
+      "find": "/audio/words/find.mp3"
     }
   },
   {
@@ -859,10 +859,10 @@
       "a",
       "new"
     ],
-    "audioLocal": "/audio/sentences/sentence-repeat.wav",
+    "audioLocal": "/audio/sentences/sentence-repeat.mp3",
     "keywordAudio": {
-      "repeat": "/audio/words/repeat.wav",
-      "say again": "/audio/words/say-again.wav"
+      "repeat": "/audio/words/repeat.mp3",
+      "say again": "/audio/words/say-again.mp3"
     }
   },
   {
@@ -890,10 +890,10 @@
       "explanation",
       "can"
     ],
-    "audioLocal": "/audio/sentences/sentence-simple.wav",
+    "audioLocal": "/audio/sentences/sentence-simple.mp3",
     "keywordAudio": {
-      "simple": "/audio/words/simple.wav",
-      "easy": "/audio/words/easy.wav"
+      "simple": "/audio/words/simple.mp3",
+      "easy": "/audio/words/easy.mp3"
     }
   },
   {
@@ -920,10 +920,10 @@
       "a",
       "small"
     ],
-    "audioLocal": "/audio/sentences/sentence-detail.wav",
+    "audioLocal": "/audio/sentences/sentence-detail.mp3",
     "keywordAudio": {
-      "detail": "/audio/words/detail.wav",
-      "point": "/audio/words/point.wav"
+      "detail": "/audio/words/detail.mp3",
+      "point": "/audio/words/point.mp3"
     }
   },
   {
@@ -952,10 +952,10 @@
       "guessing",
       "meaning"
     ],
-    "audioLocal": "/audio/sentences/sentence-skill.wav",
+    "audioLocal": "/audio/sentences/sentence-skill.mp3",
     "keywordAudio": {
-      "skill": "/audio/words/skill.wav",
-      "ability": "/audio/words/ability.wav"
+      "skill": "/audio/words/skill.mp3",
+      "ability": "/audio/words/ability.mp3"
     }
   },
   {
@@ -984,10 +984,10 @@
       "one",
       "useful"
     ],
-    "audioLocal": "/audio/sentences/sentence-share.wav",
+    "audioLocal": "/audio/sentences/sentence-share.mp3",
     "keywordAudio": {
-      "share": "/audio/words/share.wav",
-      "give": "/audio/words/give.wav"
+      "share": "/audio/words/share.mp3",
+      "give": "/audio/words/give.mp3"
     }
   },
   {
@@ -1014,10 +1014,10 @@
       "a",
       "curious"
     ],
-    "audioLocal": "/audio/sentences/sentence-curious.wav",
+    "audioLocal": "/audio/sentences/sentence-curious.mp3",
     "keywordAudio": {
-      "curious": "/audio/words/curious.wav",
-      "interested": "/audio/words/interested.wav"
+      "curious": "/audio/words/curious.mp3",
+      "interested": "/audio/words/interested.mp3"
     }
   },
   {
@@ -1046,10 +1046,10 @@
       "the",
       "answer"
     ],
-    "audioLocal": "/audio/sentences/sentence-calm.wav",
+    "audioLocal": "/audio/sentences/sentence-calm.mp3",
     "keywordAudio": {
-      "calm": "/audio/words/calm.wav",
-      "steady": "/audio/words/steady.wav"
+      "calm": "/audio/words/calm.mp3",
+      "steady": "/audio/words/steady.mp3"
     }
   },
   {
@@ -1077,10 +1077,10 @@
       "effort",
       "creates"
     ],
-    "audioLocal": "/audio/sentences/sentence-effort.wav",
+    "audioLocal": "/audio/sentences/sentence-effort.mp3",
     "keywordAudio": {
-      "effort": "/audio/words/effort.wav",
-      "hard work": "/audio/words/hard-work.wav"
+      "effort": "/audio/words/effort.mp3",
+      "hard work": "/audio/words/hard-work.mp3"
     }
   },
   {
@@ -1106,10 +1106,10 @@
       "progress",
       "became"
     ],
-    "audioLocal": "/audio/sentences/sentence-progress.wav",
+    "audioLocal": "/audio/sentences/sentence-progress.mp3",
     "keywordAudio": {
-      "progress": "/audio/words/progress.wav",
-      "growth": "/audio/words/growth.wav"
+      "progress": "/audio/words/progress.mp3",
+      "growth": "/audio/words/growth.mp3"
     }
   },
   {
@@ -1136,10 +1136,10 @@
       "explaining",
       "her"
     ],
-    "audioLocal": "/audio/sentences/sentence-creative.wav",
+    "audioLocal": "/audio/sentences/sentence-creative.mp3",
     "keywordAudio": {
-      "creative": "/audio/words/creative.wav",
-      "original": "/audio/words/original.wav"
+      "creative": "/audio/words/creative.mp3",
+      "original": "/audio/words/original.mp3"
     }
   },
   {
@@ -1167,10 +1167,10 @@
       "line",
       "avoid"
     ],
-    "audioLocal": "/audio/sentences/sentence-avoid.wav",
+    "audioLocal": "/audio/sentences/sentence-avoid.mp3",
     "keywordAudio": {
-      "avoid": "/audio/words/avoid.wav",
-      "prevent": "/audio/words/prevent.wav"
+      "avoid": "/audio/words/avoid.mp3",
+      "prevent": "/audio/words/prevent.mp3"
     }
   },
   {
@@ -1198,10 +1198,10 @@
       "includes",
       "one"
     ],
-    "audioLocal": "/audio/sentences/sentence-include.wav",
+    "audioLocal": "/audio/sentences/sentence-include.mp3",
     "keywordAudio": {
-      "include": "/audio/words/include.wav",
-      "contain": "/audio/words/contain.wav"
+      "include": "/audio/words/include.mp3",
+      "contain": "/audio/words/contain.mp3"
     }
   },
   {
@@ -1228,10 +1228,10 @@
       "writer's",
       "purpose"
     ],
-    "audioLocal": "/audio/sentences/sentence-purpose.wav",
+    "audioLocal": "/audio/sentences/sentence-purpose.mp3",
     "keywordAudio": {
-      "purpose": "/audio/words/purpose.wav",
-      "goal": "/audio/words/goal.wav"
+      "purpose": "/audio/words/purpose.mp3",
+      "goal": "/audio/words/goal.mp3"
     }
   },
   {
@@ -1263,11 +1263,11 @@
       "routine",
       "turn"
     ],
-    "audioLocal": "/audio/sentences/sentence-study-routine.wav",
+    "audioLocal": "/audio/sentences/sentence-study-routine.mp3",
     "keywordAudio": {
-      "review": "/audio/words/review.wav",
-      "useful": "/audio/words/useful.wav",
-      "routine": "/audio/words/routine.wav"
+      "review": "/audio/words/review.mp3",
+      "useful": "/audio/words/useful.mp3",
+      "routine": "/audio/words/routine.mp3"
     }
   },
   {
@@ -1298,11 +1298,11 @@
       "easier",
       "to"
     ],
-    "audioLocal": "/audio/sentences/sentence-keyword-clue.wav",
+    "audioLocal": "/audio/sentences/sentence-keyword-clue.mp3",
     "keywordAudio": {
-      "notice": "/audio/words/notice.wav",
-      "follow": "/audio/words/follow.wav",
-      "keyword": "/audio/words/keyword.wav"
+      "notice": "/audio/words/notice.mp3",
+      "follow": "/audio/words/follow.mp3",
+      "keyword": "/audio/words/keyword.mp3"
     }
   },
   {
@@ -1334,11 +1334,11 @@
       "you",
       "can"
     ],
-    "audioLocal": "/audio/sentences/sentence-upgrade-expression.wav",
+    "audioLocal": "/audio/sentences/sentence-upgrade-expression.mp3",
     "keywordAudio": {
-      "crucial": "/audio/words/crucial.wav",
-      "formal": "/audio/words/formal.wav",
-      "instead of": "/audio/words/instead-of.wav"
+      "crucial": "/audio/words/crucial.mp3",
+      "formal": "/audio/words/formal.mp3",
+      "instead of": "/audio/words/instead-of.mp3"
     }
   },
   {
@@ -1370,11 +1370,11 @@
       "the",
       "topic"
     ],
-    "audioLocal": "/audio/sentences/sentence-reading-map.wav",
+    "audioLocal": "/audio/sentences/sentence-reading-map.mp3",
     "keywordAudio": {
-      "answering": "/audio/words/answering.wav",
-      "details": "/audio/words/details.wav",
-      "topic sentence": "/audio/words/topic-sentence.wav"
+      "answering": "/audio/words/answering.mp3",
+      "details": "/audio/words/details.mp3",
+      "topic sentence": "/audio/words/topic-sentence.mp3"
     }
   },
   {
@@ -1402,11 +1402,11 @@
       "example",
       "everyone"
     ],
-    "audioLocal": "/audio/sentences/sentence-group-discussion.wav",
+    "audioLocal": "/audio/sentences/sentence-group-discussion.mp3",
     "keywordAudio": {
-      "example": "/audio/words/example.wav",
-      "group discussion": "/audio/words/group-discussion.wav",
-      "prepared": "/audio/words/prepared.wav"
+      "example": "/audio/words/example.mp3",
+      "group discussion": "/audio/words/group-discussion.mp3",
+      "prepared": "/audio/words/prepared.mp3"
     }
   },
   {
@@ -1437,11 +1437,11 @@
       "the",
       "line"
     ],
-    "audioLocal": "/audio/sentences/sentence-audio-step.wav",
+    "audioLocal": "/audio/sentences/sentence-audio-step.mp3",
     "keywordAudio": {
-      "memory": "/audio/words/memory.wav",
-      "listening": "/audio/words/listening.wav",
-      "repeating": "/audio/words/repeating.wav"
+      "memory": "/audio/words/memory.mp3",
+      "listening": "/audio/words/listening.mp3",
+      "repeating": "/audio/words/repeating.mp3"
     }
   },
   {
@@ -1472,11 +1472,11 @@
       "gave",
       "him"
     ],
-    "audioLocal": "/audio/sentences/sentence-context-choice.wav",
+    "audioLocal": "/audio/sentences/sentence-context-choice.mp3",
     "keywordAudio": {
-      "context": "/audio/words/context.wav",
-      "choice": "/audio/words/choice.wav",
-      "new word": "/audio/words/new-word.wav"
+      "context": "/audio/words/context.mp3",
+      "choice": "/audio/words/choice.mp3",
+      "new word": "/audio/words/new-word.mp3"
     }
   },
   {
@@ -1506,11 +1506,11 @@
       "a",
       "calm"
     ],
-    "audioLocal": "/audio/sentences/sentence-library-plan.wav",
+    "audioLocal": "/audio/sentences/sentence-library-plan.mp3",
     "keywordAudio": {
-      "library": "/audio/words/library.wav",
-      "practice": "/audio/words/practice.wav",
-      "calm": "/audio/words/calm.wav"
+      "library": "/audio/words/library.mp3",
+      "practice": "/audio/words/practice.mp3",
+      "calm": "/audio/words/calm.mp3"
     }
   },
   {
@@ -1540,11 +1540,11 @@
       "week",
       "the"
     ],
-    "audioLocal": "/audio/sentences/sentence-effort-progress.wav",
+    "audioLocal": "/audio/sentences/sentence-effort-progress.mp3",
     "keywordAudio": {
-      "progress": "/audio/words/progress.wav",
-      "effort": "/audio/words/effort.wav",
-      "week": "/audio/words/week.wav"
+      "progress": "/audio/words/progress.mp3",
+      "effort": "/audio/words/effort.mp3",
+      "week": "/audio/words/week.mp3"
     }
   },
   {
@@ -1575,11 +1575,11 @@
       "catch",
       "the"
     ],
-    "audioLocal": "/audio/sentences/sentence-purpose-reading.wav",
+    "audioLocal": "/audio/sentences/sentence-purpose-reading.mp3",
     "keywordAudio": {
-      "catch": "/audio/words/catch.wav",
-      "main idea": "/audio/words/main-idea.wav",
-      "writer's purpose": "/audio/words/writer's-purpose.wav"
+      "catch": "/audio/words/catch.mp3",
+      "main idea": "/audio/words/main-idea.mp3",
+      "writer's purpose": "/audio/words/writer's-purpose.mp3"
     }
   },
   {
@@ -1609,11 +1609,11 @@
       "a",
       "phrase"
     ],
-    "audioLocal": "/audio/sentences/sentence-curious-question.wav",
+    "audioLocal": "/audio/sentences/sentence-curious-question.mp3",
     "keywordAudio": {
-      "curious": "/audio/words/curious.wav",
-      "phrase": "/audio/words/phrase.wav",
-      "context": "/audio/words/context.wav"
+      "curious": "/audio/words/curious.mp3",
+      "phrase": "/audio/words/phrase.mp3",
+      "context": "/audio/words/context.mp3"
     }
   },
   {
@@ -1644,11 +1644,11 @@
       "compare",
       "the"
     ],
-    "audioLocal": "/audio/sentences/sentence-avoid-rush.wav",
+    "audioLocal": "/audio/sentences/sentence-avoid-rush.mp3",
     "keywordAudio": {
-      "avoid": "/audio/words/avoid.wav",
-      "compare": "/audio/words/compare.wav",
-      "clearer": "/audio/words/clearer.wav"
+      "avoid": "/audio/words/avoid.mp3",
+      "compare": "/audio/words/compare.mp3",
+      "clearer": "/audio/words/clearer.mp3"
     }
   },
   {
@@ -2040,7 +2040,7 @@
     ],
     "explanation": "find 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "find": "/audio/words/find.wav"
+      "find": "/audio/words/find.mp3"
     }
   },
   {
@@ -2072,7 +2072,7 @@
     ],
     "explanation": "补充句会让 find 不只出现一次，复习时更容易形成记忆。",
     "keywordAudio": {
-      "find": "/audio/words/find.wav"
+      "find": "/audio/words/find.mp3"
     }
   },
   {
@@ -2884,7 +2884,7 @@
     ],
     "explanation": "details 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "details": "/audio/words/details.wav"
+      "details": "/audio/words/details.mp3"
     }
   },
   {
@@ -2916,7 +2916,7 @@
     ],
     "explanation": "补充句会让 details 不只出现一次，复习时更容易形成记忆。",
     "keywordAudio": {
-      "details": "/audio/words/details.wav"
+      "details": "/audio/words/details.mp3"
     }
   },
   {
@@ -6698,7 +6698,7 @@
     ],
     "explanation": "give 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "give": "/audio/words/give.wav"
+      "give": "/audio/words/give.mp3"
     }
   },
   {
@@ -7180,7 +7180,7 @@
     ],
     "explanation": "example 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "example": "/audio/words/example.wav"
+      "example": "/audio/words/example.mp3"
     }
   },
   {
@@ -7662,7 +7662,7 @@
     ],
     "explanation": "easy 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "easy": "/audio/words/easy.wav"
+      "easy": "/audio/words/easy.mp3"
     }
   },
   {
@@ -15704,7 +15704,7 @@
     ],
     "explanation": "follow 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "follow": "/audio/words/follow.wav"
+      "follow": "/audio/words/follow.mp3"
     }
   },
   {
@@ -17056,7 +17056,7 @@
     ],
     "explanation": "answer 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "answer": "/audio/words/answer.wav"
+      "answer": "/audio/words/answer.mp3"
     }
   },
   {
@@ -17088,7 +17088,7 @@
     ],
     "explanation": "补充句会让 answer 不只出现一次，复习时更容易形成记忆。",
     "keywordAudio": {
-      "answer": "/audio/words/answer.wav"
+      "answer": "/audio/words/answer.mp3"
     }
   },
   {
@@ -19910,7 +19910,7 @@
     ],
     "explanation": "develop 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "develop": "/audio/words/develop.wav"
+      "develop": "/audio/words/develop.mp3"
     }
   },
   {
@@ -21202,7 +21202,7 @@
     ],
     "explanation": "background 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "background": "/audio/words/background.wav"
+      "background": "/audio/words/background.mp3"
     }
   },
   {
@@ -21264,7 +21264,7 @@
     ],
     "explanation": "ability 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "ability": "/audio/words/ability.wav"
+      "ability": "/audio/words/ability.mp3"
     }
   },
   {
@@ -21296,7 +21296,7 @@
     ],
     "explanation": "补充句会让 ability 不只出现一次，复习时更容易形成记忆。",
     "keywordAudio": {
-      "ability": "/audio/words/ability.wav"
+      "ability": "/audio/words/ability.mp3"
     }
   },
   {
@@ -26008,7 +26008,7 @@
     ],
     "explanation": "goal 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "goal": "/audio/words/goal.wav"
+      "goal": "/audio/words/goal.mp3"
     }
   },
   {
@@ -29280,7 +29280,7 @@
     ],
     "explanation": "essential 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "essential": "/audio/words/essential.wav"
+      "essential": "/audio/words/essential.mp3"
     }
   },
   {
@@ -35792,7 +35792,7 @@
     ],
     "explanation": "expression 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "expression": "/audio/words/expression.wav"
+      "expression": "/audio/words/expression.mp3"
     }
   },
   {
@@ -35824,7 +35824,7 @@
     ],
     "explanation": "补充句会让 expression 不只出现一次，复习时更容易形成记忆。",
     "keywordAudio": {
-      "expression": "/audio/words/expression.wav"
+      "expression": "/audio/words/expression.mp3"
     }
   },
   {
@@ -37806,7 +37806,7 @@
     ],
     "explanation": "contain 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "contain": "/audio/words/contain.wav"
+      "contain": "/audio/words/contain.mp3"
     }
   },
   {
@@ -49088,7 +49088,7 @@
     ],
     "explanation": "formal 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "formal": "/audio/words/formal.wav"
+      "formal": "/audio/words/formal.mp3"
     }
   },
   {
@@ -52090,7 +52090,7 @@
     ],
     "explanation": "catch 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "catch": "/audio/words/catch.wav"
+      "catch": "/audio/words/catch.mp3"
     }
   },
   {
@@ -57492,7 +57492,7 @@
     ],
     "explanation": "contrast 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "contrast": "/audio/words/contrast.wav"
+      "contrast": "/audio/words/contrast.mp3"
     }
   },
   {
@@ -59084,7 +59084,7 @@
     ],
     "explanation": "busy 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "busy": "/audio/words/busy.wav"
+      "busy": "/audio/words/busy.mp3"
     }
   },
   {
@@ -59116,7 +59116,7 @@
     ],
     "explanation": "补充句会让 busy 不只出现一次，复习时更容易形成记忆。",
     "keywordAudio": {
-      "busy": "/audio/words/busy.wav"
+      "busy": "/audio/words/busy.mp3"
     }
   },
   {
@@ -108498,7 +108498,7 @@
     ],
     "explanation": "arrange 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "arrange": "/audio/words/arrange.wav"
+      "arrange": "/audio/words/arrange.mp3"
     }
   },
   {
@@ -122060,7 +122060,7 @@
     ],
     "explanation": "answering 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "answering": "/audio/words/answering.wav"
+      "answering": "/audio/words/answering.mp3"
     }
   },
   {
@@ -132292,7 +132292,7 @@
     ],
     "explanation": "concentrate 放进完整句子里时，更容易记住它在真实语境中的位置。",
     "keywordAudio": {
-      "concentrate": "/audio/words/concentrate.wav"
+      "concentrate": "/audio/words/concentrate.mp3"
     }
   },
   {
@@ -132324,7 +132324,7 @@
     ],
     "explanation": "补充句会让 concentrate 不只出现一次，复习时更容易形成记忆。",
     "keywordAudio": {
-      "concentrate": "/audio/words/concentrate.wav"
+      "concentrate": "/audio/words/concentrate.mp3"
     }
   },
   {

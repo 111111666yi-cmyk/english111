@@ -21,7 +21,7 @@ export function StreakBanner({
             从 3500 词到自然理解句子和短文。
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-7 text-white/90 md:text-base">
-            English Climb 用本地题库、双语互动和轻游戏化进度，让你每天稳定前进，不依赖运行期大模型。
+Open English 用本地题库、双语互动和轻游戏化进度，让你每天稳定前进，不依赖运行期大模型。
           </p>
         </div>
         <div className="flex flex-wrap gap-3">

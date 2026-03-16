@@ -1,51 +1,68 @@
 "use client";
 
-import { useState } from "react";
-import { getSentenceQuiz } from "@/data/quizzes";
 import { QuizCard } from "@/components/quiz-card";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { SentenceCard } from "@/components/sentence-card";
-import { Shell } from "@/components/shell";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Shell } from "@/components/shell";
+import { getSentenceQuiz } from "@/data/quizzes";
+import { createEmptyQuizSession } from "@/lib/quiz-session";
 import { sentences } from "@/lib/content";
 import { useLearningStore } from "@/stores/learning-store";
 
 export function SentencesScreen() {
-  const [index, setIndex] = useState(0);
+  const hydrated = useLearningStore((state) => state.hydrated);
+  const session = useLearningStore((state) => state.sentencesSession);
   const completeSentence = useLearningStore((state) => state.completeSentence);
   const completedSentenceIds = useLearningStore((state) => state.completedSentenceIds);
   const logDailyProgress = useLearningStore((state) => state.logDailyProgress);
   const recordQuizResult = useLearningStore((state) => state.recordQuizResult);
-  const sentence = sentences[index] ?? sentences[0];
-  const quiz = getSentenceQuiz(index);
+  const updateSentencesSession = useLearningStore((state) => state.updateSentencesSession);
+  const updateSentencesQuizSession = useLearningStore((state) => state.updateSentencesQuizSession);
+
+  if (!hydrated) {
+    return (
+      <Shell>
+        <div className="py-10 text-sm text-slate-500">加载学习进度中...</div>
+      </Shell>
+    );
+  }
+
+  const currentIndex = sentences.length ? Math.min(session.currentIndex, sentences.length - 1) : 0;
+  const sentence = sentences[currentIndex] ?? sentences[0];
+  const quiz = getSentenceQuiz(currentIndex);
   const isCompleted = completedSentenceIds.includes(sentence.id);
+
+  const goNext = () =>
+    updateSentencesSession({
+      currentIndex: currentIndex + 1 >= sentences.length ? 0 : currentIndex + 1,
+      quiz: createEmptyQuizSession()
+    });
+
+  const goPrevious = () =>
+    updateSentencesSession({
+      currentIndex: currentIndex - 1 < 0 ? sentences.length - 1 : currentIndex - 1,
+      quiz: createEmptyQuizSession()
+    });
 
   return (
     <Shell>
-      <div className="space-y-6">
-        <SectionHeading
-          eyebrow="Sentence"
-          title="句子训练"
-          description="句子数量已扩充，阅读关键词会直接高亮。完成一条句子后会明确写入当前账户进度，并自动切换下一条。"
-        />
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <p className="text-sm text-slate-500">句子总数</p>
-            <p className="mt-2 text-4xl font-black text-ink">{sentences.length}</p>
-            <p className="mt-2 text-sm text-slate-500">从基础词汇到语境训练逐步扩展。</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-slate-500">已完成句子</p>
-            <p className="mt-2 text-4xl font-black text-ink">{completedSentenceIds.length}</p>
-            <p className="mt-2 text-sm text-slate-500">当前账户下独立统计。</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-slate-500">当前序号</p>
-            <p className="mt-2 text-4xl font-black text-ink">{index + 1}</p>
-            <p className="mt-2 text-sm text-slate-500">切换内容不会影响其他账户。</p>
-          </Card>
-        </div>
+      <div className="space-y-4">
+        <Card className="rounded-[1.5rem] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-500">
+              {currentIndex + 1}/{sentences.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="secondary" className="h-9 min-w-9 px-3" onClick={goPrevious}>
+                {"<"}
+              </Button>
+              <Button type="button" variant="secondary" className="h-9 min-w-9 px-3" onClick={goNext}>
+                {">"}
+              </Button>
+            </div>
+          </div>
+        </Card>
 
         <SentenceCard
           sentence={sentence}
@@ -63,14 +80,16 @@ export function SentencesScreen() {
               });
             }
 
-            setIndex((current) => (current + 1 >= sentences.length ? 0 : current + 1));
+            goNext();
           }}
         />
 
         <QuizCard
           quiz={quiz}
           autoAdvance="correct"
-          onAdvance={() => setIndex((current) => (current + 1 >= sentences.length ? 0 : current + 1))}
+          sessionState={session.quiz}
+          onSessionStateChange={updateSentencesQuizSession}
+          onAdvance={() => goNext()}
           onResult={(correct) => recordQuizResult(quiz.id, correct)}
         />
       </div>

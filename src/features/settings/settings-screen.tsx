@@ -33,6 +33,22 @@ const motionLabels = {
   minimal: "极简"
 } as const;
 
+const backgroundLabels = {
+  default: "默认",
+  spring: "春",
+  summer: "夏",
+  autumn: "秋",
+  winter: "冬"
+} as const;
+
+const backgroundDescriptions = {
+  default: "保持当前默认风格。",
+  spring: "粉花轻盈，整体更柔和。",
+  summer: "青草清新，整体更有生机。",
+  autumn: "枫叶暖红，呼应“枫叶红于二月红”。",
+  winter: "雪花清透，整体更安静。"
+} as const;
+
 export function SettingsScreen() {
   const [recognitionSupported, setRecognitionSupported] = useState(false);
   const [online, setOnline] = useState(true);
@@ -88,10 +104,10 @@ export function SettingsScreen() {
     <Shell>
       <div className="space-y-3">
         <Card className="space-y-4 rounded-[1.5rem] p-4">
-          <div className="space-y-3">
+          <div className="theme-settings-module space-y-3 rounded-[1.35rem] px-4 py-4">
             <p className="text-sm font-bold text-ink">音频偏好</p>
 
-            <div className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-3 py-3">
+            <div className="theme-settings-module flex items-center justify-between gap-4 rounded-2xl px-3 py-3">
               <div className="min-w-0">
                 <p className="font-semibold text-ink">本地缺失时启用浏览器朗读</p>
                 <p className="text-sm text-slate-500">本地音频缺失时，允许浏览器语音作为兜底。</p>
@@ -105,7 +121,7 @@ export function SettingsScreen() {
               </Button>
             </div>
 
-            <div className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-3 py-3">
+            <div className="theme-settings-module flex items-center justify-between gap-4 rounded-2xl px-3 py-3">
               <div className="min-w-0">
                 <p className="font-semibold text-ink">云端发音按钮</p>
                 <p className="text-sm text-slate-500">
@@ -122,7 +138,7 @@ export function SettingsScreen() {
               </Button>
             </div>
 
-            <div className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-3 py-3">
+            <div className="theme-settings-module flex items-center justify-between gap-4 rounded-2xl px-3 py-3">
               <div className="min-w-0">
                 <p className="font-semibold text-ink">缓存云端音频</p>
                 <p className="text-sm text-slate-500">开启后会把云端音频写入本地 IndexedDB。</p>
@@ -142,22 +158,22 @@ export function SettingsScreen() {
           <Card className="space-y-3 rounded-[1.5rem] p-4">
             <p className="text-sm font-bold text-ink">本地缓存</p>
             <div className="grid gap-2 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 px-3 py-3">
+              <div className="theme-settings-module rounded-2xl px-3 py-3">
                 <p className="text-sm text-slate-500">缓存条目</p>
                 <p className="mt-1 text-2xl font-black text-ink">{cacheStats.entries}</p>
               </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-3">
+              <div className="theme-settings-module rounded-2xl px-3 py-3">
                 <p className="text-sm text-slate-500">缓存体积</p>
                 <p className="mt-1 text-2xl font-black text-ink">{formatBytes(cacheStats.bytes)}</p>
               </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-3">
+              <div className="theme-settings-module rounded-2xl px-3 py-3">
                 <p className="text-sm text-slate-500">学习记录</p>
                 <p className="mt-1 text-lg font-black text-ink">
                   {localStats.hasLearningRecord ? "存在本地学习记录" : "暂无本地学习记录"}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">{formatBytes(localStats.learningBytes)}</p>
               </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-3">
+              <div className="theme-settings-module rounded-2xl px-3 py-3">
                 <p className="text-sm text-slate-500">账号状态</p>
                 <p className="mt-1 text-lg font-black text-ink">
                   {localStats.hasAuthRecord ? "存在本地账号信息" : "暂无本地账号信息"}
@@ -200,48 +216,73 @@ export function SettingsScreen() {
             <p className="text-sm font-bold text-ink">功能入口</p>
             <div className="grid gap-2 sm:grid-cols-2">
               <Link href="/version-log">
-                <div className="rounded-2xl border bg-white px-3 py-3 text-left transition hover:border-surge/40">
+                <div className="theme-settings-module rounded-2xl px-3 py-3 text-left transition hover:border-surge/40">
                   <p className="text-sm font-bold text-ink">版本日志</p>
                   <p className="mt-1 text-xs text-slate-500">查看更新内容</p>
                 </div>
               </Link>
               <Link href="/account">
-                <div className="rounded-2xl border bg-white px-3 py-3 text-left transition hover:border-surge/40">
+                <div className="theme-settings-module rounded-2xl px-3 py-3 text-left transition hover:border-surge/40">
                   <p className="text-sm font-bold text-ink">返回我的</p>
                   <p className="mt-1 text-xs text-slate-500">回到账号与资料管理页</p>
                 </div>
               </Link>
             </div>
 
-            <div className="space-y-3 rounded-2xl bg-slate-50 px-3 py-3">
-              <p className="text-sm font-bold text-ink">显示与恢复</p>
-              <div className="flex flex-wrap gap-2">
-                {(["sm", "md", "lg"] as const).map((value) => (
-                  <Button
-                    key={value}
-                    type="button"
-                    variant={settings.fontScale === value ? "primary" : "secondary"}
-                    onClick={() => updateSetting("fontScale", value)}
-                  >
-                    {fontScaleLabels[value]}
-                  </Button>
-                ))}
+            <div className="theme-settings-module space-y-4 rounded-2xl px-3 py-3">
+              <div>
+                <p className="text-sm font-bold text-ink">显示与恢复</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(["sm", "md", "lg"] as const).map((value) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      variant={settings.fontScale === value ? "primary" : "secondary"}
+                      onClick={() => updateSetting("fontScale", value)}
+                    >
+                      {fontScaleLabels[value]}
+                    </Button>
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {(["soft", "calm", "minimal"] as const).map((value) => (
-                  <Button
-                    key={value}
-                    type="button"
-                    variant={settings.motionLevel === value ? "primary" : "secondary"}
-                    onClick={() => updateSetting("motionLevel", value)}
-                  >
-                    {motionLabels[value]}
-                  </Button>
-                ))}
+
+              <div>
+                <p className="text-sm font-bold text-ink">动效风格</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(["soft", "calm", "minimal"] as const).map((value) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      variant={settings.motionLevel === value ? "primary" : "secondary"}
+                      onClick={() => updateSetting("motionLevel", value)}
+                    >
+                      {motionLabels[value]}
+                    </Button>
+                  ))}
+                </div>
               </div>
+
+              <div>
+                <p className="text-sm font-bold text-ink">背景</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(["default", "spring", "summer", "autumn", "winter"] as const).map((value) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      variant={settings.backgroundTheme === value ? "primary" : "secondary"}
+                      onClick={() => updateSetting("backgroundTheme", value)}
+                    >
+                      {backgroundLabels[value]}
+                    </Button>
+                  ))}
+                </div>
+                <p className="mt-3 text-sm text-slate-500">{backgroundDescriptions[settings.backgroundTheme]}</p>
+              </div>
+
               <p className="text-sm leading-6 text-slate-500">
                 语音识别：{recognitionSupported ? "支持" : "不支持"}。网络状态：{online ? "在线" : "离线"}。
               </p>
+
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="ghost" onClick={resetAll}>
                   重置当前学习进度

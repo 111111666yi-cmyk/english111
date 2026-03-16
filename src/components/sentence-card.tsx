@@ -46,9 +46,7 @@ export function SentenceCard({
 
       <div className="grid gap-3 md:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-3xl bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            Keywords
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Keywords</p>
           <div className="mt-3 flex flex-wrap gap-3">
             {visibleKeywords.map((keyword) => (
               <div key={keyword} className="rounded-2xl bg-white px-3 py-3 ring-1 ring-slate-100">
@@ -72,9 +70,7 @@ export function SentenceCard({
         </div>
 
         <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-100">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            Grammar
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Grammar</p>
           <p className="mt-3 text-sm leading-6 text-slate-600">{sentence.grammarPoint}</p>
           <p className="mt-4 text-sm leading-6 text-slate-500">{sentence.explanation}</p>
         </div>

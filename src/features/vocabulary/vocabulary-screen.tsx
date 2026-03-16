@@ -1,187 +1,132 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { getVocabularyQuiz } from "@/data/quizzes";
+import { AudioButton } from "@/components/audio-button";
 import { QuizCard } from "@/components/quiz-card";
-import { SectionHeading } from "@/components/ui/section-heading";
-import { Shell } from "@/components/shell";
-import { WordCard } from "@/components/word-card";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Shell } from "@/components/shell";
+import { getVocabularyQuiz } from "@/data/quizzes";
+import { createEmptyQuizSession } from "@/lib/quiz-session";
 import { words } from "@/lib/content";
-import { cn } from "@/lib/utils";
 import { useLearningStore } from "@/stores/learning-store";
 
-const OVERVIEW_PAGE_SIZE = 30;
-
 export function VocabularyScreen() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [overviewPage, setOverviewPage] = useState(0);
+  const hydrated = useLearningStore((state) => state.hydrated);
+  const activeMode = useLearningStore((state) => state.modeConfig.activeMode);
+  const session = useLearningStore((state) => state.vocabularySession);
   const markWord = useLearningStore((state) => state.markWord);
-  const toggleFavoriteWord = useLearningStore((state) => state.toggleFavoriteWord);
   const logDailyProgress = useLearningStore((state) => state.logDailyProgress);
   const recordQuizResult = useLearningStore((state) => state.recordQuizResult);
-  const knownWords = useLearningStore((state) => state.knownWords);
-  const difficultWords = useLearningStore((state) => state.difficultWords);
-  const favoriteWords = useLearningStore((state) => state.favoriteWords);
+  const updateVocabularySession = useLearningStore((state) => state.updateVocabularySession);
+  const updateVocabularyQuizSession = useLearningStore((state) => state.updateVocabularyQuizSession);
 
+  if (!hydrated) {
+    return (
+      <Shell>
+        <div className="py-10 text-sm text-slate-500">加载学习进度中...</div>
+      </Shell>
+    );
+  }
+
+  const currentIndex = words.length ? Math.min(session.currentIndex, words.length - 1) : 0;
   const currentWord = words[currentIndex] ?? words[0];
-  const quiz = getVocabularyQuiz(currentIndex);
-  const totalPages = Math.max(1, Math.ceil(words.length / OVERVIEW_PAGE_SIZE));
-  const overviewWords = useMemo(
-    () =>
-      words.slice(
-        overviewPage * OVERVIEW_PAGE_SIZE,
-        overviewPage * OVERVIEW_PAGE_SIZE + OVERVIEW_PAGE_SIZE
-      ),
-    [overviewPage]
-  );
+  const quiz = getVocabularyQuiz(currentIndex, activeMode);
+  const wordMeta = currentWord as {
+    id: string;
+    word: string;
+    level?: string;
+    partOfSpeech?: string;
+    pos?: string;
+    phonetic?: string;
+    pronunciation?: string;
+    meaningZh?: string;
+  };
 
-  useEffect(() => {
-    setOverviewPage(Math.floor(currentIndex / OVERVIEW_PAGE_SIZE));
-  }, [currentIndex]);
+  const goNext = () =>
+    updateVocabularySession({
+      currentIndex: currentIndex + 1 >= words.length ? 0 : currentIndex + 1,
+      quiz: createEmptyQuizSession()
+    });
 
-  const goNext = () => setCurrentIndex((current) => (current + 1 >= words.length ? 0 : current + 1));
+  const goPrevious = () =>
+    updateVocabularySession({
+      currentIndex: currentIndex - 1 < 0 ? words.length - 1 : currentIndex - 1,
+      quiz: createEmptyQuizSession()
+    });
 
   return (
     <Shell>
-      <div className="space-y-6">
-        <SectionHeading
-          eyebrow="Vocabulary"
-          title="单词学习"
-          description="词卡、例句、音频和掌握反馈都按当前账户分别保存。总览区每页固定显示 30 个互不重复的词。"
-        />
+      <div className="space-y-2">
+        <Card className="space-y-3 rounded-[1.5rem] p-3.5 md:p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <span>{activeMode === "simple" ? "简单" : "困难"}</span>
+                <span>{wordMeta.level ?? "单词"}</span>
+                <span>
+                  {currentIndex + 1}/{words.length}
+                </span>
+                {(wordMeta.partOfSpeech ?? wordMeta.pos) ? (
+                  <span>{wordMeta.partOfSpeech ?? wordMeta.pos}</span>
+                ) : null}
+              </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <p className="text-sm text-slate-500">词库总数</p>
-            <p className="mt-2 text-4xl font-black text-ink">{words.length}</p>
-            <p className="mt-2 text-sm text-slate-500">当前离线词库已扩充到 {words.length} 条词汇。</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-slate-500">已掌握</p>
-            <p className="mt-2 text-4xl font-black text-ink">{knownWords.length}</p>
-            <p className="mt-2 text-sm text-slate-500">标记为“我认识”的单词。</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-slate-500">待复习</p>
-            <p className="mt-2 text-4xl font-black text-ink">{difficultWords.length}</p>
-            <p className="mt-2 text-sm text-slate-500">标记为“有点难”或“不会”的单词。</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-slate-500">收藏</p>
-            <p className="mt-2 text-4xl font-black text-ink">{favoriteWords.length}</p>
-            <p className="mt-2 text-sm text-slate-500">方便回看和重复播放。</p>
-          </Card>
-        </div>
+              <div className="space-y-1">
+                <h1 className="text-[1.9rem] font-black leading-none text-ink md:text-4xl">{wordMeta.word}</h1>
+                {(wordMeta.phonetic ?? wordMeta.pronunciation) ? (
+                  <p className="text-sm text-slate-500">{wordMeta.phonetic ?? wordMeta.pronunciation}</p>
+                ) : null}
+                {wordMeta.meaningZh ? (
+                  <p className="text-base font-semibold text-slate-700">{wordMeta.meaningZh}</p>
+                ) : null}
+              </div>
+            </div>
 
-        <WordCard
-          word={currentWord}
-          isFavorite={favoriteWords.includes(currentWord.id)}
-          onToggleFavorite={() => toggleFavoriteWord(currentWord.id)}
-          onFeedback={(feedback) => {
-            markWord(currentWord.id, feedback);
+            <div className="flex min-w-[76px] flex-col items-end gap-2">
+              {quiz.audioRef ? <AudioButton audioRef={quiz.audioRef} /> : null}
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="secondary" className="h-9 min-w-9 px-3" onClick={goPrevious}>
+                  {"<"}
+                </Button>
+                <Button type="button" variant="secondary" className="h-9 min-w-9 px-3" onClick={goNext}>
+                  {">"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">题干</p>
+            <p className="mt-1.5 text-sm font-semibold leading-6 text-ink" data-testid="quiz-prompt">
+              {quiz.prompt}
+            </p>
+            {quiz.promptSupplementZh ? (
+              <p className="mt-1.5 text-sm leading-6 text-slate-500">{quiz.promptSupplementZh}</p>
+            ) : null}
+          </div>
+        </Card>
+
+        <QuizCard
+          quiz={quiz}
+          autoAdvance="correct"
+          sessionState={session.quiz}
+          onSessionStateChange={updateVocabularyQuizSession}
+          onAdvance={goNext}
+          onResult={(correct) => {
+            recordQuizResult(quiz.id, correct);
+            markWord(currentWord.id, correct ? "known" : "unknown");
             logDailyProgress({
               words: 1,
               sentences: 0,
               passages: 0,
               reviews: 0,
-              correct: feedback === "known" ? 1 : 0,
+              correct: correct ? 1 : 0,
               total: 1
             });
-            goNext();
           }}
+          compact
+          hideHeader
         />
-
-        <QuizCard
-          quiz={quiz}
-          autoAdvance="correct"
-          onAdvance={() => goNext()}
-          onResult={(correct) => recordQuizResult(quiz.id, correct)}
-        />
-
-        <Card className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-bold text-ink">词汇总览</h3>
-              <p className="text-sm text-slate-500">
-                每页 30 个词。点击任意词条可快速跳转到对应词卡。
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-slate-500">
-                当前词：
-                <span className="ml-1 font-semibold text-ink">{currentWord.word}</span>
-              </p>
-              <p className="text-sm text-slate-500">
-                第 {overviewPage + 1} / {totalPages} 页
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" data-testid="vocabulary-overview">
-            {overviewWords.map((word) => {
-              const index = words.findIndex((item) => item.id === word.id);
-              const isKnown = knownWords.includes(word.id);
-              const isDifficult = difficultWords.includes(word.id);
-              const isFavorite = favoriteWords.includes(word.id);
-
-              return (
-                <button
-                  key={word.id}
-                  type="button"
-                  onClick={() => setCurrentIndex(index)}
-                  data-testid="vocabulary-overview-item"
-                  data-word-id={word.id}
-                  className={cn(
-                    "rounded-3xl border bg-white px-4 py-4 text-left transition hover:border-surge/40",
-                    currentIndex === index && "border-surge bg-sky/10",
-                    isKnown && "border-emerald-200",
-                    isDifficult && "border-amber-200"
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-lg font-bold text-ink" data-testid="overview-word">
-                      {word.word}
-                    </p>
-                    <span className="text-xs font-semibold text-slate-500">{word.level}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-500">{word.meaningZh}</p>
-                  <p className="mt-3 text-xs text-slate-400">
-                    {isKnown
-                      ? "已掌握"
-                      : isDifficult
-                        ? "待复习"
-                        : isFavorite
-                          ? "已收藏"
-                          : "未标记"}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-wrap justify-end gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={overviewPage === 0}
-              onClick={() => setOverviewPage((page) => Math.max(page - 1, 0))}
-              data-testid="vocabulary-overview-prev"
-            >
-              上一页
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={overviewPage + 1 >= totalPages}
-              onClick={() => setOverviewPage((page) => Math.min(page + 1, totalPages - 1))}
-              data-testid="vocabulary-overview-next"
-            >
-              下一页
-            </Button>
-          </div>
-        </Card>
       </div>
     </Shell>
   );

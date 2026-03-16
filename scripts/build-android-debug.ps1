@@ -36,6 +36,18 @@ $env:Path = "$javaHome\bin;$sdkRoot\platform-tools;$env:Path"
 
 Push-Location $projectRoot
 try {
+  $outDir = Join-Path $projectRoot "out"
+  if (Test-Path $outDir) {
+    cmd /c "rmdir /s /q `"$outDir`"" | Out-Null
+    Start-Sleep -Milliseconds 300
+    if (Test-Path $outDir) {
+      Remove-Item -LiteralPath $outDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    if (Test-Path $outDir) {
+      throw "Failed to clean output directory: $outDir"
+    }
+  }
+
   npm run build:content
   npm run build
   npx cap sync android

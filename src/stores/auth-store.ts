@@ -10,6 +10,8 @@ const AUTH_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export interface LocalUserProfile {
   username: string;
   createdAt: string;
+  nickname?: string;
+  avatarDataUrl?: string;
 }
 
 interface AuthResult {
@@ -24,14 +26,16 @@ interface AuthState {
   sessionExpiresAt?: string;
   register: (username: string, password: string) => Promise<AuthResult>;
   login: (username: string, password: string) => Promise<AuthResult>;
+  switchAccount: (username: string) => AuthResult;
   logout: () => void;
+  updateProfile: (payload: { nickname?: string; avatarDataUrl?: string }) => void;
 }
 
 type PersistedAuthUser = {
   username?: string;
   createdAt?: string;
-  passwordHash?: string;
-  passwordSalt?: string;
+  nickname?: string;
+  avatarDataUrl?: string;
 };
 
 type PersistedAuthState = {
@@ -67,7 +71,9 @@ function sanitizeProfiles(users?: PersistedAuthUser[]) {
       createdAt:
         typeof user?.createdAt === "string" && user.createdAt.trim()
           ? user.createdAt
-          : new Date().toISOString()
+          : new Date().toISOString(),
+      nickname: typeof user?.nickname === "string" ? user.nickname.trim() : "",
+      avatarDataUrl: typeof user?.avatarDataUrl === "string" ? user.avatarDataUrl : ""
     }))
     .filter((user) => user.username);
 }
@@ -112,7 +118,7 @@ function validateRegistration(username: string, password: string) {
   if (password.trim().length < 6) {
     return {
       ok: false,
-      message: "确认口令至少需要 6 位。"
+      message: "密码至少需要 6 位。"
     } satisfies AuthResult;
   }
 
@@ -121,6 +127,10 @@ function validateRegistration(username: string, password: string) {
 
 export function getActiveProfileKey(username?: string) {
   return username ? normalizeUsername(username) : "guest";
+}
+
+function enterProfile(username?: string) {
+  useLearningStore.getState().hydrateForProfile(getActiveProfileKey(username));
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -142,7 +152,7 @@ export const useAuthStore = create<AuthState>()(
         if (existing) {
           return {
             ok: false,
-            message: "该本机档案已存在，请直接切换。"
+            message: "该本地账号已存在，请直接登录。"
           };
         }
 
@@ -151,18 +161,21 @@ export const useAuthStore = create<AuthState>()(
             ...state.users,
             {
               username: normalized,
-              createdAt: new Date().toISOString()
+              createdAt: new Date().toISOString(),
+              nickname: normalized,
+              avatarDataUrl: ""
             }
           ],
           currentUsername: normalized,
           sessionExpiresAt: nextSessionExpiry(),
           hydrated: true
         }));
-        useLearningStore.getState().hydrateForProfile(getActiveProfileKey(normalized));
+
+        enterProfile(normalized);
 
         return {
           ok: true,
-          message: "本机档案已创建，并启用了 7 天轻量续登。"
+          message: "账号已创建，并自动进入登录态。"
         };
       },
       login: async (username, password) => {
@@ -172,14 +185,14 @@ export const useAuthStore = create<AuthState>()(
         if (!account) {
           return {
             ok: false,
-            message: "没有找到这个本机档案。"
+            message: "没有找到这个本地账号。"
           };
         }
 
         if (password.trim().length < 6) {
           return {
             ok: false,
-            message: "本机续登至少输入 6 位确认口令。"
+            message: "密码至少需要 6 位。"
           };
         }
 
@@ -188,11 +201,36 @@ export const useAuthStore = create<AuthState>()(
           sessionExpiresAt: nextSessionExpiry(),
           hydrated: true
         });
-        useLearningStore.getState().hydrateForProfile(getActiveProfileKey(normalized));
+
+        enterProfile(normalized);
 
         return {
           ok: true,
-          message: "已切换到本机档案，并刷新轻量续登有效期。"
+          message: "登录成功。"
+        };
+      },
+      switchAccount: (username) => {
+        const normalized = normalizeUsername(username);
+        const account = get().users.find((item) => item.username === normalized);
+
+        if (!account) {
+          return {
+            ok: false,
+            message: "未找到要切换的账号。"
+          };
+        }
+
+        set({
+          currentUsername: normalized,
+          sessionExpiresAt: nextSessionExpiry(),
+          hydrated: true
+        });
+
+        enterProfile(normalized);
+
+        return {
+          ok: true,
+          message: "已切换账号。"
         };
       },
       logout: () => {
@@ -201,7 +239,25 @@ export const useAuthStore = create<AuthState>()(
           sessionExpiresAt: undefined,
           hydrated: true
         });
-        useLearningStore.getState().hydrateForProfile(getActiveProfileKey(undefined));
+        enterProfile(undefined);
+      },
+      updateProfile: ({ nickname, avatarDataUrl }) => {
+        const currentUsername = get().currentUsername;
+        if (!currentUsername) {
+          return;
+        }
+
+        set((state) => ({
+          users: state.users.map((user) =>
+            user.username === currentUsername
+              ? {
+                  ...user,
+                  nickname: typeof nickname === "string" ? nickname.trim() : user.nickname,
+                  avatarDataUrl: typeof avatarDataUrl === "string" ? avatarDataUrl : user.avatarDataUrl
+                }
+              : user
+          )
+        }));
       }
     }),
     {

@@ -119,9 +119,6 @@ function buildExamWorlds() {
   const availableWordCount = Math.min(words.length, EXAM_WORD_LIMIT);
 
   if (availableWordCount < EXAM_WORLD_COUNT * EXAM_LEVELS_PER_WORLD) {
-    console.warn(
-      `[challenge-data] Not enough words to build challenge worlds. Received ${availableWordCount}, expected at least ${EXAM_WORLD_COUNT * EXAM_LEVELS_PER_WORLD}.`
-    );
     return {
       worlds: [] as ExamWorld[],
       warning: "当前题库不足，暂无法生成闯关地图。"

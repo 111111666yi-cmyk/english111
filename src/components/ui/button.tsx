@@ -9,11 +9,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-r from-surge to-sky text-white shadow-glass hover:translate-y-[-1px]",
-  secondary: "bg-white/80 text-ink ring-1 ring-slate-200 hover:bg-white",
-  ghost: "bg-transparent text-slate-700 hover:bg-slate-100",
+    "neu-button bg-neu-primary text-white shadow-glass hover:text-white active:text-white",
+  secondary:
+    "neu-button bg-neu-secondary text-ink shadow-soft hover:text-ink active:text-ink",
+  ghost:
+    "neu-button bg-[linear-gradient(145deg,#edf1f5,#d6dbe1)] text-slate-700 shadow-soft hover:text-ink active:text-ink",
   success:
-    "bg-gradient-to-r from-glow to-peach text-ink shadow-soft hover:translate-y-[-1px]"
+    "neu-button bg-neu-success text-ink shadow-soft hover:text-ink active:text-ink"
 };
 
 export function Button({
@@ -25,7 +27,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-semibold transition duration-200 disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex min-h-10 items-center justify-center rounded-[1.15rem] px-4 py-2.5 text-sm font-semibold tracking-[0.01em] transition duration-200 will-change-transform active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60",
         variants[variant],
         className
       )}

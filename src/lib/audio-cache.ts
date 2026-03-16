@@ -51,3 +51,39 @@ export async function saveCachedCloudAudio(cacheKey: string, blob: Blob) {
     request.onerror = () => reject(request.error);
   });
 }
+
+export async function getCloudAudioCacheStats() {
+  if (typeof window === "undefined" || !("indexedDB" in window)) {
+    return { entries: 0, bytes: 0 };
+  }
+
+  const db = await openDb();
+
+  return new Promise<{ entries: number; bytes: number }>((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      const blobs = (request.result as Blob[]) ?? [];
+      resolve({
+        entries: blobs.length,
+        bytes: blobs.reduce((total, blob) => total + blob.size, 0)
+      });
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function clearCachedCloudAudio() {
+  if (typeof window === "undefined" || !("indexedDB" in window)) {
+    return;
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const request = window.indexedDB.deleteDatabase(DB_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error("Audio cache database is blocked."));
+  });
+}

@@ -4,6 +4,7 @@ import expressions from "../src/data/expressions.json";
 import passages from "../src/data/passages.json";
 import sentences from "../src/data/sentences.json";
 import words from "../src/data/words.json";
+import type { ExpressionEntry, PassageEntry, SentenceEntry, WordEntry } from "../src/types/content";
 
 const root = process.cwd();
 const missing: string[] = [];
@@ -20,11 +21,11 @@ function checkAudioPath(entryLabel: string, audioPath?: string | null) {
   }
 }
 
-for (const word of words) {
+for (const word of words as WordEntry[]) {
   checkAudioPath(`word:${word.id}`, word.audioLocal);
 }
 
-for (const sentence of sentences) {
+for (const sentence of sentences as SentenceEntry[]) {
   checkAudioPath(`sentence:${sentence.id}`, sentence.audioLocal);
   if (sentence.keywordAudio) {
     for (const [keyword, value] of Object.entries(sentence.keywordAudio)) {
@@ -33,14 +34,14 @@ for (const sentence of sentences) {
   }
 }
 
-for (const passage of passages) {
+for (const passage of passages as PassageEntry[]) {
   checkAudioPath(`passage:${passage.id}`, passage.audioLocal);
   for (const [index, paragraphAudio] of (passage.paragraphAudio ?? []).entries()) {
     checkAudioPath(`passage:${passage.id}:paragraph:${index + 1}`, paragraphAudio);
   }
 }
 
-for (const expression of expressions) {
+for (const expression of expressions as ExpressionEntry[]) {
   checkAudioPath(`expression:${expression.id}:basic`, expression.audioLocalBasic);
   checkAudioPath(`expression:${expression.id}:advanced`, expression.audioLocalAdvanced);
 }
