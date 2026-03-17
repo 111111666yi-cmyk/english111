@@ -5,18 +5,34 @@ import type { QuizItem, QuizOption } from "@/types/content";
 
 function pickMeaningOptions(index: number): QuizOption[] {
   const target = words[index];
-  const pool = words.filter((item) => item.id !== target.id);
-  const distractors = [1, 2, 3].map((step) => pool[(index + step) % pool.length]);
-  const options = [
-    { id: "correct", label: target.meaningZh },
-    ...distractors.map((item) => ({ id: item.id, label: item.meaningZh }))
-  ];
+  const seen = new Set<string>();
+  const options: QuizOption[] = [];
+
+  const addOption = (id: string, label: string) => {
+    const normalized = label.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) {
+      return;
+    }
+
+    seen.add(normalized);
+    options.push({ id, label });
+  };
+
+  addOption("correct", target.meaningZh);
+
+  for (let offset = 1; offset < words.length && options.length < 4; offset += 1) {
+    const candidate = words[(index + offset) % words.length];
+    if (candidate.id !== target.id) {
+      addOption(candidate.id, candidate.meaningZh);
+    }
+  }
 
   const offset = index % options.length;
   return [...options.slice(offset), ...options.slice(0, offset)];
 }
 
 const wordMeaningLookup = new Map(words.map((word) => [word.word.toLowerCase(), word.meaningZh]));
+const wordEntryByLabel = new Map(words.map((word) => [word.word.toLowerCase(), word]));
 const wordIndexById = new Map(words.map((word, index) => [word.id, index]));
 const sentenceIndexById = new Map(sentences.map((sentence, index) => [sentence.id, index]));
 const expressionIndexById = new Map(expressions.map((expression, index) => [expression.id, index]));
@@ -24,6 +40,65 @@ const MIN_EXPRESSION_QUIZ_SAMPLES = 8;
 
 export function canGenerateExpressionQuiz() {
   return expressions.length >= MIN_EXPRESSION_QUIZ_SAMPLES;
+}
+
+function buildSentenceChoiceOptions(sentenceIndex: number) {
+  const sentence = sentences[sentenceIndex];
+  const answer = sentence.missingWord;
+  const answerKey = answer.toLowerCase();
+  const answerEntry = wordEntryByLabel.get(answerKey);
+  const optionLabels: string[] = [];
+  const seen = new Set<string>();
+
+  const addOption = (label?: string) => {
+    if (!label) {
+      return;
+    }
+
+    const normalized = label.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) {
+      return;
+    }
+
+    seen.add(normalized);
+    optionLabels.push(label);
+  };
+
+  addOption(answer);
+  sentence.relatedWords.forEach(addOption);
+
+  if (answerEntry) {
+    for (const candidate of words) {
+      if (candidate.word.toLowerCase() === answerKey) {
+        continue;
+      }
+
+      if (candidate.partOfSpeech === answerEntry.partOfSpeech && candidate.level === answerEntry.level) {
+        addOption(candidate.word);
+      }
+
+      if (optionLabels.length >= 4) {
+        break;
+      }
+    }
+  }
+
+  if (optionLabels.length < 4) {
+    for (let offset = 1; offset < words.length && optionLabels.length < 4; offset += 1) {
+      const candidate = words[(sentenceIndex + offset) % words.length];
+      if (candidate.word.toLowerCase() !== answerKey) {
+        addOption(candidate.word);
+      }
+    }
+  }
+
+  const ordered = optionLabels.slice(0, 4).map((label, optionIndex) => ({
+    id: label.toLowerCase() === answerKey ? "correct" : `option-${optionIndex}`,
+    label
+  }));
+
+  const offset = sentenceIndex % ordered.length;
+  return [...ordered.slice(offset), ...ordered.slice(0, offset)];
 }
 
 function makeVocabularyChoiceQuiz(wordIndex: number): QuizItem {
@@ -111,19 +186,13 @@ function makeSentenceQuiz(index: number): QuizItem {
   }
 
   if (index % 3 === 1) {
-    const optionWords = [sentence.missingWord, ...sentence.relatedWords].filter(Boolean).slice(0, 4);
-    const uniqueOptions = Array.from(new Set(optionWords));
-
     return {
       id: `quiz-${sentence.id}-choice`,
       type: "single-choice",
       prompt: sentence.sentenceEn.replace(new RegExp(sentence.missingWord, "i"), "_____"),
       promptZh: "Choose the best word to complete the sentence.",
       promptSupplementZh: sentence.sentenceZh,
-      options: uniqueOptions.map((option, optionIndex) => ({
-        id: option === sentence.missingWord ? "correct" : `option-${optionIndex}`,
-        label: option
-      })),
+      options: buildSentenceChoiceOptions(index),
       answer: "correct",
       answerText: sentence.missingWord,
       explanation: sentence.explanation,

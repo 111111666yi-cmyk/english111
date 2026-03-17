@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 import { createContentSummary } from "./content-summary";
+import contentHygiene from "./content-hygiene";
 import { localizeReadingQuestion } from "./reading-question-localization";
 import type {
   ExpressionEntry,
@@ -126,6 +127,7 @@ const sentencesPath = path.join(ROOT, "src", "data", "sentences.json");
 const passagesPath = path.join(ROOT, "src", "data", "passages.json");
 const expressionsPath = path.join(ROOT, "src", "data", "expressions.json");
 const contentSummaryPath = path.join(ROOT, "src", "data", "content-summary.json");
+const { isSuitableDictionaryRow, normalizeMeaningZh } = contentHygiene;
 
 function getArgValue(flag: string) {
   const index = process.argv.indexOf(flag);
@@ -218,7 +220,7 @@ function cleanTranslation(raw: string) {
     .replace(/\[[^\]]*]/g, "")
     .replace(/\([^)]+\)/g, "")
     .replace(/\b[a-z]\.\s*/gi, "")
-    .replace(/\b(adj|adv|n|v|vt|vi|prep|pron|num|art|conj)\b\.?/gi, "")
+    .replace(/\b(abbr|adj|adv|art|aux|conj|n|num|pl|pref|prep|pron|suf|suffix|v|vi|vt)\b\.?/gi, "")
     .replace(/[;"'`]/g, "")
     .trim();
 
@@ -242,6 +244,28 @@ function mapPartOfSpeech(raw: string) {
   }
 
   if (lowered.includes("verb") || lowered.includes("vt") || lowered.includes("vi") || lowered.includes("v.")) {
+    return "verb";
+  }
+
+  return "noun";
+}
+
+function cleanTranslationSafe(raw: string) {
+  return normalizeMeaningZh(raw);
+}
+
+function mapPartOfSpeechSafe(...sources: string[]) {
+  const lowered = sources.join(" ").toLowerCase();
+
+  if (/(^|\s)(adv|adverb)\.?(\s|$)/.test(lowered)) {
+    return "adverb";
+  }
+
+  if (/(^|\s)(adj|adjective|a\.)\.?(\s|$)/.test(lowered)) {
+    return "adjective";
+  }
+
+  if (/(^|\s)(verb|vt|vi|v\.)\.?(\s|$)/.test(lowered)) {
     return "verb";
   }
 
@@ -333,9 +357,11 @@ async function loadDictionaryRows(rankMap: Map<string, number>, desiredCount: nu
       continue;
     }
 
-    const translation = cleanTranslation(cells[3] ?? "");
+    const rawDefinition = cells[2] ?? "";
+    const rawTranslation = cells[3] ?? "";
+    const translation = cleanTranslationSafe(rawTranslation);
 
-    if (!translation || translation.length < 2) {
+    if (!isSuitableDictionaryRow(rawWord, rawTranslation, rawDefinition)) {
       continue;
     }
 
@@ -343,7 +369,7 @@ async function loadDictionaryRows(rankMap: Map<string, number>, desiredCount: nu
       word: rawWord,
       phonetic: cells[1]?.trim() ? `/${cells[1].trim()}/` : "",
       translation,
-      pos: mapPartOfSpeech(cells[4] ?? ""),
+      pos: mapPartOfSpeechSafe(rawDefinition, rawTranslation, cells[4] ?? ""),
       rank: rankMap.get(rawWord) ?? Number.MAX_SAFE_INTEGER
     });
 

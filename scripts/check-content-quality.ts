@@ -6,6 +6,7 @@ import {
   getVocabularyQuiz
 } from "@/data/quizzes";
 import type { QuizItem } from "@/types/content";
+import contentHygiene from "./content-hygiene";
 
 type Severity = "error" | "warn";
 
@@ -16,6 +17,12 @@ interface Finding {
 }
 
 const findings: Finding[] = [];
+const {
+  containsBlockedChineseFragment,
+  containsBlockedEnglishWord,
+  containsEscapedNewlineArtifact,
+  containsLowQualityMeaningMarker
+} = contentHygiene;
 
 function addFinding(severity: Severity, code: string, message: string) {
   findings.push({ severity, code, message });
@@ -127,6 +134,48 @@ function inspectChoiceDistractors(quiz: QuizItem, origin: string) {
   }
 }
 
+function checkBlockedContent() {
+  for (const word of words) {
+    if (containsBlockedEnglishWord(word.word) || containsBlockedEnglishWord(word.meaningZh)) {
+      addFinding("error", "content.blocked-word", `word:${word.id} 鍖呭惈涓嶉€傚悎瀛︿範鐨勫唴瀹广€?`);
+    }
+
+    if (
+      containsBlockedChineseFragment(word.meaningZh) ||
+      containsEscapedNewlineArtifact(word.meaningZh) ||
+      containsLowQualityMeaningMarker(word.meaningZh)
+    ) {
+      addFinding("error", "content.low-quality-word", `word:${word.id} 璇嶄箟鍖呭惈浣庤川閲忔垨涓嶉€傚悎瀛︿範鍐呭銆?`);
+    }
+  }
+
+  for (const sentence of sentences) {
+    if (containsBlockedEnglishWord(sentence.sentenceEn) || containsBlockedEnglishWord(sentence.sentenceZh)) {
+      addFinding("error", "content.blocked-sentence", `sentence:${sentence.id} 鍖呭惈涓嶉€傚悎瀛︿範鐨勫唴瀹广€?`);
+    }
+
+    if (containsBlockedChineseFragment(sentence.sentenceZh) || containsEscapedNewlineArtifact(sentence.sentenceZh)) {
+      addFinding("error", "content.low-quality-sentence", `sentence:${sentence.id} 鍖呭惈涓嶅簲鍑虹幇鐨勬枃鏈墖娈点€?`);
+    }
+  }
+
+  for (const passage of passages) {
+    if (
+      passage.contentEn.some(containsBlockedEnglishWord) ||
+      passage.contentZh.some(containsBlockedEnglishWord)
+    ) {
+      addFinding("error", "content.blocked-passage", `passage:${passage.id} 鍖呭惈涓嶉€傚悎瀛︿範鐨勫唴瀹广€?`);
+    }
+
+    if (
+      passage.contentZh.some(containsBlockedChineseFragment) ||
+      passage.contentZh.some(containsEscapedNewlineArtifact)
+    ) {
+      addFinding("error", "content.low-quality-passage", `passage:${passage.id} 鍖呭惈涓嶅簲鍑虹幇鐨勬枃鏈墖娈点€?`);
+    }
+  }
+}
+
 function checkQuizQuality() {
   for (let index = 0; index < words.length; index += 1) {
     inspectChoiceDistractors(getVocabularyQuiz(index), `word:${words[index].id}`);
@@ -167,6 +216,7 @@ function printFindings() {
 checkReadingLocalization();
 checkExpressions();
 checkQuizQuality();
+checkBlockedContent();
 printFindings();
 
 if (findings.some((finding) => finding.severity === "error")) {
