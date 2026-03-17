@@ -24,3 +24,6 @@ android/.gradle/
 android/local.properties
 *.keystore
 *.jks
+.idea/
+android/.idea/
+input/
