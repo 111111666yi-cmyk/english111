@@ -29,6 +29,17 @@ type HeaderConfig = {
   backLabel?: string;
 };
 
+const studyTabs = [
+  { href: "/vocabulary", label: "\u5355\u8bcd" },
+  { href: "/sentences", label: "\u53e5\u5b50" },
+  { href: "/reading", label: "\u77ed\u6587" },
+  { href: "/expressions", label: "\u8868\u8fbe" },
+  { href: "/challenge", label: "\u95ef\u5173" },
+  { href: "/test", label: "\u6d4b\u8bd5" },
+  { href: "/review", label: "\u590d\u4e60" },
+  { href: "/settings", label: "\u8bbe\u7f6e" }
+] as const;
+
 const primaryNavItems: PrimaryNavItem[] = [
   {
     href: "/vocabulary",
@@ -72,33 +83,21 @@ function matchesRoute(pathname: string, candidates: string[]) {
 }
 
 function getHeaderConfig(pathname: string): HeaderConfig {
-  if (matchesRoute(pathname, ["/vocabulary", "/sentences", "/reading", "/expressions"])) {
+  if (
+    matchesRoute(pathname, [
+      "/vocabulary",
+      "/sentences",
+      "/reading",
+      "/expressions",
+      "/challenge",
+      "/test",
+      "/review",
+      "/settings"
+    ])
+  ) {
     return {
-      tabs: [
-        { href: "/vocabulary", label: "\u5355\u8bcd" },
-        { href: "/sentences", label: "\u53e5\u5b50" },
-        { href: "/reading", label: "\u77ed\u6587" },
-        { href: "/expressions", label: "\u8868\u8fbe" },
-        { href: "/challenge", label: "\u95ef\u5173" },
-        { href: "/test", label: "\u6d4b\u8bd5" },
-        { href: "/review", label: "\u590d\u4e60" },
-        { href: "/settings", label: "\u8bbe\u7f6e" }
-      ]
+      tabs: [...studyTabs]
     };
-  }
-
-  if (matchesRoute(pathname, ["/test", "/review"])) {
-    return {
-      title: "\u6d4b\u8bd5",
-      tabs: [
-        { href: "/test", label: "\u6d4b\u8bd5" },
-        { href: "/review", label: "\u590d\u4e60" }
-      ]
-    };
-  }
-
-  if (matchesRoute(pathname, ["/challenge"])) {
-    return { title: "\u95ef\u5173" };
   }
 
   if (matchesRoute(pathname, ["/account"])) {
@@ -157,7 +156,7 @@ function PrimaryNavLinks({ pathname, mobile = false }: { pathname: string; mobil
   );
 }
 
-function BasicsTabs({ pathname }: { pathname: string }) {
+function StudyTabs({ pathname }: { pathname: string }) {
   const persistNow = useLearningStore((state) => state.persistNow);
   const tabs = getHeaderConfig(pathname).tabs ?? [];
 
@@ -194,7 +193,7 @@ export function Navbar() {
   const pathname = usePathname() || "/";
   const persistNow = useLearningStore((state) => state.persistNow);
   const headerConfig = getHeaderConfig(pathname);
-  const isBasicsRoute = matchesRoute(pathname, ["/vocabulary", "/sentences", "/reading", "/expressions"]);
+  const hasStudyTabs = Boolean(headerConfig.tabs?.length);
   const isWordLibraryRoute = matchesRoute(pathname, ["/word-library"]);
   const isHomeRoute = pathname === "/";
 
@@ -216,8 +215,8 @@ export function Navbar() {
 
   return (
     <>
-      {isBasicsRoute ? (
-        <BasicsTabs pathname={pathname} />
+      {hasStudyTabs ? (
+        <StudyTabs pathname={pathname} />
       ) : (
         <header className="theme-header-chrome sticky top-0 z-40">
           <div className="app-header-safe">
