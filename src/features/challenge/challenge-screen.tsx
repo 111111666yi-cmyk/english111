@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { DesktopChallengeMap } from "@/features/challenge/desktop-challenge-map";
 import { ExamModePanel } from "@/features/challenge/exam-mode-panel";
 import { Shell } from "@/components/shell";
 
@@ -11,7 +12,12 @@ export function ChallengeScreen() {
 
   return (
     <Shell>
-      <ExamModePanel completedLevelId={completedLevelId} unlockedLevelId={unlockedLevelId} />
+      <>
+        <DesktopChallengeMap completedLevelId={completedLevelId} unlockedLevelId={unlockedLevelId} />
+        <div className="md:hidden">
+          <ExamModePanel completedLevelId={completedLevelId} unlockedLevelId={unlockedLevelId} />
+        </div>
+      </>
     </Shell>
   );
 }
