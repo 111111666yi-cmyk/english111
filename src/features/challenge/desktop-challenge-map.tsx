@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Check,
+  ChevronDown,
   Lock,
   Map,
   Sparkles,
@@ -30,18 +31,18 @@ import {
 } from "@/features/challenge/challenge-shared";
 
 const DESKTOP_NODE_POSITIONS = [
-  { left: "7%", top: "68%" },
-  { left: "14%", top: "55%" },
-  { left: "23%", top: "63%" },
-  { left: "31%", top: "46%" },
-  { left: "40%", top: "56%" },
-  { left: "49%", top: "38%" },
-  { left: "58%", top: "49%" },
-  { left: "67%", top: "32%" },
-  { left: "76%", top: "44%" },
-  { left: "84%", top: "27%" },
-  { left: "91%", top: "39%" },
-  { left: "96%", top: "21%" }
+  { left: "4%", top: "74%" },
+  { left: "12%", top: "58%" },
+  { left: "20%", top: "71%" },
+  { left: "30%", top: "50%" },
+  { left: "40%", top: "67%" },
+  { left: "50%", top: "41%" },
+  { left: "60%", top: "61%" },
+  { left: "70%", top: "34%" },
+  { left: "80%", top: "55%" },
+  { left: "88%", top: "28%" },
+  { left: "94%", top: "49%" },
+  { left: "98%", top: "21%" }
 ] as const;
 
 function nodeTone({
@@ -85,6 +86,7 @@ export function DesktopChallengeMap({
   const examMistakes = useLearningStore((state) => state.examMistakes);
   const updateChallengeSession = useLearningStore((state) => state.updateChallengeSession);
   const persistNow = useLearningStore((state) => state.persistNow);
+  const mapSectionRef = useRef<HTMLDivElement | null>(null);
 
   const isChallengeUnavailable = Boolean(examWorldsWarning) || examWorlds.length === 0;
   const activeModeLabel = activeMode === "simple" ? "简单模式" : "困难模式";
@@ -154,6 +156,10 @@ export function DesktopChallengeMap({
     router.push(`/challenge/level/${selectedLevel.id}`);
   };
 
+  const scrollToMap = () => {
+    mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="hidden gap-6 md:block" data-testid="desktop-challenge-map">
       <Card className="overflow-hidden border border-white/70 bg-[linear-gradient(145deg,#eefbf2,#f8fffb)] p-0">
@@ -161,15 +167,16 @@ export function DesktopChallengeMap({
           <div className="space-y-5">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-3 rounded-full border border-emerald-200 bg-white/80 px-4 py-2 shadow-[0_10px_30px_rgba(16,185,129,0.12)]">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-black text-white">
-                    EC
+                <button
+                  type="button"
+                  onClick={scrollToMap}
+                  className="inline-flex items-center gap-3 rounded-full border border-emerald-200 bg-white/80 px-4 py-2 text-sm font-semibold text-emerald-800 shadow-[0_10px_30px_rgba(16,185,129,0.12)] transition hover:-translate-y-0.5"
+                >
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-white">
+                    <ChevronDown className="h-5 w-5" />
                   </span>
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-emerald-700">Challenge</p>
-                    <p className="text-sm font-semibold text-slate-600">桌面专属闯关地图</p>
-                  </div>
-                </div>
+                  <span>开始闯关</span>
+                </button>
 
                 <div>
                   <h1 className="text-4xl font-black tracking-tight text-ink">CHALLENGE 闯关</h1>
@@ -278,14 +285,14 @@ export function DesktopChallengeMap({
         </div>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-[1.45fr_0.55fr]">
+      <div ref={mapSectionRef} className="grid gap-6 scroll-mt-28 lg:grid-cols-[1.45fr_0.55fr]">
         <Card className={cn("relative overflow-hidden border border-white/70 p-0 bg-gradient-to-br", activeWorld.surfaceClass)}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.85),transparent_26%),radial-gradient(circle_at_78%_18%,rgba(255,255,255,0.75),transparent_20%),linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.02))]" />
           <div className="absolute left-[6%] top-[12%] h-24 w-44 rounded-full bg-white/40 blur-2xl" />
           <div className="absolute right-[8%] top-[24%] h-28 w-56 rounded-full bg-white/30 blur-2xl" />
           <div className="absolute bottom-[-2%] left-0 right-0 h-40 bg-[linear-gradient(180deg,rgba(34,197,94,0.02),rgba(21,128,61,0.12))]" />
 
-          <div className="relative h-[520px] px-8 py-7">
+          <div className="relative h-[640px] px-8 py-7">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">World Map</p>
@@ -293,11 +300,11 @@ export function DesktopChallengeMap({
                 <p className="mt-2 max-w-xl text-sm leading-7 text-slate-600">{activeWorld.description}</p>
               </div>
               <div className="rounded-full border border-white/70 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-600">
-                横向地图 · 桌面优化
+                展开地图
               </div>
             </div>
 
-            <div className="absolute inset-x-10 bottom-12 top-28">
+            <div className="absolute inset-x-8 bottom-10 top-28">
               {activeWorld.levels.slice(0, -1).map((level, index) => {
                 const from = DESKTOP_NODE_POSITIONS[index];
                 const to = DESKTOP_NODE_POSITIONS[index + 1];
@@ -319,7 +326,7 @@ export function DesktopChallengeMap({
                     style={{
                       left: from.left,
                       top: from.top,
-                      width: `${length}%`,
+                      width: `${length * 1.03}%`,
                       transform: `rotate(${angle}deg)`,
                       transformOrigin: "left center"
                     }}
@@ -350,7 +357,7 @@ export function DesktopChallengeMap({
                     className="absolute -translate-x-1/2 -translate-y-1/2 text-left transition hover:scale-[1.02]"
                     style={{ left: DESKTOP_NODE_POSITIONS[index].left, top: DESKTOP_NODE_POSITIONS[index].top }}
                   >
-                    <div className="flex flex-col items-center gap-2">
+                    <div className="flex flex-col items-center gap-3">
                       <div className="flex items-center gap-0.5">
                         {Array.from({ length: 3 }, (_, starIndex) => (
                           <Star
@@ -444,13 +451,6 @@ export function DesktopChallengeMap({
                 <span className="text-sm font-bold text-slate-900">{worldIndex + 1} / {examWorlds.length}</span>
               </div>
             </div>
-          </div>
-
-          <div className="rounded-[1.45rem] border border-dashed border-slate-200 px-4 py-4">
-            <p className="text-sm font-semibold text-slate-800">桌面端优化</p>
-            <p className="mt-2 text-sm leading-7 text-slate-600">
-              保留手机端原有简化地图与弹层流程，桌面端改为独立横向地图，信息层级更清晰，操作也更接近你之前那版。
-            </p>
           </div>
         </Card>
       </div>
