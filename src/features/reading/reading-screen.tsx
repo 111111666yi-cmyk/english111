@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { PassageViewer } from "@/components/passage-viewer";
 import { QuizCard } from "@/components/quiz-card";
+import { Shell } from "@/components/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Shell } from "@/components/shell";
 import { passages } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { useLearningStore } from "@/stores/learning-store";
@@ -13,6 +14,7 @@ import { useLearningStore } from "@/stores/learning-store";
 const PASSAGE_PAGE_SIZE = 24;
 
 export function ReadingScreen() {
+  const [directoryOpen, setDirectoryOpen] = useState(false);
   const hydrated = useLearningStore((state) => state.hydrated);
   const session = useLearningStore((state) => state.readingSession);
   const chineseAssist = useLearningStore((state) => state.settings.chineseAssist);
@@ -38,6 +40,12 @@ export function ReadingScreen() {
     const start = directoryPage * PASSAGE_PAGE_SIZE;
     return passages.slice(start, start + PASSAGE_PAGE_SIZE);
   }, [directoryPage]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth >= 768) {
+      setDirectoryOpen(true);
+    }
+  }, []);
 
   const goNextPassage = (feedback = "") => {
     const nextIndex = currentIndex + 1 >= passages.length ? 0 : currentIndex + 1;
@@ -188,61 +196,85 @@ export function ReadingScreen() {
                 {directoryPage + 1}/{totalPages}
               </span>
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="button"
                 variant="secondary"
-                disabled={directoryPage === 0}
-                onClick={() => updateReadingSession({ directoryPage: Math.max(directoryPage - 1, 0) })}
+                className="gap-2"
+                onClick={() => setDirectoryOpen((value) => !value)}
+                aria-expanded={directoryOpen}
               >
-                上一页
+                {directoryOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {directoryOpen ? "收起目录" : "展开目录"}
               </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={directoryPage + 1 >= totalPages}
-                onClick={() => updateReadingSession({ directoryPage: Math.min(directoryPage + 1, totalPages - 1) })}
-              >
-                下一页
-              </Button>
+              {directoryOpen ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={directoryPage === 0}
+                    onClick={() => updateReadingSession({ directoryPage: Math.max(directoryPage - 1, 0) })}
+                  >
+                    上一页
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={directoryPage + 1 >= totalPages}
+                    onClick={() => updateReadingSession({ directoryPage: Math.min(directoryPage + 1, totalPages - 1) })}
+                  >
+                    下一页
+                  </Button>
+                </>
+              ) : null}
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {visiblePassages.map((item) => {
-              const itemIndex = passages.findIndex((entry) => entry.id === item.id);
-              const completed = completedPassageIds.includes(item.id);
+          {directoryOpen ? (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {visiblePassages.map((item) => {
+                const itemIndex = passages.findIndex((entry) => entry.id === item.id);
+                const completed = completedPassageIds.includes(item.id);
 
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() =>
-                    updateReadingSession({
-                      currentIndex: itemIndex,
-                      directoryPage,
-                      feedback: "",
-                      activeQuestionIndex: 0
-                    })
-                  }
-                  data-testid="reading-directory-item"
-                  data-passage-id={item.id}
-                  className={cn(
-                    "rounded-3xl border bg-white px-4 py-4 text-left transition hover:border-surge/40",
-                    currentIndex === itemIndex && "border-surge bg-sky/10",
-                    completed && "border-emerald-200"
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-base font-bold text-ink">{item.title}</p>
-                    <span className="text-xs font-semibold text-slate-500">{item.level}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-500">{item.topic}</p>
-                  <p className="mt-3 text-xs text-slate-400">{completed ? "已完成" : "未完成"}</p>
-                </button>
-              );
-            })}
-          </div>
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      updateReadingSession({
+                        currentIndex: itemIndex,
+                        directoryPage,
+                        feedback: "",
+                        activeQuestionIndex: 0
+                      });
+
+                      if (typeof window !== "undefined" && window.innerWidth < 768) {
+                        setDirectoryOpen(false);
+                      }
+                    }}
+                    data-testid="reading-directory-item"
+                    data-passage-id={item.id}
+                    className={cn(
+                      "rounded-3xl border bg-white px-4 py-4 text-left transition hover:border-surge/40",
+                      currentIndex === itemIndex && "border-surge bg-sky/10",
+                      completed && "border-emerald-200"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-base font-bold text-ink">{item.title}</p>
+                      <span className="text-xs font-semibold text-slate-500">{item.level}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-500">{item.topic}</p>
+                    <p className="mt-3 text-xs text-slate-400">{completed ? "已完成" : "未完成"}</p>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 px-4 py-4 text-sm text-slate-500">
+              目录已收起，可按“展开目录”快速切换篇目。
+            </div>
+          )}
         </Card>
       </div>
     </Shell>

@@ -84,6 +84,19 @@ function OverlayFrame({
   children: React.ReactNode;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, []);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 py-6 backdrop-blur-sm"
@@ -94,7 +107,7 @@ function OverlayFrame({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.97, y: 10 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
-        className="challenge-overlay-panel w-full max-w-xl"
+        className="challenge-overlay-panel max-h-[calc(100dvh-3rem)] w-full max-w-xl overflow-y-auto overscroll-contain"
         onClick={(event) => event.stopPropagation()}
       >
         {children}
