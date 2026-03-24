@@ -8,14 +8,13 @@ import { QuizCard } from "@/components/quiz-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getVocabularyQuiz } from "@/data/quizzes";
+import { withBasePath } from "@/lib/base-path";
 import { createEmptyQuizSession } from "@/lib/quiz-session";
 import { Shell } from "@/components/shell";
-import { words } from "@/lib/content";
+import { releaseWordIndexById } from "@/lib/content";
 import { useLearningStore } from "@/stores/learning-store";
-import { findLevelEntry, getLevelUnlockState, getNextLevelId } from "@/features/challenge/challenge-shared";
+import { canAccessLevel, findLevelEntry, getNextLevelId } from "@/features/challenge/challenge-shared";
 import { getExamStars } from "@/lib/challenge-data";
-
-const wordIndexById = new Map(words.map((word, index) => [word.id, index]));
 
 export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
   const router = useRouter();
@@ -54,7 +53,7 @@ export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
   }, [challengeSession.activeLevelId, challengeSession.activeWorldId, hydrated, levelEntry, updateChallengeSession]);
 
   const isUnlocked = levelEntry
-    ? getLevelUnlockState(levelEntry.worldIndex, levelEntry.levelIndex, examLevelProgress)
+    ? canAccessLevel(levelEntry.worldIndex, levelEntry.levelIndex, examLevelProgress)
     : false;
 
   const activeQuizzes = useMemo(() => {
@@ -62,7 +61,9 @@ export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
       return [];
     }
 
-    return levelEntry.level.words.map((word) => getVocabularyQuiz(wordIndexById.get(word.id) ?? 0, activeMode));
+    return levelEntry.level.words.map((word) =>
+      getVocabularyQuiz(releaseWordIndexById.get(word.id) ?? 0, activeMode)
+    );
   }, [activeMode, levelEntry]);
 
   const currentQuiz =
@@ -74,6 +75,7 @@ export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
   const correctCount = Object.values(challengeSession.results).filter(Boolean).length;
   const accuracy = activeQuizzes.length ? Math.round((correctCount / activeQuizzes.length) * 100) : 0;
   const stars = getExamStars(accuracy);
+  const cleared = accuracy >= 50;
   const allAnswered = activeQuizzes.length > 0 && answeredCount >= activeQuizzes.length;
 
   useEffect(() => {
@@ -82,12 +84,13 @@ export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
     }
 
     saveExamLevelProgress(levelEntry.level.id, accuracy, stars);
-    const nextLevelId = getNextLevelId(levelEntry.worldIndex, levelEntry.levelIndex);
+    const nextLevelId = cleared ? getNextLevelId(levelEntry.worldIndex, levelEntry.levelIndex) : null;
+    const nextLevelEntry = nextLevelId ? findLevelEntry(nextLevelId) : null;
 
     updateChallengeSession({
-      activeWorldId: levelEntry.world.id,
+      activeWorldId: nextLevelEntry?.world.id ?? levelEntry.world.id,
       activeLevelId: null,
-      selectedLevelId: nextLevelId ?? levelEntry.level.id,
+      selectedLevelId: cleared ? nextLevelId ?? levelEntry.level.id : levelEntry.level.id,
       questionIndex: 0,
       results: {},
       saved: true,
@@ -96,12 +99,15 @@ export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
 
     window.setTimeout(() => {
       persistNow();
-      router.replace(
-        `/challenge?completed=${levelEntry.level.id}${nextLevelId ? `&unlocked=${nextLevelId}` : ""}`
-      );
+      const challengePath =
+        cleared
+          ? `/challenge?completed=${levelEntry.level.id}${nextLevelId ? `&unlocked=${nextLevelId}` : ""}`
+          : "/challenge";
+      router.replace(withBasePath(challengePath) ?? challengePath);
     }, 700);
   }, [
     accuracy,
+    cleared,
     allAnswered,
     challengeSession.saved,
     hydrated,
@@ -157,7 +163,8 @@ export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
             variant="secondary"
             onClick={() => {
               persistNow();
-              router.push("/challenge");
+              const challengePath = withBasePath("/challenge") ?? "/challenge";
+              router.push(challengePath);
             }}
             data-testid="challenge-back-to-map"
           >

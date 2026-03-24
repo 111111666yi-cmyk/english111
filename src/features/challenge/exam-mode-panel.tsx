@@ -26,19 +26,22 @@ import {
   getExamStars,
   getExamWorldUnlockState
 } from "@/lib/challenge-data";
+import { appConfig } from "@/lib/app-config";
+import { isReleaseWordId, releaseWordIndexById, wordById } from "@/lib/content";
 import { createEmptyQuizSession } from "@/lib/quiz-session";
-import { words } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { useLearningStore } from "@/stores/learning-store";
 import {
+  canAccessLevel,
   findLevelEntry,
+  getCurrentPlayableWorldIndex,
   getCurrentPlayerLevel,
   getLevelUnlockState,
   getNextLevelId
 } from "@/features/challenge/challenge-shared";
 
-const NODE_Y = [74, 148, 222, 296, 370, 444, 518, 592, 666, 740, 814, 888];
-const NODE_X = [76, 176, 104, 192, 84, 186, 94, 194, 82, 180, 104, 188];
+const NODE_Y = [98, 164, 230, 296, 362, 428, 494, 560, 626, 692, 758, 824];
+const NODE_X = [78, 172, 102, 188, 84, 182, 94, 190, 82, 178, 104, 186];
 const watercolorShapes = [
   ["bg-amber-200/50", "left-[-5%] top-[8%] h-36 w-56 rotate-[-10deg]", "bg-amber-100/60", "right-[4%] top-[20%] h-28 w-44 rotate-[14deg]", "bg-orange-100/55", "left-[10%] bottom-[12%] h-40 w-52 rotate-[10deg]"],
   ["bg-emerald-200/50", "left-[2%] top-[10%] h-40 w-60 rotate-[8deg]", "bg-lime-100/60", "right-[8%] top-[22%] h-32 w-48 rotate-[-12deg]", "bg-teal-100/55", "left-[12%] bottom-[10%] h-36 w-56 rotate-[6deg]"],
@@ -51,8 +54,6 @@ const watercolorShapes = [
   ["bg-sky-200/45", "left-[0%] top-[6%] h-40 w-58 rotate-[6deg]", "bg-indigo-100/55", "right-[6%] top-[20%] h-30 w-46 rotate-[16deg]", "bg-cyan-100/55", "left-[12%] bottom-[10%] h-42 w-52 rotate-[-6deg]"]
 ] as const;
 
-const wordIndexById = new Map(words.map((word, index) => [word.id, index]));
-
 function buildNodeClass({
   unlocked,
   cleared,
@@ -63,11 +64,11 @@ function buildNodeClass({
   current: boolean;
 }) {
   if (!unlocked) {
-    return "border-slate-300 bg-[linear-gradient(145deg,#d9dfe6,#eef2f7)] text-slate-400 shadow-[inset_5px_5px_10px_rgba(182,190,200,0.55),inset_-5px_-5px_10px_rgba(255,255,255,0.82)]";
+    return "border-slate-300 bg-[linear-gradient(145deg,#dfe5eb,#f3f6f9)] text-slate-400 shadow-[inset_5px_5px_10px_rgba(182,190,200,0.45),inset_-5px_-5px_10px_rgba(255,255,255,0.9)]";
   }
 
   if (current) {
-    return "border-sky-200 bg-[linear-gradient(145deg,#98e6ff,#5f78f9)] text-white shadow-[9px_9px_18px_rgba(104,135,219,0.32),-8px_-8px_18px_rgba(255,255,255,0.82)]";
+    return "border-sky-100 bg-[linear-gradient(145deg,#a8edff,#6178fb)] text-white shadow-[0_0_0_4px_rgba(255,255,255,0.52),10px_10px_22px_rgba(104,135,219,0.28),-8px_-8px_18px_rgba(255,255,255,0.82)]";
   }
 
   if (cleared) {
@@ -75,6 +76,19 @@ function buildNodeClass({
   }
 
   return "border-amber-200 bg-[linear-gradient(145deg,#fff8d9,#ffd378)] text-amber-950 shadow-[8px_8px_18px_rgba(221,180,72,0.22),-8px_-8px_18px_rgba(255,255,255,0.82)]";
+}
+
+function getSeasonGlowClass(season: "spring" | "summer" | "autumn" | "winter") {
+  if (season === "spring") {
+    return "bg-[radial-gradient(circle_at_20%_20%,rgba(255,220,236,0.55),transparent_30%),radial-gradient(circle_at_78%_24%,rgba(214,245,216,0.46),transparent_28%)]";
+  }
+  if (season === "summer") {
+    return "bg-[radial-gradient(circle_at_18%_22%,rgba(194,236,255,0.52),transparent_30%),radial-gradient(circle_at_80%_18%,rgba(255,244,183,0.42),transparent_28%)]";
+  }
+  if (season === "autumn") {
+    return "bg-[radial-gradient(circle_at_16%_24%,rgba(255,219,183,0.5),transparent_30%),radial-gradient(circle_at_78%_20%,rgba(255,236,201,0.42),transparent_28%)]";
+  }
+  return "bg-[radial-gradient(circle_at_18%_22%,rgba(228,239,255,0.55),transparent_30%),radial-gradient(circle_at_76%_18%,rgba(255,255,255,0.5),transparent_28%)]";
 }
 
 function OverlayFrame({
@@ -212,7 +226,7 @@ function ProgressPanel({
 function MistakePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const examMistakes = useLearningStore((state) => state.examMistakes);
   const mistakeWords = useMemo(
-    () => examMistakes.map((id) => words.find((word) => word.id === id)).filter(Boolean),
+    () => examMistakes.filter(isReleaseWordId).map((id) => wordById.get(id)).filter(Boolean),
     [examMistakes]
   );
 
@@ -265,7 +279,7 @@ function ChallengeStageModal({
 }: {
   levelId: string;
   onClose: () => void;
-  onLevelCompleted: (completedId: string, unlockedId: string | null) => void;
+  onLevelCompleted: (completedId: string | null, unlockedId: string | null) => void;
 }) {
   const activeMode = useLearningStore((state) => state.modeConfig.activeMode);
   const challengeSession = useLearningStore((state) => state.challengeSession);
@@ -302,13 +316,13 @@ function ChallengeStageModal({
     return null;
   }
 
-  const isUnlocked = getLevelUnlockState(levelEntry.worldIndex, levelEntry.levelIndex, examLevelProgress);
+  const isUnlocked = canAccessLevel(levelEntry.worldIndex, levelEntry.levelIndex, examLevelProgress);
   if (!isUnlocked) {
     return null;
   }
 
   const activeQuizzes = levelEntry.level.words.map((word) =>
-    getVocabularyQuiz(wordIndexById.get(word.id) ?? 0, activeMode)
+    getVocabularyQuiz(releaseWordIndexById.get(word.id) ?? 0, activeMode)
   );
   const questionIndex = Math.min(challengeSession.questionIndex, Math.max(activeQuizzes.length - 1, 0));
   const currentQuiz = activeQuizzes[questionIndex] ?? null;
@@ -317,6 +331,7 @@ function ChallengeStageModal({
   const correctCount = Object.values(challengeSession.results).filter(Boolean).length;
   const accuracy = activeQuizzes.length ? Math.round((correctCount / activeQuizzes.length) * 100) : 0;
   const stars = getExamStars(accuracy);
+  const cleared = accuracy >= 50;
   const allAnswered = activeQuizzes.length > 0 && answeredCount >= activeQuizzes.length;
 
   const goPrevious = () => {
@@ -353,18 +368,19 @@ function ChallengeStageModal({
 
   const finishLevel = () => {
     saveExamLevelProgress(levelEntry.level.id, accuracy, stars);
-    const nextLevelId = getNextLevelId(levelEntry.worldIndex, levelEntry.levelIndex);
+    const nextLevelId = cleared ? getNextLevelId(levelEntry.worldIndex, levelEntry.levelIndex) : null;
+    const nextLevelEntry = nextLevelId ? findLevelEntry(nextLevelId) : null;
     updateChallengeSession({
-      activeWorldId: levelEntry.world.id,
+      activeWorldId: nextLevelEntry?.world.id ?? levelEntry.world.id,
       activeLevelId: null,
-      selectedLevelId: nextLevelId ?? levelEntry.level.id,
+      selectedLevelId: cleared ? nextLevelId ?? levelEntry.level.id : levelEntry.level.id,
       questionIndex: 0,
       results: {},
       saved: true,
       quiz: createEmptyQuizSession()
     });
     persistNow();
-    onLevelCompleted(levelEntry.level.id, nextLevelId);
+    onLevelCompleted(cleared ? levelEntry.level.id : null, nextLevelId);
   };
 
   return (
@@ -464,7 +480,7 @@ function ChallengeStageModal({
               <Trophy className="h-8 w-8" />
             </div>
             <p className="text-3xl font-black text-ink">{stars} 颗星</p>
-            <p className="text-lg font-semibold text-slate-700">{accuracy >= 60 ? "恭喜通关" : "再试试吧"}</p>
+            <p className="text-lg font-semibold text-slate-700">{accuracy >= 50 ? (stars === 0 ? "0 星通关，已解锁下一关" : "恭喜通关") : "再试试吧"}</p>
             <p className="text-base text-slate-600">正确率 {accuracy}%</p>
             <p className="text-sm text-slate-500">导入错题库：闯关答错题已写入专属错题库</p>
             <div className="flex items-center justify-center gap-3">
@@ -472,7 +488,7 @@ function ChallengeStageModal({
                 返回地图
               </Button>
               <Button type="button" onClick={finishLevel}>
-                完成结算
+                {cleared ? "完成结算" : "重新挑战"}
               </Button>
             </div>
           </div>
@@ -503,11 +519,8 @@ export function ExamModePanel({
 
   const isChallengeUnavailable = Boolean(examWorldsWarning) || examWorlds.length === 0;
   const activeModeLabel = activeMode === "simple" ? "简单" : "困难";
-  const firstUnlockedWorldIndex = Math.max(
-    0,
-    examWorlds.findIndex((_, index) => getExamWorldUnlockState(examLevelProgress, index))
-  );
-  const [worldIndexState, setWorldIndexState] = useState(firstUnlockedWorldIndex >= 0 ? firstUnlockedWorldIndex : 0);
+  const sequentialWorldIndex = getCurrentPlayableWorldIndex(examLevelProgress);
+  const [worldIndexState, setWorldIndexState] = useState(sequentialWorldIndex);
   const currentWorldIndex = Math.min(worldIndexState, examWorlds.length - 1);
   const activeWorld = examWorlds[currentWorldIndex];
   const worldUnlocked = getExamWorldUnlockState(examLevelProgress, currentWorldIndex);
@@ -518,13 +531,20 @@ export function ExamModePanel({
   const watercolor = watercolorShapes[currentWorldIndex % watercolorShapes.length];
 
   useEffect(() => {
+    if (!appConfig.challengeFreeSelectionEnabled) {
+      if (currentWorldIndex !== sequentialWorldIndex) {
+        setWorldIndexState(sequentialWorldIndex);
+      }
+      return;
+    }
+
     if (challengeSession.activeWorldId) {
       const targetIndex = examWorlds.findIndex((world) => world.id === challengeSession.activeWorldId);
       if (targetIndex >= 0 && targetIndex !== worldIndexState) {
         setWorldIndexState(targetIndex);
       }
     }
-  }, [challengeSession.activeWorldId, worldIndexState]);
+  }, [challengeSession.activeWorldId, currentWorldIndex, sequentialWorldIndex, worldIndexState]);
 
   if (!hydrated) {
     return <div className="py-10 text-sm text-slate-500">加载闯关进度中...</div>;
@@ -571,15 +591,19 @@ export function ExamModePanel({
         ) : null}
       </AnimatePresence>
 
-      <div className="space-y-3" data-testid="challenge-mode-panel">
-        <div className="space-y-2 text-center">
+      <div className="space-y-2.5" data-testid="challenge-mode-panel">
+        <div className="space-y-1.5 text-center">
           <p className="text-sm font-semibold text-surge">闯关地图</p>
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-2">
             <Button
               type="button"
               variant="secondary"
-              className="h-9 min-w-9 px-3"
+              className="h-10 min-w-10 px-3"
+              disabled={!appConfig.challengeFreeSelectionEnabled}
               onClick={() => {
+                if (!appConfig.challengeFreeSelectionEnabled) {
+                  return;
+                }
                 const next = currentWorldIndex - 1 < 0 ? examWorlds.length - 1 : currentWorldIndex - 1;
                 setWorldIndexState(next);
                 updateChallengeSession({ activeWorldId: examWorlds[next].id, selectedLevelId: null });
@@ -592,8 +616,12 @@ export function ExamModePanel({
             <Button
               type="button"
               variant="secondary"
-              className="h-9 min-w-9 px-3"
+              className="h-10 min-w-10 px-3"
+              disabled={!appConfig.challengeFreeSelectionEnabled}
               onClick={() => {
+                if (!appConfig.challengeFreeSelectionEnabled) {
+                  return;
+                }
                 const next = currentWorldIndex + 1 >= examWorlds.length ? 0 : currentWorldIndex + 1;
                 setWorldIndexState(next);
                 updateChallengeSession({ activeWorldId: examWorlds[next].id, selectedLevelId: null });
@@ -607,10 +635,10 @@ export function ExamModePanel({
         </div>
 
         <div className="flex items-center justify-center gap-2">
-          <Button type="button" variant="secondary" onClick={() => setMistakesOpen(true)}>
+          <Button type="button" variant="secondary" className="min-w-[104px]" onClick={() => setMistakesOpen(true)}>
             错题库
           </Button>
-          <Button type="button" variant="secondary" onClick={() => setProgressOpen(true)}>
+          <Button type="button" variant="secondary" className="min-w-[104px]" onClick={() => setProgressOpen(true)}>
             进度
           </Button>
         </div>
@@ -647,7 +675,8 @@ export function ExamModePanel({
           transition={{ duration: 0.24, ease: "easeOut" }}
         >
           <Card className={cn("overflow-hidden rounded-[1.75rem] p-0 bg-gradient-to-br", activeWorld.surfaceClass)}>
-            <div className="relative px-4 py-5">
+            <div className="relative px-3 py-4">
+            <div className={cn("pointer-events-none absolute inset-0 opacity-90", getSeasonGlowClass(activeWorld.season))} />
             <div className="pointer-events-none absolute inset-0">
               <div className={cn("absolute rounded-[999px] blur-2xl", watercolor[0], watercolor[1])} />
               <div className={cn("absolute rounded-[999px] blur-2xl", watercolor[2], watercolor[3])} />
@@ -655,8 +684,8 @@ export function ExamModePanel({
             </div>
 
             <div className="relative overflow-hidden rounded-[1.6rem] border border-white/60 bg-white/28">
-              <div className="h-[620px] overflow-y-auto px-4 pb-6 pt-3">
-                <div className="relative mx-auto h-[980px] max-w-[320px]">
+              <div className="h-[560px] overflow-y-auto px-3 pb-5 pt-4">
+                <div className="relative mx-auto h-[900px] max-w-[312px] pt-7">
                   {activeWorld.levels.slice(0, -1).map((level, levelIndex) => {
                     const startX = NODE_X[levelIndex] + 24;
                     const startY = NODE_Y[levelIndex] + 24;
@@ -674,8 +703,8 @@ export function ExamModePanel({
                         className={cn(
                           "absolute h-[6px] rounded-full",
                           fromCleared
-                            ? `bg-gradient-to-r ${activeWorld.accentClass.replace("bg-", "from-")} to-yellow-300`
-                            : "bg-[linear-gradient(90deg,#dbe2ea,#edf2f6)]"
+                            ? `bg-gradient-to-r ${activeWorld.accentClass.replace("bg-", "from-")} to-yellow-300 shadow-[0_0_12px_rgba(255,214,102,0.28)]`
+                            : "bg-[linear-gradient(90deg,#dbe2ea,#edf2f6)] opacity-70"
                         )}
                         style={{
                           left: startX,
@@ -690,6 +719,7 @@ export function ExamModePanel({
 
                   {activeWorld.levels.map((level, levelIndex) => {
                     const unlocked = worldUnlocked && getLevelUnlockState(currentWorldIndex, levelIndex, examLevelProgress);
+                    const accessible = canAccessLevel(currentWorldIndex, levelIndex, examLevelProgress);
                     const cleared = Boolean(examLevelProgress[level.id]?.cleared);
                     const current = currentLevel?.id === level.id;
 
@@ -698,7 +728,7 @@ export function ExamModePanel({
                         key={level.id}
                         type="button"
                         onClick={() => {
-                          if (!unlocked) {
+                          if (!accessible) {
                             return;
                           }
                           updateChallengeSession({
@@ -730,13 +760,19 @@ export function ExamModePanel({
                         </div>
                         <div
                           className={cn(
-                            "flex h-12 w-12 items-center justify-center rounded-full border-[3px] text-sm font-black transition",
+                            "relative flex h-12 w-12 items-center justify-center rounded-full border-[3px] text-sm font-black transition",
                             buildNodeClass({ unlocked, cleared, current })
                           )}
                         >
+                          {current ? (
+                            <span className="absolute inset-[-6px] rounded-full border border-sky-200/70 animate-pulse" aria-hidden="true" />
+                          ) : null}
                           {cleared ? <Check className="h-5 w-5" /> : unlocked ? level.label : <Lock className="h-4 w-4" />}
                         </div>
-                        <span className="rounded-full bg-white/72 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                        <span className={cn(
+                          "rounded-full px-2 py-1 text-[11px] font-semibold",
+                          unlocked ? "bg-white/72 text-slate-600" : "bg-white/58 text-slate-400 ring-1 ring-slate-200/80"
+                        )}>
                           关卡 {level.label}
                         </span>
                         </motion.div>

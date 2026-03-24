@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-03-24T03:06:07.413Z",
+  "wordAudio": {
+    "totals": {
+      "words": 3500,
+      "releaseWords": 1470,
+      "libraryOnlyWords": 2030,
+      "wordAudioReady": 3500,
+      "wordExampleAudioReady": 3500,
+      "wordAudioMissing": 0,
+      "wordExampleAudioMissing": 0
+    },
+    "samples": {
+      "wordAudioMissing": [],
+      "wordExampleAudioMissing": []
+    }
+  },
+  "sentenceAudio": {
+    "totals": {
+      "sentences": 52,
+      "sentenceAudioReady": 52,
+      "sentenceAudioMissing": 0,
+      "keywordAudioMissing": 0
+    },
+    "samples": {
+      "sentenceAudioMissing": [],
+      "keywordAudioMissing": []
+    }
+  },
+  "passageAudio": {
+    "totals": {
+      "passages": 32,
+      "passageAudioReady": 32,
+      "passageAudioMissing": 0,
+      "paragraphAudioMissing": 0,
+      "passageAudioSpeechMapped": 0,
+      "paragraphAudioSpeechMapped": 0
+    },
+    "samples": {
+      "passageAudioMissing": [],
+      "paragraphAudioMissing": [],
+      "passageAudioSpeechMapped": [],
+      "paragraphAudioSpeechMapped": []
+    }
+  },
+  "expressionAudio": {
+    "totals": {
+      "expressions": 32,
+      "expressionBasicAudioMissing": 0,
+      "expressionAdvancedAudioMissing": 0
+    },
+    "samples": {
+      "expressionBasicAudioMissing": [],
+      "expressionAdvancedAudioMissing": []
+    }
+  },
+  "experienceAudio": {
+    "totals": {
+      "uiAudio": 4,
+      "uiAudioReady": 4,
+      "uiAudioMissing": 0,
+      "ambientAudio": 20,
+      "ambientAudioReady": 20,
+      "ambientAudioMissing": 0
+    },
+    "samples": {
+      "uiAudioMissing": [],
+      "ambientAudioMissing": []
+    }
+  }
+}

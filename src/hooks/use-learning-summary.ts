@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { buildAchievements } from "@/lib/achievements";
 import { getExamOverview } from "@/lib/challenge-data";
+import { countReleaseWordIds } from "@/lib/content";
 import { useLearningStore } from "@/stores/learning-store";
 import { percentage } from "@/lib/utils";
 
@@ -28,14 +29,17 @@ export interface LearningSummary {
 export function useLearningSummary(totalWords: number, totalSentences: number, totalPassages: number) {
   // Sole source for business summary fields shared by the home and stats pages.
   // Same-named metrics must not be recomputed in page components or content preview data.
-  const knownWords = useLearningStore((state) => state.knownWords.length);
+  const knownWords = useLearningStore((state) => countReleaseWordIds(state.knownWords));
   const completedSentenceIds = useLearningStore((state) => state.completedSentenceIds.length);
   const completedPassageIds = useLearningStore((state) => state.completedPassageIds.length);
-  const difficultWords = useLearningStore((state) => state.difficultWords.length);
+  const difficultWords = useLearningStore((state) => countReleaseWordIds(state.difficultWords));
   const reviewMistakes = useLearningStore((state) => state.reviewMistakes.length);
   const streakDays = useLearningStore((state) => state.streakDays);
   const sessions = useLearningStore((state) => state.sessions);
   const examLevelProgress = useLearningStore((state) => state.examLevelProgress);
+  const claimedAchievementRewardIds = useLearningStore(
+    (state) => state.userConfig.claimedAchievementRewardIds
+  );
 
   return useMemo<LearningSummary>(() => {
     const now = new Date();
@@ -77,7 +81,8 @@ export function useLearningSummary(totalWords: number, totalSentences: number, t
       completedPassages: completedPassageIds,
       streakDays: streakDays || 0,
       reviewMistakes,
-      examLevelProgress
+      examLevelProgress,
+      claimedAchievementRewardIds
     };
 
     return {
@@ -104,6 +109,7 @@ export function useLearningSummary(totalWords: number, totalSentences: number, t
     difficultWords,
     examLevelProgress,
     knownWords,
+    claimedAchievementRewardIds,
     reviewMistakes,
     sessions,
     streakDays,

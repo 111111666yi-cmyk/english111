@@ -1,0 +1,116 @@
+{
+  "generatedAt": "2026-03-24T03:14:28.425Z",
+  "totals": {
+    "retainedReferences": 7315,
+    "publicAudioFiles": 7315,
+    "androidAudioFiles": 7315,
+    "orphanFiles": 0,
+    "missingRetainedFiles": 0,
+    "androidMissingFiles": 0,
+    "androidExtraFiles": 0,
+    "caseConflicts": 0,
+    "baseNameOverlaps": 12
+  },
+  "retainedBreakdown": {
+    "releaseWordAudio": 2940,
+    "libraryOnlyWordAudio": 4060,
+    "sentenceAudio": 146,
+    "passageAudio": 128,
+    "expressionAudio": 64,
+    "ambientAudio": 20,
+    "uiAudio": 4
+  },
+  "samples": {
+    "orphanFiles": [],
+    "missingRetainedFiles": [],
+    "androidMissingFiles": [],
+    "androidExtraFiles": [],
+    "caseConflicts": [],
+    "baseNameOverlaps": [
+      {
+        "baseName": "accessible.mp3",
+        "paths": [
+          "/audio/expressions/accessible.mp3",
+          "/audio/words/accessible.mp3"
+        ]
+      },
+      {
+        "baseName": "beneficial.mp3",
+        "paths": [
+          "/audio/expressions/beneficial.mp3",
+          "/audio/words/beneficial.mp3"
+        ]
+      },
+      {
+        "baseName": "crucial.mp3",
+        "paths": [
+          "/audio/expressions/crucial.mp3",
+          "/audio/words/crucial.mp3"
+        ]
+      },
+      {
+        "baseName": "delighted.mp3",
+        "paths": [
+          "/audio/expressions/delighted.mp3",
+          "/audio/words/delighted.mp3"
+        ]
+      },
+      {
+        "baseName": "discover.mp3",
+        "paths": [
+          "/audio/expressions/discover.mp3",
+          "/audio/words/discover.mp3"
+        ]
+      },
+      {
+        "baseName": "distinct.mp3",
+        "paths": [
+          "/audio/expressions/distinct.mp3",
+          "/audio/words/distinct.mp3"
+        ]
+      },
+      {
+        "baseName": "efficient.mp3",
+        "paths": [
+          "/audio/expressions/efficient.mp3",
+          "/audio/words/efficient.mp3"
+        ]
+      },
+      {
+        "baseName": "increasingly.mp3",
+        "paths": [
+          "/audio/expressions/increasingly.mp3",
+          "/audio/words/increasingly.mp3"
+        ]
+      },
+      {
+        "baseName": "occupied.mp3",
+        "paths": [
+          "/audio/expressions/occupied.mp3",
+          "/audio/words/occupied.mp3"
+        ]
+      },
+      {
+        "baseName": "steady.mp3",
+        "paths": [
+          "/audio/expressions/steady.mp3",
+          "/audio/words/steady.mp3"
+        ]
+      },
+      {
+        "baseName": "supportive.mp3",
+        "paths": [
+          "/audio/expressions/supportive.mp3",
+          "/audio/words/supportive.mp3"
+        ]
+      },
+      {
+        "baseName": "widespread.mp3",
+        "paths": [
+          "/audio/expressions/widespread.mp3",
+          "/audio/words/widespread.mp3"
+        ]
+      }
+    ]
+  }
+}

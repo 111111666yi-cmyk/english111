@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef } from "react";
 import { Shell } from "@/components/shell";
-import { words } from "@/lib/content";
+import { countReleaseWordIds, isReleaseWordId, releaseWordCount, words } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { useLearningStore } from "@/stores/learning-store";
 
@@ -16,21 +16,26 @@ function getMasteryState(wordId: string, knownWords: string[]) {
 
 export function WordLibraryScreen() {
   const restoredScrollRef = useRef(false);
+  const scrollYRef = useRef(0);
+  const scrollFrameRef = useRef<number | null>(null);
   const hydrated = useLearningStore((state) => state.hydrated);
   const knownWords = useLearningStore((state) => state.knownWords);
   const session = useLearningStore((state) => state.wordLibrarySession);
   const updateWordLibrarySession = useLearningStore((state) => state.updateWordLibrarySession);
 
   const filter = session.filter.trim().toLowerCase();
+  const deferredFilter = useDeferredValue(filter);
+  const isFiltering = filter !== deferredFilter;
+  const releaseKnownWords = useMemo(() => countReleaseWordIds(knownWords), [knownWords]);
   const filteredWords = useMemo(() => {
-    if (!filter) {
+    if (!deferredFilter) {
       return words;
     }
 
     return words.filter((word) => {
-      return word.word.toLowerCase().includes(filter) || word.meaningZh.toLowerCase().includes(filter);
+      return word.word.toLowerCase().includes(deferredFilter) || word.meaningZh.toLowerCase().includes(deferredFilter);
     });
-  }, [filter]);
+  }, [deferredFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredWords.length / PAGE_SIZE));
   const currentPage = Math.min(session.page, totalPages - 1);
@@ -51,34 +56,55 @@ export function WordLibraryScreen() {
   }, [currentPage, hydrated, session.page, updateWordLibrarySession]);
 
   useEffect(() => {
+    scrollYRef.current = session.scrollY;
+  }, [session.scrollY]);
+
+  useEffect(() => {
     if (!hydrated) {
       return;
     }
 
-    const handleScroll = () => {
-      updateWordLibrarySession({ scrollY: window.scrollY });
+    const restoreScrollY = scrollYRef.current;
+    const persistScroll = () => {
+      updateWordLibrarySession({ scrollY: scrollYRef.current });
     };
 
+    const handleScroll = () => {
+      if (scrollFrameRef.current !== null) {
+        return;
+      }
+
+      scrollFrameRef.current = window.requestAnimationFrame(() => {
+        scrollFrameRef.current = null;
+        scrollYRef.current = window.scrollY;
+      });
+    };
+
+    let restore = 0;
     if (!restoredScrollRef.current) {
-      const restore = window.requestAnimationFrame(() => {
-        window.scrollTo({ top: session.scrollY, behavior: "auto" });
+      restore = window.requestAnimationFrame(() => {
+        window.scrollTo({ top: restoreScrollY, behavior: "auto" });
+        scrollYRef.current = restoreScrollY;
         restoredScrollRef.current = true;
       });
-
-      window.addEventListener("scroll", handleScroll, { passive: true });
-
-      return () => {
-        window.cancelAnimationFrame(restore);
-        window.removeEventListener("scroll", handleScroll);
-      };
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("pagehide", persistScroll);
 
     return () => {
+      if (restore) {
+        window.cancelAnimationFrame(restore);
+      }
+      if (scrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("pagehide", persistScroll);
+      persistScroll();
     };
-  }, [hydrated, session.scrollY, updateWordLibrarySession]);
+  }, [hydrated, updateWordLibrarySession]);
 
   if (!hydrated) {
     return (
@@ -101,6 +127,7 @@ export function WordLibraryScreen() {
             value={session.filter}
             onChange={(event) => {
               restoredScrollRef.current = false;
+              scrollYRef.current = 0;
               window.scrollTo({ top: 0, behavior: "auto" });
               updateWordLibrarySession({
                 filter: event.target.value,
@@ -116,9 +143,15 @@ export function WordLibraryScreen() {
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/80 bg-white/72 px-3 py-2 text-xs font-semibold text-slate-500">
+          <span>{deferredFilter ? `匹配 ${filteredWords.length} 个结果` : `共收录 ${words.length} 个单词`}</span>
+          <span>{isFiltering ? "筛选中..." : `正式学习 ${releaseWordCount} 个 · 已掌握 ${releaseKnownWords} 个`}</span>
+        </div>
+
         <div className="space-y-2" data-testid="word-library-list">
           {visibleWords.map((word) => {
             const mastery = getMasteryState(word.id, knownWords);
+            const isReleaseWord = isReleaseWordId(word.id);
 
             return (
               <article
@@ -133,11 +166,21 @@ export function WordLibraryScreen() {
                   <div className="min-w-0">
                     <p className="truncate text-base font-black text-ink">{word.word}</p>
                     <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-600">{word.meaningZh}</p>
+                    {!isReleaseWord ? (
+                      <p className="mt-2 text-xs leading-5 text-amber-700">
+                        该词保留在词库中，但不会进入正式学习、测试、复习、闯关和掌握统计。
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
                       {word.level}
                     </span>
+                    {!isReleaseWord ? (
+                      <span className="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
+                        仅词库保留
+                      </span>
+                    ) : null}
                     <span
                       className={cn(
                         "rounded-full px-2 py-1 text-[11px] font-semibold",
@@ -161,6 +204,7 @@ export function WordLibraryScreen() {
             disabled={currentPage === 0}
             onClick={() => {
               restoredScrollRef.current = false;
+              scrollYRef.current = 0;
               window.scrollTo({ top: 0, behavior: "auto" });
               updateWordLibrarySession({ page: Math.max(currentPage - 1, 0), scrollY: 0 });
             }}
@@ -174,6 +218,7 @@ export function WordLibraryScreen() {
             disabled={currentPage + 1 >= totalPages}
             onClick={() => {
               restoredScrollRef.current = false;
+              scrollYRef.current = 0;
               window.scrollTo({ top: 0, behavior: "auto" });
               updateWordLibrarySession({
                 page: Math.min(currentPage + 1, totalPages - 1),

@@ -2,6 +2,9 @@
 
 import { create } from "zustand";
 import { createEmptyQuizSession, normalizeQuizSession, type QuizSessionState } from "@/lib/quiz-session";
+import { appConfig, withStorageNamespace } from "@/lib/app-config";
+import { getShopItem, getShopPurchasePrice } from "@/lib/shop";
+import { getQuizById, normalizeQuizId } from "@/data/quizzes";
 import type { ExamLevelRecord } from "@/types/content";
 
 export type StudyMode = "simple" | "hard";
@@ -19,12 +22,44 @@ export interface SessionLog {
 
 export interface LearningSettings {
   chineseAssist: boolean;
-  motionLevel: "soft" | "calm" | "minimal";
+  motionLevel: "soft" | "calm" | "minimal" | "off";
   fontScale: "sm" | "md" | "lg";
-  backgroundTheme: "default" | "spring" | "summer" | "autumn" | "winter";
+  backgroundTheme: "default" | "spring" | "summer" | "autumn" | "winter" | "aurora" | "rain" | "dark" | "paper";
+  soundTheme:
+    | "tap"
+    | "dew"
+    | "wood"
+    | "silent"
+    | "keyboard"
+    | "instrument"
+    | "nature"
+    | "electro"
+    | "catPaw"
+    | "christmasBells"
+    | "fireworks";
   speechEnabled: boolean;
   cloudAudioEnabled: boolean;
   cacheCloudAudio: boolean;
+  ambientPlayerPosition: {
+    x: number;
+    y: number;
+  };
+}
+
+export interface StarTransaction {
+  id: string;
+  amount: number;
+  createdAt: string;
+  reason: string;
+}
+
+export interface CommerceState {
+  starlight: number;
+  firstPurchaseUsed: boolean;
+  ownedBackgroundThemes: string[];
+  ownedSoundThemes: string[];
+  ownedAmbientTracks: string[];
+  history: StarTransaction[];
 }
 
 export interface VocabularySessionState {
@@ -112,8 +147,12 @@ export interface ModeConfigState {
 
 export interface UserConfigState {
   settings: LearningSettings;
+  commerce: CommerceState;
   lastVisitedRoute: string;
   lastVisitedTabs: Record<TabGroup, string>;
+  appliedMaintenanceIds: string[];
+  seenAnnouncementIds: string[];
+  claimedAchievementRewardIds: string[];
 }
 
 interface PersistedLearningState {
@@ -135,6 +174,7 @@ interface LearningState extends ModeProgressSnapshot {
   modeConfig: ModeConfigState;
   userConfig: UserConfigState;
   settings: LearningSettings;
+  commerce: CommerceState;
   hydrateForProfile: (profileKey: string) => void;
   persistNow: () => void;
   setActiveMode: (mode: StudyMode) => void;
@@ -160,6 +200,7 @@ interface LearningState extends ModeProgressSnapshot {
   updateWordLibrarySession: (payload: Partial<WordLibrarySessionState>) => void;
   updateReviewSession: (index: number) => void;
   updateReviewQuizSession: (payload: Partial<QuizSessionState>) => void;
+  addReviewQuiz: (quizId: string) => void;
   clearReviewMistakes: () => void;
   updateTestSession: (index: number) => void;
   updateTestQuizSession: (payload: Partial<QuizSessionState>) => void;
@@ -168,12 +209,15 @@ interface LearningState extends ModeProgressSnapshot {
   updateChallengeQuizSession: (payload: Partial<QuizSessionState>) => void;
   resetChallengeSession: () => void;
   updateSetting: <K extends keyof LearningSettings>(key: K, value: LearningSettings[K]) => void;
+  claimAchievementReward: (achievementId: string, reward: number, title: string) => { ok: boolean; message: string; credited?: number };
+  claimStableMaintenanceCompensation: () => void;
+  purchaseShopItem: (itemId: string) => { ok: boolean; message: string; charged?: number };
   clearStorageWarning: () => void;
   resetAll: () => void;
 }
 
-const LEGACY_STORAGE_KEY = "english-climb-learning";
-const STORAGE_VERSION = 4;
+const LEGACY_STORAGE_KEY = withStorageNamespace("english-climb-learning");
+const STORAGE_VERSION = 5;
 const SESSION_RETENTION_DAYS = 30;
 const REVIEW_MISTAKE_LIMIT = 200;
 const EXAM_MISTAKE_LIMIT = 200;
@@ -184,19 +228,37 @@ const defaultSettings: LearningSettings = {
   motionLevel: "soft",
   fontScale: "md",
   backgroundTheme: "default",
+  soundTheme: "tap",
   speechEnabled: true,
   cloudAudioEnabled: false,
-  cacheCloudAudio: true
+  cacheCloudAudio: true,
+  ambientPlayerPosition: {
+    x: 0.82,
+    y: 0.62
+  }
+};
+
+const defaultCommerce: CommerceState = {
+  starlight: appConfig.defaultStarlight,
+  firstPurchaseUsed: false,
+  ownedBackgroundThemes: ["default", "spring", "summer", "autumn", "winter"],
+  ownedSoundThemes: ["tap", "dew", "wood", "silent"],
+  ownedAmbientTracks: [],
+  history: []
 };
 
 const defaultUserConfig: UserConfigState = {
   settings: defaultSettings,
+  commerce: defaultCommerce,
   lastVisitedRoute: "/",
   lastVisitedTabs: {
     basics: "/vocabulary",
     advanced: "/word-library",
     practice: "/test"
-  }
+  },
+  appliedMaintenanceIds: [],
+  seenAnnouncementIds: [],
+  claimedAchievementRewardIds: []
 };
 
 const defaultModeConfig: ModeConfigState = {
@@ -312,7 +374,7 @@ const calculateStreak = (lastStudyDate?: string) => {
 };
 
 function getStorageKey(profileKey: string) {
-  return `learningData_${profileKey}`;
+  return withStorageNamespace(`learningData_${profileKey}`);
 }
 
 function unique(items: string[]) {
@@ -327,8 +389,26 @@ function createReviewMistakeEvent(quizId: string, createdAt = new Date().toISOSt
   };
 }
 
+function createStarTransaction(amount: number, reason: string, createdAt = new Date().toISOString()): StarTransaction {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    amount,
+    createdAt,
+    reason
+  };
+}
+
+function getChallengeReward(bestStars: number, cleared: boolean) {
+  if (!cleared) {
+    return 0;
+  }
+
+  return bestStars + 1;
+}
+
 function normalizeReviewMistakes(
-  items: Array<ReviewMistakeEvent | string> | undefined
+  items: Array<ReviewMistakeEvent | string> | undefined,
+  mode: StudyMode = "simple"
 ): ReviewMistakeEvent[] {
   if (!Array.isArray(items)) {
     return [];
@@ -337,16 +417,24 @@ function normalizeReviewMistakes(
   return items
     .map((item, index) => {
       if (typeof item === "string") {
-        return createReviewMistakeEvent(item, new Date(index + 1).toISOString());
+        const quizId = normalizeQuizId(item, mode);
+        return getQuizById(quizId, mode).type === "error"
+          ? null
+          : createReviewMistakeEvent(quizId, new Date(index + 1).toISOString());
       }
 
       if (!item || typeof item !== "object" || typeof item.quizId !== "string") {
         return null;
       }
 
+      const quizId = normalizeQuizId(item.quizId, mode);
+      if (getQuizById(quizId, mode).type === "error") {
+        return null;
+      }
+
       return {
-        id: typeof item.id === "string" && item.id ? item.id : createReviewMistakeEvent(item.quizId).id,
-        quizId: item.quizId,
+        id: typeof item.id === "string" && item.id ? item.id : createReviewMistakeEvent(quizId).id,
+        quizId,
         createdAt: typeof item.createdAt === "string" && item.createdAt ? item.createdAt : new Date().toISOString()
       };
     })
@@ -492,22 +580,104 @@ function normalizeModeConfig(config?: Partial<ModeConfigState>): ModeConfigState
 }
 
 function normalizeUserConfig(config?: Partial<UserConfigState>): UserConfigState {
+  const normalizedAmbientPosition = config?.settings?.ambientPlayerPosition;
+
   return {
     settings: {
       ...defaultSettings,
-      ...config?.settings
+      ...config?.settings,
+      ambientPlayerPosition: {
+        x:
+          typeof normalizedAmbientPosition?.x === "number"
+            ? normalizedAmbientPosition.x
+            : defaultSettings.ambientPlayerPosition.x,
+        y:
+          typeof normalizedAmbientPosition?.y === "number"
+            ? normalizedAmbientPosition.y
+            : defaultSettings.ambientPlayerPosition.y
+      }
+    },
+    commerce: {
+      ...defaultCommerce,
+      ...config?.commerce,
+      ownedBackgroundThemes: Array.from(
+        new Set([...(config?.commerce?.ownedBackgroundThemes ?? defaultCommerce.ownedBackgroundThemes)])
+      ),
+      ownedSoundThemes: Array.from(
+        new Set([...(config?.commerce?.ownedSoundThemes ?? defaultCommerce.ownedSoundThemes)])
+      ),
+      ownedAmbientTracks: Array.from(
+        new Set([...(config?.commerce?.ownedAmbientTracks ?? defaultCommerce.ownedAmbientTracks)])
+      ),
+      history: (config?.commerce?.history ?? defaultCommerce.history).slice(-50)
     },
     lastVisitedRoute: config?.lastVisitedRoute || defaultUserConfig.lastVisitedRoute,
     lastVisitedTabs: {
       basics: config?.lastVisitedTabs?.basics || defaultUserConfig.lastVisitedTabs.basics,
       advanced: config?.lastVisitedTabs?.advanced || defaultUserConfig.lastVisitedTabs.advanced,
       practice: config?.lastVisitedTabs?.practice || defaultUserConfig.lastVisitedTabs.practice
-    }
+    },
+    appliedMaintenanceIds: Array.from(
+      new Set(config?.appliedMaintenanceIds ?? defaultUserConfig.appliedMaintenanceIds)
+    ),
+    seenAnnouncementIds: Array.from(
+      new Set(config?.seenAnnouncementIds ?? defaultUserConfig.seenAnnouncementIds)
+    ),
+    claimedAchievementRewardIds: Array.from(
+      new Set(config?.claimedAchievementRewardIds ?? defaultUserConfig.claimedAchievementRewardIds)
+    )
   };
 }
 
 function cloneModeProgress(snapshot: ModeProgressSnapshot): ModeProgressSnapshot {
   return normalizeModeProgress(JSON.parse(JSON.stringify(snapshot)) as Partial<ModeProgressSnapshot>);
+}
+
+function resetChallengeModeProgress(snapshot: ModeProgressSnapshot): ModeProgressSnapshot {
+  return normalizeModeProgress({
+    ...snapshot,
+    examMistakes: [],
+    examLevelProgress: {},
+    challengeSession: cloneModeProgress(defaultModeProgress).challengeSession
+  });
+}
+
+function applyStableReleasePolicy(
+  modes: Record<StudyMode, ModeProgressSnapshot>,
+  userConfig: UserConfigState
+) {
+  if (appConfig.isBeta || userConfig.appliedMaintenanceIds.includes(appConfig.stableChallengeResetPolicyId)) {
+    return { modes, userConfig };
+  }
+
+  return {
+    modes: {
+      simple: resetChallengeModeProgress(modes.simple),
+      hard: resetChallengeModeProgress(modes.hard)
+    },
+    userConfig: normalizeUserConfig({
+      ...userConfig,
+      commerce: {
+        ...userConfig.commerce,
+        starlight: 0
+      },
+      appliedMaintenanceIds: [...userConfig.appliedMaintenanceIds, appConfig.stableChallengeResetPolicyId]
+    })
+  };
+}
+
+function applyReleasePolicyToSnapshot(snapshot: {
+  modes: Record<StudyMode, ModeProgressSnapshot>;
+  modeConfig: ModeConfigState;
+  userConfig: UserConfigState;
+}) {
+  const policyResult = applyStableReleasePolicy(snapshot.modes, snapshot.userConfig);
+
+  return {
+    modes: policyResult.modes,
+    modeConfig: snapshot.modeConfig,
+    userConfig: policyResult.userConfig
+  };
 }
 
 function buildDefaultModes() {
@@ -523,8 +693,14 @@ function normalizeModes(
   const defaults = buildDefaultModes();
 
   return {
-    simple: normalizeModeProgress(persisted?.simple ?? defaults.simple),
-    hard: normalizeModeProgress(persisted?.hard ?? defaults.hard)
+    simple: {
+      ...normalizeModeProgress(persisted?.simple ?? defaults.simple),
+      reviewMistakes: normalizeReviewMistakes((persisted?.simple ?? defaults.simple).reviewMistakes, "simple")
+    },
+    hard: {
+      ...normalizeModeProgress(persisted?.hard ?? defaults.hard),
+      reviewMistakes: normalizeReviewMistakes((persisted?.hard ?? defaults.hard).reviewMistakes, "hard")
+    }
   };
 }
 
@@ -536,11 +712,11 @@ function migrateSnapshot(
   userConfig: UserConfigState;
 } {
   if (!persisted || typeof persisted !== "object") {
-    return {
+    return applyReleasePolicyToSnapshot({
       modes: buildDefaultModes(),
       modeConfig: defaultModeConfig,
       userConfig: defaultUserConfig
-    };
+    });
   }
 
   if ("version" in persisted && "data" in persisted) {
@@ -548,33 +724,33 @@ function migrateSnapshot(
     const data = envelope.data;
 
     if (data && typeof data === "object" && "modes" in data) {
-      return {
+      return applyReleasePolicyToSnapshot({
         modes: normalizeModes(data.modes),
         modeConfig: normalizeModeConfig(data.modeConfig),
         userConfig: normalizeUserConfig(data.userConfig)
-      };
+      });
     }
 
     const legacyProgress = normalizeModeProgress(data as Partial<ModeProgressSnapshot>);
-    return {
+    return applyReleasePolicyToSnapshot({
       modes: {
         simple: legacyProgress,
         hard: cloneModeProgress(defaultModeProgress)
       },
       modeConfig: defaultModeConfig,
       userConfig: defaultUserConfig
-    };
+    });
   }
 
   const legacyProgress = normalizeModeProgress(persisted as Partial<ModeProgressSnapshot>);
-  return {
+  return applyReleasePolicyToSnapshot({
     modes: {
       simple: legacyProgress,
       hard: cloneModeProgress(defaultModeProgress)
     },
     modeConfig: defaultModeConfig,
     userConfig: defaultUserConfig
-  };
+  });
 }
 
 function readSnapshot(profileKey: string) {
@@ -654,7 +830,8 @@ function projectActiveMode(
 
   return {
     ...activeProgress,
-    settings: userConfig.settings
+    settings: userConfig.settings,
+    commerce: userConfig.commerce
   };
 }
 
@@ -686,6 +863,7 @@ export const useLearningStore = create<LearningState>()((set, get) => {
         modes: nextModes,
         ...nextProgress,
         settings: state.userConfig.settings,
+        commerce: state.userConfig.commerce,
         storageWarning: warning ?? state.storageWarning
       };
     });
@@ -702,6 +880,7 @@ export const useLearningStore = create<LearningState>()((set, get) => {
       return {
         userConfig: nextUserConfig,
         settings: nextUserConfig.settings,
+        commerce: nextUserConfig.commerce,
         storageWarning: warning ?? state.storageWarning
       };
     });
@@ -715,6 +894,7 @@ export const useLearningStore = create<LearningState>()((set, get) => {
     modeConfig: defaultModeConfig,
     userConfig: defaultUserConfig,
     settings: defaultSettings,
+    commerce: defaultCommerce,
     hydrateForProfile: (profileKey) => {
       const { modes, modeConfig, userConfig, warning } = readSnapshot(profileKey);
       const persistWarning = saveSnapshot(profileKey, { modes, modeConfig, userConfig });
@@ -801,21 +981,35 @@ export const useLearningStore = create<LearningState>()((set, get) => {
         completedPassageIds: [...progress.completedPassageIds, passageId]
       })),
     recordQuizResult: (quizId, correct) =>
-      updateModeProgress((progress) => ({
-        ...progress,
-        reviewMistakes: correct
-          ? progress.reviewMistakes
-          : [...progress.reviewMistakes, createReviewMistakeEvent(quizId)].slice(-REVIEW_MISTAKE_LIMIT)
-      })),
-    resolveReviewResult: (reviewEventId, quizId, correct) =>
       updateModeProgress((progress) => {
-        const nextReviewMistakes = progress.reviewMistakes.filter((event) => event.id !== reviewEventId);
+        if (correct) {
+          return progress;
+        }
+
+        const normalizedQuizId = normalizeQuizId(quizId, get().modeConfig.activeMode);
+        if (getQuizById(normalizedQuizId, get().modeConfig.activeMode).type === "error") {
+          return progress;
+        }
 
         return {
           ...progress,
-          reviewMistakes: correct
+          reviewMistakes: [
+            ...progress.reviewMistakes,
+            createReviewMistakeEvent(normalizedQuizId)
+          ].slice(-REVIEW_MISTAKE_LIMIT)
+        };
+      }),
+    resolveReviewResult: (reviewEventId, quizId, correct) =>
+      updateModeProgress((progress) => {
+        const nextReviewMistakes = progress.reviewMistakes.filter((event) => event.id !== reviewEventId);
+        const normalizedQuizId = normalizeQuizId(quizId, get().modeConfig.activeMode);
+        const canStoreReviewQuiz = getQuizById(normalizedQuizId, get().modeConfig.activeMode).type !== "error";
+
+        return {
+          ...progress,
+          reviewMistakes: correct || !canStoreReviewQuiz
             ? nextReviewMistakes
-            : [...nextReviewMistakes, createReviewMistakeEvent(quizId)].slice(-REVIEW_MISTAKE_LIMIT)
+            : [...nextReviewMistakes, createReviewMistakeEvent(normalizedQuizId)].slice(-REVIEW_MISTAKE_LIMIT)
         };
       }),
     recordExamWordResult: (wordId, correct) =>
@@ -826,22 +1020,60 @@ export const useLearningStore = create<LearningState>()((set, get) => {
           : [...progress.examMistakes, wordId]
       })),
     saveExamLevelProgress: (levelId, accuracy, stars) =>
-      updateModeProgress((progress) => {
-        const current = progress.examLevelProgress[levelId];
+      set((state) => {
+        const activeMode = state.modeConfig.activeMode;
+        const currentProgress = state.modes[activeMode] ?? cloneModeProgress(defaultModeProgress);
+        const current = currentProgress.examLevelProgress[levelId];
         const bestAccuracy = Math.max(current?.bestAccuracy ?? 0, accuracy);
-        const bestStars = Math.max(current?.bestStars ?? 0, stars);
+        const cleared = bestAccuracy >= 50;
+        const bestStars = cleared ? Math.max(current?.bestStars ?? 0, stars) : current?.bestStars ?? 0;
+        const previousReward = getChallengeReward(current?.bestStars ?? 0, Boolean(current?.cleared));
+        const nextReward = getChallengeReward(bestStars, cleared);
+        const rewardDelta = Math.max(0, nextReward - previousReward);
 
-        return {
-          ...progress,
+        const nextProgress = normalizeModeProgress({
+          ...currentProgress,
           examLevelProgress: {
-            ...progress.examLevelProgress,
+            ...currentProgress.examLevelProgress,
             [levelId]: {
               bestAccuracy,
               bestStars,
               attempts: (current?.attempts ?? 0) + 1,
-              cleared: bestAccuracy > 50
+              cleared
             }
           }
+        });
+
+        const nextModes = {
+          ...state.modes,
+          [activeMode]: nextProgress
+        };
+
+        const nextUserConfig = normalizeUserConfig({
+          ...state.userConfig,
+          commerce: {
+            ...state.userConfig.commerce,
+            starlight: state.userConfig.commerce.starlight + rewardDelta,
+            history:
+              rewardDelta > 0
+                ? [...state.userConfig.commerce.history, createStarTransaction(rewardDelta, `闯关奖励 · ${levelId}`)].slice(-50)
+                : state.userConfig.commerce.history
+          }
+        });
+
+        const warning = saveSnapshot(state.profileKey, {
+          modes: nextModes,
+          modeConfig: state.modeConfig,
+          userConfig: nextUserConfig
+        });
+
+        return {
+          modes: nextModes,
+          ...nextProgress,
+          userConfig: nextUserConfig,
+          settings: nextUserConfig.settings,
+          commerce: nextUserConfig.commerce,
+          storageWarning: warning ?? state.storageWarning
         };
       }),
     logDailyProgress: (payload) =>
@@ -970,6 +1202,22 @@ export const useLearningStore = create<LearningState>()((set, get) => {
           quiz: normalizeQuizSession({ ...progress.reviewSession.quiz, ...payload })
         }
       })),
+    addReviewQuiz: (quizId) =>
+      updateModeProgress((progress) => {
+        const normalizedQuizId = normalizeQuizId(quizId, get().modeConfig.activeMode);
+        if (getQuizById(normalizedQuizId, get().modeConfig.activeMode).type === "error") {
+          return progress;
+        }
+
+        const exists = progress.reviewMistakes.some((event) => event.quizId === normalizedQuizId);
+
+        return {
+          ...progress,
+          reviewMistakes: exists
+            ? progress.reviewMistakes
+            : [...progress.reviewMistakes, createReviewMistakeEvent(normalizedQuizId)].slice(-REVIEW_MISTAKE_LIMIT)
+        };
+      }),
     clearReviewMistakes: () =>
       updateModeProgress((progress) => ({
         ...progress,
@@ -1030,6 +1278,134 @@ export const useLearningStore = create<LearningState>()((set, get) => {
           [key]: value
         }
       })),
+    claimAchievementReward: (achievementId, reward, title) => {
+      const normalizedReward = Math.max(0, Math.floor(reward));
+      const trimmedTitle = title.trim() || "成就宝箱";
+
+      if (!achievementId.trim()) {
+        return { ok: false, message: "成就标识无效" };
+      }
+
+      if (normalizedReward <= 0) {
+        return { ok: false, message: "奖励数额无效" };
+      }
+
+      const alreadyClaimed = get().userConfig.claimedAchievementRewardIds.includes(achievementId);
+      if (alreadyClaimed) {
+        return { ok: false, message: "这个宝箱已经领取过了" };
+      }
+
+      updateUserConfig((config) => ({
+        ...config,
+        commerce: {
+          ...config.commerce,
+          starlight: config.commerce.starlight + normalizedReward,
+          history: [
+            ...config.commerce.history,
+            createStarTransaction(normalizedReward, `成就宝箱 · ${trimmedTitle}`)
+          ].slice(-50)
+        },
+        claimedAchievementRewardIds: [...config.claimedAchievementRewardIds, achievementId]
+      }));
+
+      return {
+        ok: true,
+        message: `已打开宝箱，获得 ${normalizedReward} 星芒`,
+        credited: normalizedReward
+      };
+    },
+    claimStableMaintenanceCompensation: () =>
+      updateUserConfig((config) => {
+        if (
+          appConfig.isBeta ||
+          get().profileKey === "guest" ||
+          config.seenAnnouncementIds.includes(appConfig.stableMaintenanceAnnouncementId)
+        ) {
+          return config;
+        }
+
+        return {
+          ...config,
+          commerce: {
+            ...config.commerce,
+            starlight: config.commerce.starlight + appConfig.stableMaintenanceCompensation,
+            history: [
+              ...config.commerce.history,
+              createStarTransaction(appConfig.stableMaintenanceCompensation, "版本更新维护补偿")
+            ].slice(-50)
+          },
+          seenAnnouncementIds: [...config.seenAnnouncementIds, appConfig.stableMaintenanceAnnouncementId]
+        };
+      }),
+    purchaseShopItem: (itemId) => {
+      const state = get();
+      const item = getShopItem(itemId);
+
+      if (!item) {
+        return { ok: false, message: "商品不存在" };
+      }
+
+      const owned =
+        item.category === "background"
+          ? state.userConfig.commerce.ownedBackgroundThemes.includes(item.themeValue)
+          : item.category === "sound"
+            ? state.userConfig.commerce.ownedSoundThemes.includes(item.themeValue)
+            : state.userConfig.commerce.ownedAmbientTracks.includes(item.themeValue);
+
+      if (owned) {
+        return { ok: false, message: "已拥有该商品" };
+      }
+
+      const charged = getShopPurchasePrice(item, state.userConfig.commerce.firstPurchaseUsed);
+      if (state.userConfig.commerce.starlight < charged) {
+        return { ok: false, message: "星芒余额不足" };
+      }
+
+      const nextUserConfig = normalizeUserConfig({
+        ...state.userConfig,
+        settings: {
+          ...state.userConfig.settings,
+          ...(item.category === "background" ? { backgroundTheme: item.themeValue as LearningSettings["backgroundTheme"] } : {}),
+          ...(item.category === "sound" ? { soundTheme: item.themeValue as LearningSettings["soundTheme"] } : {})
+        },
+        commerce: {
+          ...state.userConfig.commerce,
+          starlight: state.userConfig.commerce.starlight - charged,
+          firstPurchaseUsed: true,
+          ownedBackgroundThemes:
+            item.category === "background"
+              ? [...state.userConfig.commerce.ownedBackgroundThemes, item.themeValue]
+              : state.userConfig.commerce.ownedBackgroundThemes,
+          ownedSoundThemes:
+            item.category === "sound"
+              ? [...state.userConfig.commerce.ownedSoundThemes, item.themeValue]
+              : state.userConfig.commerce.ownedSoundThemes,
+          ownedAmbientTracks:
+            item.category === "ambient"
+              ? [...state.userConfig.commerce.ownedAmbientTracks, item.themeValue]
+              : state.userConfig.commerce.ownedAmbientTracks,
+          history: [
+            ...state.userConfig.commerce.history,
+            createStarTransaction(-charged, `商城兑换 · ${item.name}`)
+          ].slice(-50)
+        }
+      });
+
+      const warning = saveSnapshot(state.profileKey, {
+        modes: state.modes,
+        modeConfig: state.modeConfig,
+        userConfig: nextUserConfig
+      });
+
+      set({
+        userConfig: nextUserConfig,
+        settings: nextUserConfig.settings,
+        commerce: nextUserConfig.commerce,
+        storageWarning: warning ?? state.storageWarning
+      });
+
+      return { ok: true, message: "兑换成功", charged };
+    },
     clearStorageWarning: () => set({ storageWarning: null }),
     resetAll: () => {
       const state = get();

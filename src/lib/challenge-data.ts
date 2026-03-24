@@ -1,8 +1,9 @@
 import { Compass, Landmark, Mountain, Orbit, Sailboat, Sprout, Stars, Sun, Trees } from "lucide-react";
-import { words } from "@/lib/content";
+import { appConfig } from "@/lib/app-config";
+import { releaseWordCount, releaseWords } from "@/lib/content";
 import type { ExamLevelRecord, WordEntry } from "@/types/content";
 
-export const EXAM_WORD_LIMIT = 3500;
+export const EXAM_WORD_LIMIT = releaseWordCount;
 export const EXAM_WORLD_COUNT = 9;
 export const EXAM_LEVELS_PER_WORLD = 12;
 
@@ -18,11 +19,26 @@ export interface ExamWorld {
   name: string;
   subtitle: string;
   description: string;
+  season: "spring" | "summer" | "autumn" | "winter";
+  seasonLabel: string;
+  atmosphere: string;
   icon: typeof Sprout;
   surfaceClass: string;
   accentClass: string;
   levels: ExamLevel[];
 }
+
+const seasonMeta = [
+  { season: "spring", seasonLabel: "春", atmosphere: "淡绿、淡粉、柔光与嫩叶剪影" },
+  { season: "spring", seasonLabel: "春", atmosphere: "轻柔暖光、嫩叶轮廓与清新空气感" },
+  { season: "summer", seasonLabel: "夏", atmosphere: "淡蓝、淡黄、清透与轻微水面感" },
+  { season: "summer", seasonLabel: "夏", atmosphere: "清透高光、轻薄流线与水光感" },
+  { season: "autumn", seasonLabel: "秋", atmosphere: "淡橙、米黄、温暖与落叶感" },
+  { season: "autumn", seasonLabel: "秋", atmosphere: "暖调层次、米金纹理与柔和叶影" },
+  { season: "winter", seasonLabel: "冬", atmosphere: "灰蓝、纯白、清冷与冰晶感" },
+  { season: "winter", seasonLabel: "冬", atmosphere: "冷静高光、纯净轮廓与薄霜感" },
+  { season: "winter", seasonLabel: "冬", atmosphere: "终章静谧感、冰晶高光与收束氛围" }
+] as const;
 
 const worldThemes = [
   {
@@ -101,7 +117,7 @@ const worldThemes = [
     id: "world-9",
     name: "极光词穹",
     subtitle: "最后一段，把词汇地图完整走通。",
-    description: "通关这里以后，前 3500 个核心词就真正连成了系统。",
+    description: `通关这里以后，当前 ${releaseWordCount} 个发布级核心词就真正连成了系统。`,
     icon: Orbit,
     surfaceClass: "from-sky-100 via-white to-indigo-100",
     accentClass: "bg-surge"
@@ -116,7 +132,7 @@ function distributeItems(total: number, buckets: number) {
 }
 
 function buildExamWorlds() {
-  const availableWordCount = Math.min(words.length, EXAM_WORD_LIMIT);
+  const availableWordCount = Math.min(releaseWords.length, EXAM_WORD_LIMIT);
 
   if (availableWordCount < EXAM_WORLD_COUNT * EXAM_LEVELS_PER_WORLD) {
     return {
@@ -125,13 +141,17 @@ function buildExamWorlds() {
     };
   }
 
-  const examWords = words.slice(0, availableWordCount);
+  const examWords = releaseWords.slice(0, availableWordCount);
   const levelSizes = distributeItems(availableWordCount, EXAM_WORLD_COUNT * EXAM_LEVELS_PER_WORLD);
   let cursor = 0;
 
-  const worlds = worldThemes.map((theme, worldIndex) => ({
-    ...theme,
-    levels: Array.from({ length: EXAM_LEVELS_PER_WORLD }, (_, levelIndex) => {
+  const worlds = worldThemes.map((theme, worldIndex) => {
+    const season = seasonMeta[worldIndex % seasonMeta.length];
+
+    return {
+      ...theme,
+      ...season,
+      levels: Array.from({ length: EXAM_LEVELS_PER_WORLD }, (_, levelIndex) => {
       const size = levelSizes[worldIndex * EXAM_LEVELS_PER_WORLD + levelIndex];
       const start = cursor;
       const end = cursor + size;
@@ -143,8 +163,9 @@ function buildExamWorlds() {
         rangeLabel: `${start + 1}-${end}`,
         words: examWords.slice(start, end)
       };
-    })
-  }));
+      })
+    };
+  });
 
   return {
     worlds,
@@ -158,6 +179,10 @@ export const examWorlds: ExamWorld[] = examData.worlds;
 export const examWorldsWarning = examData.warning;
 
 export function getExamWorldUnlockState(progress: Record<string, ExamLevelRecord>, worldIndex: number) {
+  if (appConfig.isBeta) {
+    return true;
+  }
+
   if (worldIndex === 0) {
     return true;
   }

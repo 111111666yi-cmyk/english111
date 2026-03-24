@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Flame, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { releaseWordCount } from "@/lib/content";
 
 export function StreakBanner({
   streakDays,
@@ -18,7 +19,7 @@ export function StreakBanner({
         </div>
         <div>
           <h1 className="max-w-2xl text-4xl font-black leading-tight md:text-6xl">
-            从 3500 词到自然理解句子和短文。
+            从 {releaseWordCount} 个发布级核心词到自然理解句子和短文。
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-7 text-white/90 md:text-base">
 Open English 用本地题库、双语互动和轻游戏化进度，让你每天稳定前进，不依赖运行期大模型。

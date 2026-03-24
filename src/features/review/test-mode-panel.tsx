@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getSentenceQuiz, getVocabularyQuiz } from "@/data/quizzes";
 import { createEmptyQuizSession } from "@/lib/quiz-session";
-import { sentences, words } from "@/lib/content";
+import { releaseWords, sentences } from "@/lib/content";
 import { useLearningStore } from "@/stores/learning-store";
 
-const totalTestQuestions = words.length + sentences.length;
+const totalTestQuestions = releaseWords.length + sentences.length;
 
 function wrapIndex(index: number) {
   if (totalTestQuestions <= 0) {
@@ -38,11 +38,11 @@ export function TestModePanel() {
 
   const currentIndex = wrapIndex(testSession.index);
   const quiz = useMemo(() => {
-    if (currentIndex < words.length) {
+    if (currentIndex < releaseWords.length) {
       return getVocabularyQuiz(currentIndex, activeMode);
     }
 
-    return getSentenceQuiz(currentIndex - words.length);
+    return getSentenceQuiz(currentIndex - releaseWords.length);
   }, [activeMode, currentIndex]);
 
   useEffect(() => {

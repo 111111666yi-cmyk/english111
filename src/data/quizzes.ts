@@ -1,7 +1,9 @@
-import { expressions, passages, sentences, words } from "@/lib/content";
+import { expressions, passages, releaseWords, sentences, words as allWords } from "@/lib/content";
 import { resolveVisibleHighlights } from "@/lib/quiz-support";
 import type { ReviewMistakeEvent, StudyMode } from "@/stores/learning-store";
 import type { QuizItem, QuizOption } from "@/types/content";
+
+const words = releaseWords;
 
 function pickMeaningOptions(index: number): QuizOption[] {
   const target = words[index];
@@ -31,11 +33,18 @@ function pickMeaningOptions(index: number): QuizOption[] {
   return [...options.slice(offset), ...options.slice(0, offset)];
 }
 
-const wordMeaningLookup = new Map(words.map((word) => [word.word.toLowerCase(), word.meaningZh]));
-const wordEntryByLabel = new Map(words.map((word) => [word.word.toLowerCase(), word]));
+const wordMeaningLookup = new Map(allWords.map((word) => [word.word.toLowerCase(), word.meaningZh]));
+const wordEntryByLabel = new Map(allWords.map((word) => [word.word.toLowerCase(), word]));
 const wordIndexById = new Map(words.map((word, index) => [word.id, index]));
 const sentenceIndexById = new Map(sentences.map((sentence, index) => [sentence.id, index]));
 const expressionIndexById = new Map(expressions.map((expression, index) => [expression.id, index]));
+const passageQuestionByQuestionId = new Map(
+  passages.flatMap((passage) =>
+    passage.questions
+      .filter((question) => question.questionId)
+      .map((question) => [question.questionId as string, question] as const)
+  )
+);
 const MIN_EXPRESSION_QUIZ_SAMPLES = 8;
 
 export function canGenerateExpressionQuiz() {
@@ -278,6 +287,10 @@ function makeExpressionQuiz(index: number): QuizItem {
 }
 
 export function getVocabularyQuiz(wordIndex: number, mode: StudyMode = "simple") {
+  if (words.length === 0) {
+    return buildQuizLookupError("release-word-pool-empty");
+  }
+
   const safeIndex = wordIndex % words.length;
   return mode === "hard"
     ? makeVocabularyFillBlankQuiz(safeIndex)
@@ -285,6 +298,10 @@ export function getVocabularyQuiz(wordIndex: number, mode: StudyMode = "simple")
 }
 
 export function getSentenceQuiz(index: number) {
+  if (sentences.length === 0) {
+    return buildQuizLookupError("sentence-pool-empty");
+  }
+
   return makeSentenceQuiz(index % sentences.length);
 }
 
@@ -318,7 +335,8 @@ function stripKnownSuffix(value: string, suffixes: string[]) {
 }
 
 function resolveAutoWordQuizId(quizId: string) {
-  return stripKnownSuffix(quizId.slice("quiz-auto-word-".length), ["-meaning", "-spelling"]);
+  const resolved = stripKnownSuffix(quizId.slice("quiz-auto-word-".length), ["-meaning", "-spelling"]);
+  return resolved.startsWith("auto-word-") ? resolved.slice("auto-word-".length) : resolved;
 }
 
 function resolveWordQuizId(quizId: string) {
@@ -326,12 +344,13 @@ function resolveWordQuizId(quizId: string) {
 }
 
 function resolveAutoSentenceQuizId(quizId: string) {
-  return stripKnownSuffix(quizId.slice("quiz-auto-sentence-".length), [
+  const resolved = stripKnownSuffix(quizId.slice("quiz-auto-sentence-".length), [
     "-reorder",
     "-choice",
     "-match",
     "-blank"
   ]);
+  return resolved.startsWith("auto-sentence-") ? resolved.slice("auto-sentence-".length) : resolved;
 }
 
 function resolveSentenceQuizId(quizId: string) {
@@ -343,7 +362,69 @@ function resolveSentenceQuizId(quizId: string) {
   ]);
 }
 
+export function normalizeQuizId(quizId: string, mode: StudyMode = "simple") {
+  if (!quizId) {
+    return quizId;
+  }
+
+  if (quizId.endsWith("-quiz")) {
+    return quizId;
+  }
+
+  if (quizId.startsWith("quiz-auto-word-")) {
+    const wordId = resolveAutoWordQuizId(quizId);
+    const wordIndex = wordIndexById.get(wordId);
+    return wordIndex === undefined ? quizId : getVocabularyQuiz(wordIndex, mode).id;
+  }
+
+  if (quizId.startsWith("quiz-word-")) {
+    const wordId = resolveWordQuizId(quizId);
+    const wordIndex = wordIndexById.get(wordId);
+    return wordIndex === undefined ? quizId : getVocabularyQuiz(wordIndex, mode).id;
+  }
+
+  if (quizId.startsWith("quiz-auto-sentence-")) {
+    const sentenceId = resolveAutoSentenceQuizId(quizId);
+    const sentenceIndex = sentenceIndexById.get(sentenceId);
+    return sentenceIndex === undefined ? quizId : getSentenceQuiz(sentenceIndex).id;
+  }
+
+  if (quizId.startsWith("quiz-sentence-")) {
+    const sentenceId = resolveSentenceQuizId(quizId);
+    const sentenceIndex = sentenceIndexById.get(sentenceId);
+    return sentenceIndex === undefined ? quizId : getSentenceQuiz(sentenceIndex).id;
+  }
+
+  if (quizId.startsWith("quiz-")) {
+    return quizId;
+  }
+
+  if (wordIndexById.has(quizId)) {
+    return getVocabularyQuiz(wordIndexById.get(quizId) ?? 0, mode).id;
+  }
+
+  if (sentenceIndexById.has(quizId)) {
+    return getSentenceQuiz(sentenceIndexById.get(quizId) ?? 0).id;
+  }
+
+  if (expressionIndexById.has(quizId)) {
+    return `${quizId}-quiz`;
+  }
+
+  if (passageQuestionByQuestionId.has(quizId)) {
+    return passageQuestionByQuestionId.get(quizId)?.id ?? quizId;
+  }
+
+  return quizId;
+}
+
 export function getQuizById(quizId: string, mode: StudyMode = "simple") {
+  const normalizedQuizId = normalizeQuizId(quizId, mode);
+
+  if (normalizedQuizId !== quizId) {
+    return getQuizById(normalizedQuizId, mode);
+  }
+
   if (quizId.endsWith("-quiz")) {
     const expressionId = quizId.slice(0, -"-quiz".length);
     const expressionIndex = expressionIndexById.get(expressionId);
@@ -381,6 +462,11 @@ export function getQuizById(quizId: string, mode: StudyMode = "simple") {
     }
   }
 
+  const legacyQuestion = passageQuestionByQuestionId.get(quizId);
+  if (legacyQuestion) {
+    return legacyQuestion;
+  }
+
   return buildQuizLookupError(quizId);
 }
 
@@ -393,8 +479,14 @@ export function getReviewQueue(reviewMistakes: ReviewMistakeEvent[], limit = 120
     .slice()
     .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
     .slice(0, limit)
-    .map((event) => ({
-      event,
-      quiz: getQuizById(event.quizId, mode)
-    }));
+    .map((event) => {
+      const quiz = getQuizById(event.quizId, mode);
+      return quiz.type === "error"
+        ? null
+        : {
+            event,
+            quiz
+          };
+    })
+    .filter((entry): entry is { event: ReviewMistakeEvent; quiz: QuizItem } => Boolean(entry));
 }
