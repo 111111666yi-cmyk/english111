@@ -3,15 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowRight,
   Check,
-  ChevronLeft,
-  ChevronRight,
-  Crosshair,
+  Flag,
   Lock,
   MapPinned,
-  ScrollText,
   Sparkles,
   Star,
+  Target,
   Trophy,
   X
 } from "lucide-react";
@@ -22,7 +21,6 @@ import { getVocabularyQuiz } from "@/data/quizzes";
 import {
   examWorlds,
   examWorldsWarning,
-  getExamOverview,
   getExamStars,
   getExamWorldUnlockState
 } from "@/lib/challenge-data";
@@ -39,6 +37,13 @@ import {
   getLevelUnlockState,
   getNextLevelId
 } from "@/features/challenge/challenge-shared";
+import {
+  challengeCopy,
+  getChallengeModeStats,
+  getChallengePalette,
+  getChallengeRewardHint,
+  getChallengeWorldStats
+} from "@/features/challenge/challenge-ui";
 
 const NODE_Y = [98, 164, 230, 296, 362, 428, 494, 560, 626, 692, 758, 824];
 const NODE_X = [78, 172, 102, 188, 84, 182, 94, 190, 82, 178, 104, 186];
@@ -57,22 +62,28 @@ const watercolorShapes = [
 function buildNodeClass({
   unlocked,
   cleared,
-  current
+  current,
+  perfect
 }: {
   unlocked: boolean;
   cleared: boolean;
   current: boolean;
+  perfect: boolean;
 }) {
   if (!unlocked) {
     return "border-slate-300 bg-[linear-gradient(145deg,#dfe5eb,#f3f6f9)] text-slate-400 shadow-[inset_5px_5px_10px_rgba(182,190,200,0.45),inset_-5px_-5px_10px_rgba(255,255,255,0.9)]";
   }
 
   if (current) {
-    return "border-sky-100 bg-[linear-gradient(145deg,#a8edff,#6178fb)] text-white shadow-[0_0_0_4px_rgba(255,255,255,0.52),10px_10px_22px_rgba(104,135,219,0.28),-8px_-8px_18px_rgba(255,255,255,0.82)]";
+    return "border-white bg-[linear-gradient(145deg,#7fd6ff,#6170f7)] text-white shadow-[0_0_0_5px_rgba(255,255,255,0.58),12px_12px_26px_rgba(104,135,219,0.28),-8px_-8px_18px_rgba(255,255,255,0.82)]";
+  }
+
+  if (perfect) {
+    return "border-amber-200 bg-[linear-gradient(145deg,#fff7d6,#ffe39a)] text-amber-950 shadow-[10px_10px_22px_rgba(245,158,11,0.18),-8px_-8px_18px_rgba(255,255,255,0.82)]";
   }
 
   if (cleared) {
-    return "border-emerald-200 bg-[linear-gradient(145deg,#e4ffe7,#94dfb2)] text-emerald-900 shadow-[8px_8px_18px_rgba(112,190,146,0.22),-8px_-8px_18px_rgba(255,255,255,0.82)]";
+    return "border-emerald-200 bg-[linear-gradient(145deg,#f6fffa,#abebc0)] text-emerald-900 shadow-[8px_8px_18px_rgba(112,190,146,0.22),-8px_-8px_18px_rgba(255,255,255,0.82)]";
   }
 
   return "border-amber-200 bg-[linear-gradient(145deg,#fff8d9,#ffd378)] text-amber-950 shadow-[8px_8px_18px_rgba(221,180,72,0.22),-8px_-8px_18px_rgba(255,255,255,0.82)]";
@@ -130,6 +141,112 @@ function OverlayFrame({
   );
 }
 
+function ProgressStrip({
+  label,
+  value,
+  summary,
+  accent,
+  soft
+}: {
+  label: string;
+  value: number;
+  summary: string;
+  accent: string;
+  soft: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-slate-700">{label}</p>
+        <p className="text-sm font-bold text-slate-900">{summary}</p>
+      </div>
+      <div className="h-2.5 rounded-full bg-white/82 shadow-[inset_0_1px_2px_rgba(148,163,184,0.22)]">
+        <div
+          className="challenge-path-flow h-full rounded-full"
+          style={{
+            width: `${Math.max(0, Math.min(value, 100))}%`,
+            background: `linear-gradient(90deg, ${accent}, ${soft}, ${accent})`
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ModeOverviewCard({
+  label,
+  stats,
+  active,
+  paletteAccent,
+  paletteGlow
+}: {
+  label: string;
+  stats: ReturnType<typeof getChallengeModeStats>;
+  active: boolean;
+  paletteAccent: string;
+  paletteGlow: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[1.5rem] border px-4 py-4",
+        active ? "border-white/85 bg-white/90" : "border-white/70 bg-white/78"
+      )}
+      style={{
+        boxShadow: active
+          ? `0 16px 34px ${paletteGlow}, inset 0 1px 0 rgba(255,255,255,0.8)`
+          : "0 10px 24px rgba(148,163,184,0.14)"
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-slate-900">{label}</p>
+          <p className="mt-1 text-xs text-slate-500">
+            已完成 {stats.clearedLevels}/{stats.totalLevels} 关
+          </p>
+        </div>
+        {active ? (
+          <span
+            className="rounded-full px-3 py-1 text-[11px] font-bold text-white"
+            style={{ background: `linear-gradient(145deg, ${paletteAccent}, ${paletteAccent})` }}
+          >
+            当前
+          </span>
+        ) : null}
+      </div>
+
+      <div className="mt-3 space-y-3">
+        <ProgressStrip
+          label="模式完成率"
+          value={stats.completionPercent}
+          summary={`${stats.completionPercent}%`}
+          accent={paletteAccent}
+          soft="rgba(255,255,255,0.92)"
+        />
+
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-[1.15rem] bg-slate-50 px-3 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">总星数</p>
+            <p className="mt-1.5 text-lg font-black text-slate-900">{stats.totalStars}</p>
+          </div>
+          <div className="rounded-[1.15rem] bg-slate-50 px-3 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">已解锁世界</p>
+            <p className="mt-1.5 text-lg font-black text-slate-900">{stats.unlockedWorlds}</p>
+          </div>
+          <div className="rounded-[1.15rem] bg-slate-50 px-3 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">当前世界</p>
+            <p className="mt-1.5 text-lg font-black text-slate-900">{stats.currentWorld.clearedLevels}/{stats.currentWorld.totalLevels}</p>
+          </div>
+          <div className="rounded-[1.15rem] bg-slate-50 px-3 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">三星关卡</p>
+            <p className="mt-1.5 text-lg font-black text-slate-900">{stats.currentWorld.perfectLevels}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProgressPanel({
   open,
   onClose,
@@ -147,8 +264,12 @@ function ProgressPanel({
 }) {
   const simpleProgress = useLearningStore((state) => state.modes.simple.examLevelProgress);
   const hardProgress = useLearningStore((state) => state.modes.hard.examLevelProgress);
-  const simpleOverview = useMemo(() => getExamOverview(simpleProgress), [simpleProgress]);
-  const hardOverview = useMemo(() => getExamOverview(hardProgress), [hardProgress]);
+  const activeWorld = examWorlds[currentWorldIndex];
+  const palette = getChallengePalette(activeWorld);
+  const activeProgress = modeLabel === "简单" ? simpleProgress : hardProgress;
+  const simpleStats = useMemo(() => getChallengeModeStats(simpleProgress, currentWorldIndex), [simpleProgress, currentWorldIndex]);
+  const hardStats = useMemo(() => getChallengeModeStats(hardProgress, currentWorldIndex), [hardProgress, currentWorldIndex]);
+  const currentWorldStats = useMemo(() => getChallengeWorldStats(activeProgress, currentWorldIndex), [activeProgress, currentWorldIndex]);
 
   if (!open) {
     return null;
@@ -156,7 +277,7 @@ function ProgressPanel({
 
   return (
     <OverlayFrame onClose={onClose}>
-      <Card className="space-y-4 rounded-[1.75rem]">
+      <Card className="space-y-4 rounded-[1.85rem] border border-white/76 bg-[linear-gradient(145deg,#f8fbff,#dfe7ef)] shadow-[0_28px_56px_rgba(148,163,184,0.22)]">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-surge">进度</p>
@@ -175,48 +296,77 @@ function ProgressPanel({
           </button>
         </div>
 
-        <div className="grid gap-3">
-          <Card className="space-y-3 rounded-[1.25rem]">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-ink">简单模式</p>
-              <p className="text-xs text-slate-500">{simpleOverview.unlockedWorlds} 个世界已解锁</p>
+        <div
+          className="rounded-[1.7rem] border border-white/82 px-4 py-4 shadow-[0_20px_40px_rgba(148,163,184,0.16)]"
+          style={{ background: `linear-gradient(145deg, ${palette.accentSurface}, rgba(255,255,255,0.95))` }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: palette.accentText }}>
+                {challengeCopy.currentWorld}
+              </p>
+              <h4 className="mt-2 text-xl font-black text-slate-950">{worldName}</h4>
+              <p className="mt-1 text-sm text-slate-600">当前世界：{currentWorldIndex + 1}/{examWorlds.length}</p>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                当前世界进度：{Math.min(currentWorldIndex + 1, examWorlds.length)}/{examWorlds.length}
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                关卡总数：{simpleOverview.clearedLevels}/{examWorlds.length * 12}
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                世界星数：{simpleOverview.clearedWorlds}
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                总星数：{simpleOverview.totalStars}
-              </div>
-            </div>
-          </Card>
+            <span
+              className="rounded-full px-3 py-1 text-xs font-bold"
+              style={{
+                color: palette.accentText,
+                background: `linear-gradient(145deg, ${palette.accentSurfaceStrong}, rgba(255,255,255,0.95))`
+              }}
+            >
+              {modeLabel}
+            </span>
+          </div>
 
-          <Card className="space-y-3 rounded-[1.25rem]">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-ink">困难模式</p>
-              <p className="text-xs text-slate-500">{hardOverview.unlockedWorlds} 个世界已解锁</p>
+          <div className="mt-4 space-y-3">
+            <ProgressStrip
+              label="当前世界推进"
+              value={currentWorldStats.completionPercent}
+              summary={`${currentWorldStats.clearedLevels}/${currentWorldStats.totalLevels}`}
+              accent={palette.accent}
+              soft={palette.pathEnd}
+            />
+            <ProgressStrip
+              label="当前世界星级"
+              value={currentWorldStats.starPercent}
+              summary={`${currentWorldStats.totalStars}/${currentWorldStats.totalLevels * 3}`}
+              accent={palette.accentStrong}
+              soft={palette.pathEnd}
+            />
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+            <div className="rounded-[1.15rem] bg-white/84 px-3 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">当前关卡</p>
+              <p className="mt-1.5 text-lg font-black text-slate-900">第 {currentLevelLabel} 关</p>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                当前世界进度：{Math.min(currentWorldIndex + 1, examWorlds.length)}/{examWorlds.length}
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                关卡总数：{hardOverview.clearedLevels}/{examWorlds.length * 12}
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                世界星数：{hardOverview.clearedWorlds}
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                总星数：{hardOverview.totalStars}
-              </div>
+            <div className="rounded-[1.15rem] bg-white/84 px-3 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">三星关卡</p>
+              <p className="mt-1.5 text-lg font-black text-slate-900">{currentWorldStats.perfectLevels}</p>
             </div>
-          </Card>
+            <div className="rounded-[1.15rem] bg-white/84 px-3 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">剩余目标</p>
+              <p className="mt-1.5 text-lg font-black text-slate-900">{currentWorldStats.remainingLevels}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3">
+          <ModeOverviewCard
+            label="简单模式"
+            stats={simpleStats}
+            active={modeLabel === "简单"}
+            paletteAccent={palette.accent}
+            paletteGlow={palette.glow}
+          />
+          <ModeOverviewCard
+            label="困难模式"
+            stats={hardStats}
+            active={modeLabel === "困难"}
+            paletteAccent={palette.accentStrong}
+            paletteGlow={palette.glow}
+          />
         </div>
       </Card>
     </OverlayFrame>
@@ -526,6 +676,21 @@ export function ExamModePanel({
   const worldUnlocked = getExamWorldUnlockState(examLevelProgress, currentWorldIndex);
   const currentLevel = getCurrentPlayerLevel(currentWorldIndex, examLevelProgress, challengeSession.activeLevelId);
   const currentLevelLabel = currentLevel?.label ?? "1";
+  const palette = getChallengePalette(activeWorld);
+  const currentModeStats = useMemo(
+    () => getChallengeModeStats(examLevelProgress, currentWorldIndex),
+    [examLevelProgress, currentWorldIndex]
+  );
+  const currentWorldStats = useMemo(
+    () => getChallengeWorldStats(examLevelProgress, currentWorldIndex),
+    [examLevelProgress, currentWorldIndex]
+  );
+  const focusLevel = currentLevel ?? activeWorld.levels[0];
+  const focusLevelIndex = activeWorld.levels.findIndex((level) => level.id === focusLevel?.id);
+  const focusLevelAccessible =
+    focusLevelIndex >= 0 && canAccessLevel(currentWorldIndex, focusLevelIndex, examLevelProgress);
+  const focusLevelRecord = focusLevel ? examLevelProgress[focusLevel.id] : null;
+  const focusRewardHint = getChallengeRewardHint(currentWorldIndex, focusLevel?.label ?? null, focusLevelAccessible);
   const completedEntry = bannerCompleted ? findLevelEntry(bannerCompleted) : null;
   const unlockedEntry = bannerUnlocked ? findLevelEntry(bannerUnlocked) : null;
   const watercolor = watercolorShapes[currentWorldIndex % watercolorShapes.length];
@@ -591,57 +756,151 @@ export function ExamModePanel({
         ) : null}
       </AnimatePresence>
 
-      <div className="space-y-2.5" data-testid="challenge-mode-panel">
-        <div className="space-y-1.5 text-center">
-          <p className="text-sm font-semibold text-surge">闯关地图</p>
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="h-10 min-w-10 px-3"
-              disabled={!appConfig.challengeFreeSelectionEnabled}
-              onClick={() => {
-                if (!appConfig.challengeFreeSelectionEnabled) {
-                  return;
-                }
-                const next = currentWorldIndex - 1 < 0 ? examWorlds.length - 1 : currentWorldIndex - 1;
-                setWorldIndexState(next);
-                updateChallengeSession({ activeWorldId: examWorlds[next].id, selectedLevelId: null });
-                persistNow();
-              }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="min-w-[140px] text-2xl font-black text-ink">{activeWorld.name}</h2>
-            <Button
-              type="button"
-              variant="secondary"
-              className="h-10 min-w-10 px-3"
-              disabled={!appConfig.challengeFreeSelectionEnabled}
-              onClick={() => {
-                if (!appConfig.challengeFreeSelectionEnabled) {
-                  return;
-                }
-                const next = currentWorldIndex + 1 >= examWorlds.length ? 0 : currentWorldIndex + 1;
-                setWorldIndexState(next);
-                updateChallengeSession({ activeWorldId: examWorlds[next].id, selectedLevelId: null });
-                persistNow();
-              }}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <p className="text-sm text-slate-500">{activeModeLabel}模式</p>
-        </div>
+      <div className="space-y-3" data-testid="challenge-mode-panel">
+        <Card className={cn("overflow-hidden rounded-[2rem] border border-white/76 p-0 shadow-[0_22px_52px_rgba(148,163,184,0.18)] bg-gradient-to-br", activeWorld.surfaceClass)}>
+          <div className="relative px-4 py-4">
+            <div className={cn("pointer-events-none absolute inset-0 opacity-90", getSeasonGlowClass(activeWorld.season))} />
+            <div className="pointer-events-none absolute inset-0">
+              <div className={cn("absolute rounded-[999px] blur-2xl", watercolor[0], watercolor[1])} />
+              <div className={cn("absolute rounded-[999px] blur-2xl", watercolor[2], watercolor[3])} />
+              <div className={cn("absolute rounded-[999px] blur-2xl", watercolor[4], watercolor[5])} />
+            </div>
 
-        <div className="flex items-center justify-center gap-2">
-          <Button type="button" variant="secondary" className="min-w-[104px]" onClick={() => setMistakesOpen(true)}>
-            错题库
-          </Button>
-          <Button type="button" variant="secondary" className="min-w-[104px]" onClick={() => setProgressOpen(true)}>
-            进度
-          </Button>
-        </div>
+            <div className="relative space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em]" style={{ color: palette.accentText }}>
+                    {challengeCopy.heroEyebrow}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[2rem] font-black leading-none text-slate-950">{activeWorld.name}</h2>
+                    <span
+                      className="rounded-full px-3 py-1 text-[11px] font-bold"
+                      style={{
+                        color: palette.accentText,
+                        background: `linear-gradient(145deg, ${palette.accentSurfaceStrong}, rgba(255,255,255,0.94))`
+                      }}
+                    >
+                      {currentWorldIndex + 1}/{examWorlds.length}
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700">{activeModeLabel}模式</p>
+                  <p className="max-w-[15rem] text-sm leading-6 text-slate-600">{activeWorld.subtitle}</p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-9 rounded-full border border-white/82 bg-white/86 px-3 text-xs font-bold shadow-[0_10px_22px_rgba(148,163,184,0.12)]"
+                      onClick={() => setProgressOpen(true)}
+                    >
+                      进度总览
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-9 rounded-full border border-white/82 bg-white/86 px-3 text-xs font-bold shadow-[0_10px_22px_rgba(148,163,184,0.12)]"
+                      onClick={() => setMistakesOpen(true)}
+                    >
+                      错题库
+                    </Button>
+                  </div>
+                </div>
+
+                <div
+                  className="rounded-[1.45rem] border border-white/82 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(248,250,252,0.78))] px-3 py-3 shadow-[0_16px_32px_rgba(148,163,184,0.15)]"
+                  style={{ minWidth: 120 }}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{challengeCopy.currentWorld}</p>
+                  <p className="mt-2 text-2xl font-black text-slate-950">{currentWorldStats.completionPercent}%</p>
+                  <p className="mt-1 text-xs text-slate-500">{currentWorldStats.clearedLevels}/{currentWorldStats.totalLevels} 关</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="rounded-[1.2rem] bg-[linear-gradient(145deg,rgba(255,255,255,0.9),rgba(248,250,252,0.82))] px-3 py-3 shadow-[0_14px_26px_rgba(148,163,184,0.13)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">总星数</p>
+                  <p className="mt-1.5 text-lg font-black text-slate-900">{currentModeStats.totalStars}</p>
+                </div>
+                <div className="rounded-[1.2rem] bg-[linear-gradient(145deg,rgba(255,255,255,0.9),rgba(248,250,252,0.82))] px-3 py-3 shadow-[0_14px_26px_rgba(148,163,184,0.13)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">当前目标</p>
+                  <p className="mt-1.5 text-lg font-black text-slate-900">第 {focusLevel?.label ?? currentLevelLabel} 关</p>
+                </div>
+                <div className="rounded-[1.2rem] bg-[linear-gradient(145deg,rgba(255,255,255,0.9),rgba(248,250,252,0.82))] px-3 py-3 shadow-[0_14px_26px_rgba(148,163,184,0.13)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">已解锁世界</p>
+                  <p className="mt-1.5 text-lg font-black text-slate-900">{currentModeStats.unlockedWorlds}</p>
+                </div>
+              </div>
+
+              <div className="rounded-[1.6rem] border border-white/82 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(248,250,252,0.8))] px-4 py-4 shadow-[0_16px_32px_rgba(148,163,184,0.16)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-slate-900">
+                      {focusLevelAccessible ? `继续挑战 第 ${focusLevel?.label ?? currentLevelLabel} 关` : "当前世界预览中"}
+                    </p>
+                    <p className="text-sm text-slate-600">{focusRewardHint}</p>
+                  </div>
+                  <span
+                    className="rounded-full px-2.5 py-1 text-[11px] font-bold"
+                    style={{
+                      color: focusLevelAccessible ? "#ffffff" : palette.accentText,
+                      background: focusLevelAccessible
+                        ? `linear-gradient(145deg, ${palette.accent}, ${palette.accentStrong})`
+                        : `linear-gradient(145deg, ${palette.accentSurface}, rgba(255,255,255,0.94))`
+                    }}
+                  >
+                    {focusLevelAccessible ? "继续" : "预览"}
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-2.5">
+                  <ProgressStrip
+                    label="世界推进"
+                    value={currentWorldStats.completionPercent}
+                    summary={`${currentWorldStats.clearedLevels}/${currentWorldStats.totalLevels}`}
+                    accent={palette.accent}
+                    soft={palette.pathEnd}
+                  />
+                  <ProgressStrip
+                    label="星级收集"
+                    value={currentWorldStats.starPercent}
+                    summary={`${currentWorldStats.totalStars}/${currentWorldStats.totalLevels * 3}`}
+                    accent={palette.accentStrong}
+                    soft={palette.pathEnd}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <Button
+                    type="button"
+                    className="challenge-shine h-12 w-full justify-between rounded-[1.35rem] px-4 text-sm font-bold text-white"
+                    disabled={!focusLevelAccessible}
+                    onClick={() => {
+                      if (!focusLevelAccessible || !focusLevel) {
+                        return;
+                      }
+                      updateChallengeSession({
+                        activeWorldId: activeWorld.id,
+                        selectedLevelId: focusLevel.id
+                      });
+                      persistNow();
+                      setModalLevelId(focusLevel.id);
+                    }}
+                    style={{
+                      background: `linear-gradient(145deg, ${palette.accent}, ${palette.accentStrong})`,
+                      boxShadow: `0 16px 32px ${palette.glow}`
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      {focusLevelAccessible ? `继续挑战 第 ${focusLevel?.label ?? currentLevelLabel} 关` : "当前世界预览中"}
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {(completedEntry || unlockedEntry) ? (
           <motion.div
@@ -674,7 +933,7 @@ export function ExamModePanel({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.24, ease: "easeOut" }}
         >
-          <Card className={cn("overflow-hidden rounded-[1.75rem] p-0 bg-gradient-to-br", activeWorld.surfaceClass)}>
+          <Card className={cn("overflow-hidden rounded-[1.85rem] border border-white/76 p-0 shadow-[0_22px_50px_rgba(148,163,184,0.16)] bg-gradient-to-br", activeWorld.surfaceClass)}>
             <div className="relative px-3 py-4">
             <div className={cn("pointer-events-none absolute inset-0 opacity-90", getSeasonGlowClass(activeWorld.season))} />
             <div className="pointer-events-none absolute inset-0">
@@ -683,9 +942,25 @@ export function ExamModePanel({
               <div className={cn("absolute rounded-[999px] blur-2xl", watercolor[4], watercolor[5])} />
             </div>
 
-            <div className="relative overflow-hidden rounded-[1.6rem] border border-white/60 bg-white/28">
-              <div className="h-[560px] overflow-y-auto px-3 pb-5 pt-4">
-                <div className="relative mx-auto h-[900px] max-w-[312px] pt-7">
+            <div className="relative mb-3 flex items-start justify-between gap-3 px-1">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: palette.accentText }}>
+                  {challengeCopy.mapEyebrow}
+                </p>
+                <h3 className="mt-1 text-xl font-black text-slate-950">{activeWorld.name}</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  {worldUnlocked ? "跟着高亮节点继续推进" : "当前世界还未解锁，你看到的是预览地图"}
+                </p>
+              </div>
+              <div className="rounded-[1.2rem] bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(248,250,252,0.8))] px-3 py-2 text-right shadow-[0_12px_24px_rgba(148,163,184,0.14)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">本世界星数</p>
+                <p className="mt-1 text-lg font-black text-slate-900">{currentWorldStats.totalStars}</p>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-[1.7rem] border border-white/64 bg-white/36 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+              <div className="h-[520px] overflow-y-auto px-3 pb-5 pt-4">
+                <div className="relative mx-auto h-[880px] max-w-[312px] pt-7">
                   {activeWorld.levels.slice(0, -1).map((level, levelIndex) => {
                     const startX = NODE_X[levelIndex] + 24;
                     const startY = NODE_Y[levelIndex] + 24;
@@ -696,14 +971,15 @@ export function ExamModePanel({
                     const length = Math.sqrt(dx * dx + dy * dy);
                     const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
                     const fromCleared = Boolean(examLevelProgress[level.id]?.cleared);
+                    const guidesToCurrent = focusLevelAccessible && focusLevelIndex === levelIndex + 1;
 
                     return (
                       <div
                         key={`${activeWorld.id}-path-${level.id}`}
                         className={cn(
-                          "absolute h-[6px] rounded-full",
-                          fromCleared
-                            ? `bg-gradient-to-r ${activeWorld.accentClass.replace("bg-", "from-")} to-yellow-300 shadow-[0_0_12px_rgba(255,214,102,0.28)]`
+                          "absolute h-[7px] rounded-full",
+                          fromCleared || guidesToCurrent
+                            ? "challenge-path-flow"
                             : "bg-[linear-gradient(90deg,#dbe2ea,#edf2f6)] opacity-70"
                         )}
                         style={{
@@ -711,7 +987,14 @@ export function ExamModePanel({
                           top: startY,
                           width: length,
                           transform: `rotate(${angle}deg)`,
-                          transformOrigin: "left center"
+                          transformOrigin: "left center",
+                          background:
+                            fromCleared
+                              ? `linear-gradient(90deg, ${palette.pathStart}, ${palette.pathEnd}, ${palette.pathStart})`
+                              : guidesToCurrent
+                                ? `linear-gradient(90deg, ${palette.accentSurfaceStrong}, ${palette.pathEnd}, ${palette.accentSurface})`
+                                : undefined,
+                          boxShadow: fromCleared ? `0 0 14px ${palette.glow}` : undefined
                         }}
                       />
                     );
@@ -721,6 +1004,7 @@ export function ExamModePanel({
                     const unlocked = worldUnlocked && getLevelUnlockState(currentWorldIndex, levelIndex, examLevelProgress);
                     const accessible = canAccessLevel(currentWorldIndex, levelIndex, examLevelProgress);
                     const cleared = Boolean(examLevelProgress[level.id]?.cleared);
+                    const perfect = cleared && (examLevelProgress[level.id]?.bestStars ?? 0) === 3;
                     const current = currentLevel?.id === level.id;
 
                     return (
@@ -760,12 +1044,18 @@ export function ExamModePanel({
                         </div>
                         <div
                           className={cn(
-                            "relative flex h-12 w-12 items-center justify-center rounded-full border-[3px] text-sm font-black transition",
-                            buildNodeClass({ unlocked, cleared, current })
+                            "relative flex h-14 w-14 items-center justify-center rounded-full border-[3px] text-sm font-black transition",
+                            buildNodeClass({ unlocked, cleared, current, perfect }),
+                            current ? "challenge-node-current" : ""
                           )}
                         >
                           {current ? (
                             <span className="absolute inset-[-6px] rounded-full border border-sky-200/70 animate-pulse" aria-hidden="true" />
+                          ) : null}
+                          {perfect ? (
+                            <span className="absolute -top-1.5 -right-1.5 rounded-full bg-amber-300 px-1.5 py-0.5 text-[9px] font-black text-amber-950 shadow-[0_8px_18px_rgba(245,158,11,0.24)]">
+                              3☆
+                            </span>
                           ) : null}
                           {cleared ? <Check className="h-5 w-5" /> : unlocked ? level.label : <Lock className="h-4 w-4" />}
                         </div>
@@ -785,6 +1075,100 @@ export function ExamModePanel({
             </div>
           </Card>
         </motion.div>
+
+        <Card className="rounded-[1.8rem] border border-white/78 bg-[linear-gradient(145deg,rgba(255,255,255,0.94),rgba(248,250,252,0.82))] shadow-[0_18px_44px_rgba(148,163,184,0.14)]">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: palette.accentText }}>
+                  {challengeCopy.currentStageEyebrow}
+                </p>
+                <h3 className="mt-2 text-2xl font-black text-slate-950">第 {focusLevel?.label ?? currentLevelLabel} 关</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  {focusLevelAccessible
+                    ? `词条范围 ${focusLevel?.rangeLabel ?? "--"}，现在可以继续进入这一关。`
+                    : worldUnlocked
+                      ? "这关还未正式解锁，你可以先看地图上的推进路径。"
+                      : "这个世界当前仅供预览，完成前一世界后会正式开放。"}
+                </p>
+              </div>
+              <span
+                className="rounded-full px-3 py-1 text-xs font-bold"
+                style={{
+                  color: focusLevelAccessible ? "#ffffff" : palette.accentText,
+                  background: focusLevelAccessible
+                    ? `linear-gradient(145deg, ${palette.accent}, ${palette.accentStrong})`
+                    : `linear-gradient(145deg, ${palette.accentSurface}, rgba(255,255,255,0.94))`
+                }}
+              >
+                {focusLevelAccessible ? "当前可挑战" : "预览"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-sm">
+              <div className="rounded-[1.15rem] bg-slate-50 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{challengeCopy.bestStars}</p>
+                <p className="mt-1.5 text-lg font-black text-slate-900">{focusLevelRecord?.bestStars ?? 0}</p>
+              </div>
+              <div className="rounded-[1.15rem] bg-slate-50 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{challengeCopy.accuracy}</p>
+                <p className="mt-1.5 text-lg font-black text-slate-900">{focusLevelRecord?.bestAccuracy ?? 0}%</p>
+              </div>
+              <div className="rounded-[1.15rem] bg-slate-50 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{challengeCopy.currentWorld}</p>
+                <p className="mt-1.5 text-lg font-black text-slate-900">{currentWorldIndex + 1}/{examWorlds.length}</p>
+              </div>
+            </div>
+
+            <div
+              className="rounded-[1.35rem] border px-4 py-4"
+              style={{
+                background: `linear-gradient(145deg, ${palette.accentSurface}, rgba(255,255,255,0.96))`,
+                borderColor: palette.accentBorder
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex h-11 w-11 items-center justify-center rounded-[1.1rem] text-white"
+                  style={{ background: `linear-gradient(145deg, ${palette.accent}, ${palette.accentStrong})` }}
+                >
+                  <Flag className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">继续学下去会获得什么</p>
+                  <p className="mt-1 text-sm text-slate-600">{focusRewardHint}</p>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              className="h-11 w-full justify-between rounded-[1.25rem] px-4 text-sm font-bold text-white"
+              disabled={!focusLevelAccessible}
+              onClick={() => {
+                if (!focusLevelAccessible || !focusLevel) {
+                  return;
+                }
+                updateChallengeSession({
+                  activeWorldId: activeWorld.id,
+                  selectedLevelId: focusLevel.id
+                });
+                persistNow();
+                setModalLevelId(focusLevel.id);
+              }}
+              style={{
+                background: `linear-gradient(145deg, ${palette.accent}, ${palette.accentStrong})`,
+                boxShadow: `0 16px 32px ${palette.glow}`
+              }}
+            >
+              <span className="inline-flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                {focusLevelAccessible ? "进入当前关卡" : "等待解锁"}
+              </span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </Card>
       </div>
     </>
   );

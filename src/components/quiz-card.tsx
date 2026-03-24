@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createEmptyQuizSession, normalizeQuizSession, type QuizSessionState } from "@/lib/quiz-session";
 import { resolveQuizAnswerText } from "@/lib/quiz-support";
+import { playUiSound } from "@/lib/ui-sound";
 import { cn } from "@/lib/utils";
+import { useLearningStore } from "@/stores/learning-store";
+import { getChallengeQuizTypeLabel } from "@/features/challenge/challenge-ui";
 import type { QuizItem } from "@/types/content";
 
 interface QuizCardProps {
@@ -91,14 +94,17 @@ export function QuizCard({
     correct: false
   });
   const autoAdvanceTimer = useRef<number | null>(null);
+  const soundTheme = useLearningStore((state) => state.settings.soundTheme);
 
   const showStudySupport = variant === "study";
+  const isChallengeCard = variant === "challenge";
   const isErrorCard = quiz.type === "error";
   const showFillBlankTranslation = quiz.type === "fill-blank" && Boolean(quiz.promptSupplementZh);
   const displayAnswer = useMemo(() => resolveQuizAnswerText(quiz), [quiz]);
   const hasReadingOptionTranslations =
     quiz.type === "reading-question" &&
     Boolean(quiz.options?.some((option) => option.detail || option.translationZh));
+  const quizTypeLabel = getChallengeQuizTypeLabel(quiz.type, quiz.meta?.mode);
 
   const syncSession = (patch: Partial<QuizSessionState>) => {
     if (!onSessionStateChange) {
@@ -187,6 +193,7 @@ export function QuizCard({
             : isScalarAnswerEqual(quiz.answer, selected);
 
     setFeedback({ visible: true, correct });
+    void playUiSound(soundTheme);
     syncSession({ feedbackVisible: true, feedbackCorrect: correct });
     onResult?.(correct);
     queueAdvance(correct);
@@ -204,7 +211,11 @@ export function QuizCard({
 
   return (
     <Card
-      className={cn("space-y-5", compact && "space-y-4 rounded-[1.75rem] p-4")}
+      className={cn(
+        "space-y-5",
+        compact && "space-y-4 rounded-[1.75rem] p-4",
+        isChallengeCard && "overflow-hidden rounded-[1.9rem] border border-white/78 bg-[linear-gradient(145deg,rgba(255,255,255,0.97),rgba(248,250,252,0.88))] shadow-[0_20px_48px_rgba(148,163,184,0.16)]"
+      )}
       data-testid="quiz-card"
       data-quiz-id={quiz.id}
     >
@@ -216,18 +227,20 @@ export function QuizCard({
               "md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:items-start"
           )}
         >
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <Badge className="bg-sky/10 text-surge">{quiz.type}</Badge>
-                <h3 className="mt-3 text-xl font-bold text-ink" data-testid="quiz-prompt">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <Badge className={cn("bg-sky/10 text-surge", isChallengeCard && "rounded-full border border-white/70 bg-white/82 px-3 py-1 text-[11px] font-bold shadow-[0_10px_22px_rgba(148,163,184,0.12)]")}>
+                {quizTypeLabel}
+              </Badge>
+                <h3 className="mt-3 text-xl font-bold theme-primary-text" data-testid="quiz-prompt">
                   {quiz.prompt}
                 </h3>
                 {showStudySupport && quiz.promptZh ? (
-                  <p className="mt-2 text-sm text-slate-500">{quiz.promptZh}</p>
+                  <p className="mt-2 text-sm text-subtle-readable">{quiz.promptZh}</p>
                 ) : null}
                 {showStudySupport && !showFillBlankTranslation && quiz.promptSupplementZh ? (
-                  <p className="mt-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-600">
+                  <p className="mt-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm leading-6 text-muted-readable">
                     {quiz.promptSupplementZh}
                   </p>
                 ) : null}
@@ -242,7 +255,7 @@ export function QuizCard({
           {showFillBlankTranslation ? (
             <div className="rounded-3xl bg-sky/10 p-4" data-testid="quiz-fill-blank-translation">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
-                Translation
+                参考释义
               </p>
               <p className="mt-3 text-sm leading-7 text-slate-700 md:text-base">
                 {quiz.promptSupplementZh}
@@ -260,10 +273,10 @@ export function QuizCard({
           className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"
           data-testid="quiz-error-state"
         >
-          <p className="font-semibold">This quiz item is temporarily unavailable.</p>
-          <p className="mt-2">It will not be counted for scoring or mistake tracking.</p>
+          <p className="font-semibold">这道题暂时不可用。</p>
+          <p className="mt-2">它不会计入本关进度、成绩或错题记录。</p>
           {quiz.errorMessage ? (
-            <p className="mt-2 break-all text-xs text-amber-800/80">Source: {quiz.errorMessage}</p>
+            <p className="mt-2 break-all text-xs text-amber-800/80">异常来源：{quiz.errorMessage}</p>
           ) : null}
         </div>
       ) : quiz.type === "fill-blank" ? (
@@ -278,15 +291,15 @@ export function QuizCard({
             "w-full rounded-3xl border border-slate-200 bg-white px-4 text-base outline-none transition focus:border-surge",
             compact ? "py-2.5" : "py-3"
           )}
-          placeholder="Type the missing word"
+          placeholder="请输入缺失单词"
           data-testid="quiz-fill-blank-input"
         />
       ) : quiz.type === "reorder" ? (
         <div className="space-y-4">
           <div className="rounded-3xl border border-dashed border-surge/40 bg-sky/5 p-4">
-            <p className="text-sm text-slate-500">Current order</p>
+            <p className="text-sm text-slate-500">当前顺序</p>
             <p className="mt-2 min-h-7 text-base font-semibold text-ink">
-              {reorderAnswer.length ? reorderAnswer.join(" ") : "Tap the chips below to build the answer"}
+              {reorderAnswer.length ? reorderAnswer.join(" ") : "点击下方词块，拼出正确答案"}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -326,7 +339,7 @@ export function QuizCard({
                 })
               }
             >
-              Undo
+              撤回一步
             </Button>
             <Button
               type="button"
@@ -336,7 +349,7 @@ export function QuizCard({
                 syncSession({ reorderAnswer: [] });
               }}
             >
-              Clear
+              清空答案
             </Button>
           </div>
         </div>
@@ -388,7 +401,8 @@ export function QuizCard({
           </div>
           <div className="space-y-3 md:col-span-2">
             <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-500">
-              Current pairs: {matchedPairs.length ? matchedPairs.join(" / ") : "Pick English first, then Chinese."}
+              当前配对：
+              {matchedPairs.length ? matchedPairs.join(" / ") : "先选英文，再选中文。"}
             </div>
             <Button
               type="button"
@@ -399,50 +413,98 @@ export function QuizCard({
                 syncSession({ matchedPairs: [], activeLeft: "" });
               }}
             >
-              Clear pairs
+              清空配对
             </Button>
           </div>
         </div>
       ) : (
         <div className="grid gap-3">
           {quiz.options?.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => {
-                setSelected(option.id);
-                syncSession({ selected: option.id });
-              }}
-              data-testid="quiz-option"
-              data-option-id={option.id}
-              className={cn(
-                "rounded-3xl border px-4 text-left transition",
-                compact ? "py-2.5" : "py-3",
-                selected === option.id
-                  ? "border-surge bg-sky/10"
-                  : "border-slate-200 bg-white hover:border-surge/40"
-              )}
-            >
-              <p className="font-semibold text-ink">{option.label}</p>
-            </button>
+            (() => {
+              const isSelected = selected === option.id;
+              const isCorrect = feedback.visible && option.id === String(quiz.answer);
+              const isWrongSelected = feedback.visible && isSelected && !isCorrect;
+              const radioState = isCorrect ? "correct" : isWrongSelected ? "wrong" : isSelected ? "selected" : "idle";
+
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => {
+                    if (feedback.visible) {
+                      return;
+                    }
+                    setSelected(option.id);
+                    void playUiSound(soundTheme);
+                    syncSession({ selected: option.id });
+                  }}
+                  disabled={feedback.visible}
+                  data-testid="quiz-option"
+                  data-option-id={option.id}
+                  className={cn(
+                    "rounded-3xl border px-4 text-left transition disabled:cursor-default disabled:opacity-100",
+                    compact ? "py-2.5" : "py-3",
+                    isCorrect
+                      ? "border-emerald-500 bg-emerald-50"
+                      : isWrongSelected
+                        ? "border-red-400 bg-red-50"
+                        : isSelected
+                          ? "border-surge bg-sky/10"
+                          : "border-slate-200 bg-white hover:border-surge/40"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="option-radio mt-0.5 shrink-0" data-state={radioState} aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-ink">{option.label}</p>
+                      {feedback.visible ? (
+                        <p className="mt-1 text-xs font-medium text-muted-readable">
+                          {isCorrect ? "正确答案" : isWrongSelected ? "你的选择" : "未选择"}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </button>
+              );
+            })()
           ))}
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {!compact ? (
-          <div className="text-sm text-slate-500">
-            {isErrorCard
-              ? "This item is in error state and will not affect progress."
-              : showStudySupport && quiz.relatedWords.length
-                ? `Focus words: ${quiz.relatedWords.join(" / ")}`
-                : "Submit and continue when you are ready."}
-          </div>
-        ) : (
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{quiz.type}</div>
-        )}
-        <Button type="button" onClick={submit} disabled={!canSubmit} data-testid="quiz-submit">
-          Submit
+      <div className="space-y-3 rounded-[1.4rem] bg-slate-50/90 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {!compact ? (
+            <div className="text-sm text-subtle-readable">
+              <span className="font-semibold text-ink">{feedback.visible ? "已提交" : "未提交"}</span>
+              {" · "}
+              {isErrorCard
+                ? "当前题目不计入进度。"
+                : showStudySupport && quiz.relatedWords.length
+                  ? `重点词：${quiz.relatedWords.join(" / ")}`
+                  : "先选答案，再提交本题。"}
+            </div>
+          ) : (
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{quizTypeLabel}</div>
+          )}
+          {feedback.visible ? (
+            <div
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-bold",
+                feedback.correct ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+              )}
+            >
+              {feedback.correct ? "回答正确" : "回答错误"}
+            </div>
+          ) : null}
+        </div>
+        <Button
+          type="button"
+          onClick={submit}
+          disabled={!canSubmit || feedback.visible}
+          className={cn("w-full", isChallengeCard && "h-12 rounded-[1.25rem] text-sm font-bold")}
+          data-testid="quiz-submit"
+        >
+          {feedback.visible ? "已提交" : "提交答案"}
         </Button>
       </div>
 
@@ -451,15 +513,16 @@ export function QuizCard({
           <ResultToast
             visible={feedback.visible}
             correct={feedback.correct}
-            text={feedback.correct ? "Correct. Moving on." : "Saved for review. Check the answer below."}
+            text={feedback.correct ? "回答正确，继续下一题。" : "已加入错题库，请看解析。"}
           />
-          <p className="text-sm text-slate-600">
-            Answer: <span className="font-semibold text-ink">{displayAnswer}</span>
+          <p className="text-sm text-muted-readable">
+            正确答案：
+            <span className="font-semibold text-ink">{displayAnswer}</span>
           </p>
-          <p className="text-sm leading-6 text-slate-500">{quiz.explanation}</p>
+          <p className="text-sm leading-6 text-subtle-readable">{quiz.explanation}</p>
           {hasReadingOptionTranslations ? (
             <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-100">
-              <p className="text-sm font-semibold text-ink">Option Notes</p>
+              <p className="text-sm font-semibold text-ink">选项说明</p>
               <div className="mt-3 space-y-3">
                 {quiz.options?.map((option) => (
                   <div key={option.id} className="rounded-2xl bg-slate-50 px-3 py-3">

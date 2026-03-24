@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Flag, Sparkles, Star, Target } from "lucide-react";
 import { QuizCard } from "@/components/quiz-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { Shell } from "@/components/shell";
 import { releaseWordIndexById } from "@/lib/content";
 import { useLearningStore } from "@/stores/learning-store";
 import { canAccessLevel, findLevelEntry, getNextLevelId } from "@/features/challenge/challenge-shared";
+import { challengeCopy, getChallengePalette } from "@/features/challenge/challenge-ui";
 import { getExamStars } from "@/lib/challenge-data";
 
 export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
@@ -30,6 +31,7 @@ export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
   const persistNow = useLearningStore((state) => state.persistNow);
 
   const levelEntry = findLevelEntry(levelId);
+  const palette = levelEntry ? getChallengePalette(levelEntry.world) : null;
 
   useEffect(() => {
     if (!hydrated || !levelEntry) {
@@ -156,7 +158,7 @@ export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
 
   return (
     <Shell>
-      <div className="space-y-4" data-testid="challenge-level-screen">
+      <div className="space-y-5" data-testid="challenge-level-screen">
         <div className="flex items-center justify-between gap-3">
           <Button
             type="button"
@@ -179,26 +181,99 @@ export function ChallengeLevelScreen({ levelId }: { levelId: string }) {
           </div>
         </div>
 
-        <Card className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl bg-slate-50 px-4 py-3">
-              <p className="text-sm text-slate-500">关卡</p>
-              <p className="mt-2 text-3xl font-black text-ink">{levelEntry.level.label}</p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 px-4 py-3">
-              <p className="text-sm text-slate-500">当前进度</p>
-              <p className="mt-2 text-3xl font-black text-ink" data-testid="challenge-current-index">
-                {Math.min(challengeSession.questionIndex + 1, activeQuizzes.length)} / {activeQuizzes.length}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 px-4 py-3">
-              <p className="text-sm text-slate-500">星数</p>
-              <p className="mt-2 text-3xl font-black text-ink">{stars}</p>
-            </div>
-          </div>
+        <Card
+          className="overflow-hidden border border-white/78 p-0 shadow-[0_22px_52px_rgba(148,163,184,0.16)]"
+          style={{
+            background: palette
+              ? `linear-gradient(145deg, rgba(255,255,255,0.96), ${palette.accentSurface})`
+              : undefined
+          }}
+        >
+          <div className="space-y-5 px-5 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em]" style={{ color: palette?.accentText }}>
+                  {challengeCopy.currentStageEyebrow}
+                </p>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-black text-ink">第 {levelEntry.level.label} 关</h1>
+                  <span
+                    className="rounded-full px-3 py-1 text-xs font-bold text-white"
+                    style={{
+                      background: palette
+                        ? `linear-gradient(145deg, ${palette.accent}, ${palette.accentStrong})`
+                        : undefined
+                    }}
+                  >
+                    {activeMode === "simple" ? "简单模式" : "困难模式"}
+                  </span>
+                </div>
+                <p className="max-w-2xl text-sm leading-7 text-slate-600">
+                  词条范围 {levelEntry.level.rangeLabel}。保持当前节奏完成这关，就能继续推进世界地图。
+                </p>
+              </div>
 
-          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            词条范围：{levelEntry.level.rangeLabel} · 正确率：{accuracy}%
+              <div
+                className="rounded-[1.5rem] border border-white/82 bg-white/88 px-4 py-4 shadow-[0_16px_34px_rgba(148,163,184,0.14)]"
+                style={{ minWidth: 220 }}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">本关目标</p>
+                <div className="mt-3 flex items-center gap-3">
+                  <span
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-[1.1rem] text-white"
+                    style={{
+                      background: palette
+                        ? `linear-gradient(145deg, ${palette.accent}, ${palette.accentStrong})`
+                        : undefined
+                    }}
+                  >
+                    <Target className="h-4 w-4" />
+                  </span>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-slate-900">完成全部题目并争取更高星级</p>
+                    <p className="text-sm text-slate-600">当前正确率 {accuracy}% · 已获 {stars} 星</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="rounded-[1.45rem] bg-white/86 px-4 py-3 shadow-[0_12px_26px_rgba(148,163,184,0.12)]">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-slate-500">关卡</p>
+                  <Flag className="h-4 w-4" style={{ color: palette?.accentText }} />
+                </div>
+                <p className="mt-2 text-3xl font-black text-ink">{levelEntry.level.label}</p>
+              </div>
+              <div className="rounded-[1.45rem] bg-white/86 px-4 py-3 shadow-[0_12px_26px_rgba(148,163,184,0.12)]">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-slate-500">当前进度</p>
+                  <Sparkles className="h-4 w-4" style={{ color: palette?.accentText }} />
+                </div>
+                <p className="mt-2 text-3xl font-black text-ink" data-testid="challenge-current-index">
+                  {Math.min(challengeSession.questionIndex + 1, activeQuizzes.length)} / {activeQuizzes.length}
+                </p>
+              </div>
+              <div className="rounded-[1.45rem] bg-white/86 px-4 py-3 shadow-[0_12px_26px_rgba(148,163,184,0.12)]">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-slate-500">当前星数</p>
+                  <Star className="h-4 w-4 text-amber-500" />
+                </div>
+                <p className="mt-2 text-3xl font-black text-ink">{stars}</p>
+              </div>
+              <div className="rounded-[1.45rem] bg-white/86 px-4 py-3 shadow-[0_12px_26px_rgba(148,163,184,0.12)]">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-slate-500">{challengeCopy.accuracy}</p>
+                  <Target className="h-4 w-4" style={{ color: palette?.accentText }} />
+                </div>
+                <p className="mt-2 text-3xl font-black text-ink">{accuracy}%</p>
+              </div>
+            </div>
+
+            <div className="rounded-[1.45rem] border border-white/78 bg-white/78 px-4 py-4 text-sm text-slate-600 shadow-[0_12px_28px_rgba(148,163,184,0.12)]">
+              <p className="font-bold text-slate-900">继续学下去会获得什么</p>
+              <p className="mt-2 leading-7">完成当前题组后会自动结算星级，并根据成绩推进到下一关或保留在本关继续挑战。</p>
+            </div>
           </div>
         </Card>
 
