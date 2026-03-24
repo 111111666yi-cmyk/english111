@@ -25,6 +25,7 @@
     "content:tts:passages": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-passage-audio.ps1 -Sync",
     "content:check:quality": "tsx scripts/check-content-quality.ts",
     "content:audit:release": "tsx scripts/content-release-audit.ts",
+    "content:verify:expanded": "tsx scripts/verify-expanded-content.ts",
     "content:report:audio-integrity": "node scripts/report-audio-integrity.mjs",
     "audio:check:orphans": "tsx scripts/report-audio-orphans.ts",
     "content:fill:passage-audio": "tsx scripts/fill-missing-passage-audio.ts",

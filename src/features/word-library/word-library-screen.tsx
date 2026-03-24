@@ -144,8 +144,8 @@ export function WordLibraryScreen() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/80 bg-white/72 px-3 py-2 text-xs font-semibold text-slate-500">
-          <span>{deferredFilter ? `匹配 ${filteredWords.length} 个结果` : `共收录 ${words.length} 个单词`}</span>
-          <span>{isFiltering ? "筛选中..." : `正式学习 ${releaseWordCount} 个 · 已掌握 ${releaseKnownWords} 个`}</span>
+          <span>{deferredFilter ? `匹配 ${filteredWords.length} 个结果` : `词库检索 ${words.length} 个 · 正式学习 ${releaseWordCount} 个`}</span>
+          <span>{isFiltering ? "筛选中..." : `已掌握 ${releaseKnownWords} 个 · 仅正式学习词计入统计`}</span>
         </div>
 
         <div className="space-y-2" data-testid="word-library-list">
