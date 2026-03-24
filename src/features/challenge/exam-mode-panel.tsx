@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Flag,
   Lock,
   MapPinned,
@@ -695,6 +697,21 @@ export function ExamModePanel({
   const unlockedEntry = bannerUnlocked ? findLevelEntry(bannerUnlocked) : null;
   const watercolor = watercolorShapes[currentWorldIndex % watercolorShapes.length];
 
+  const selectWorld = (nextIndex: number) => {
+    if (!appConfig.challengeFreeSelectionEnabled && nextIndex !== sequentialWorldIndex) {
+      return;
+    }
+
+    const normalizedIndex = (nextIndex + examWorlds.length) % examWorlds.length;
+    setWorldIndexState(normalizedIndex);
+    updateChallengeSession({ activeWorldId: examWorlds[normalizedIndex].id, selectedLevelId: null });
+    persistNow();
+  };
+
+  const stepWorld = (direction: -1 | 1) => {
+    selectWorld(currentWorldIndex + direction);
+  };
+
   useEffect(() => {
     if (!appConfig.challengeFreeSelectionEnabled) {
       if (currentWorldIndex !== sequentialWorldIndex) {
@@ -786,6 +803,35 @@ export function ExamModePanel({
                   </div>
                   <p className="text-sm font-semibold text-slate-700">{activeModeLabel}模式</p>
                   <p className="max-w-[15rem] text-sm leading-6 text-slate-600">{activeWorld.subtitle}</p>
+                  <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-10 w-10 rounded-full border border-white/82 bg-white/86 p-0 shadow-[0_10px_22px_rgba(148,163,184,0.12)]"
+                      disabled={!appConfig.challengeFreeSelectionEnabled}
+                      onClick={() => stepWorld(-1)}
+                      aria-label="查看上一张地图"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="rounded-[1.2rem] border border-white/82 bg-white/84 px-3 py-2 shadow-[0_10px_24px_rgba(148,163,184,0.12)]">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">切换地图</p>
+                      <p className="mt-1 text-sm font-bold text-slate-900">{activeWorld.name}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {worldUnlocked ? "当前世界已进入正式闯关" : "可提前查看后续地图"}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-10 w-10 rounded-full border border-white/82 bg-white/86 p-0 shadow-[0_10px_22px_rgba(148,163,184,0.12)]"
+                      disabled={!appConfig.challengeFreeSelectionEnabled}
+                      onClick={() => stepWorld(1)}
+                      aria-label="查看下一张地图"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <Button
                       type="button"

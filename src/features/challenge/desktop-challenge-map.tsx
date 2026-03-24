@@ -7,6 +7,8 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Flag,
   Lock,
   Sparkles,
@@ -299,6 +301,21 @@ export function DesktopChallengeMap({
           ? "三星通关"
           : "已通关";
 
+  const selectWorld = (nextIndex: number) => {
+    if (!appConfig.challengeFreeSelectionEnabled && nextIndex !== sequentialWorldIndex) {
+      return;
+    }
+
+    const normalizedIndex = (nextIndex + examWorlds.length) % examWorlds.length;
+    setWorldIndex(normalizedIndex);
+    updateChallengeSession({ activeWorldId: examWorlds[normalizedIndex].id, selectedLevelId: null, activeLevelId: null });
+    persistNow();
+  };
+
+  const stepWorld = (direction: -1 | 1) => {
+    selectWorld(worldIndex + direction);
+  };
+
   const openLevel = () => {
     if (!selectedLevel || !selectedUnlocked) {
       return;
@@ -388,6 +405,32 @@ export function DesktopChallengeMap({
                           当前地图为预览状态
                         </span>
                       ) : null}
+                    </div>
+                    <div className="flex items-center gap-3 pt-1">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-11 rounded-full border border-white/82 bg-white/86 px-4"
+                        disabled={!appConfig.challengeFreeSelectionEnabled}
+                        onClick={() => stepWorld(-1)}
+                      >
+                        <ChevronLeft className="mr-1 h-4 w-4" />
+                        上一张地图
+                      </Button>
+                      <div className="rounded-[1.3rem] border border-white/82 bg-white/84 px-4 py-2.5 shadow-[0_12px_26px_rgba(148,163,184,0.12)]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">切换地图</p>
+                        <p className="mt-1 text-sm font-bold text-slate-900">{activeWorld.name}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-11 rounded-full border border-white/82 bg-white/86 px-4"
+                        disabled={!appConfig.challengeFreeSelectionEnabled}
+                        onClick={() => stepWorld(1)}
+                      >
+                        下一张地图
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </div>
